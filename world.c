@@ -13,37 +13,49 @@
 #include <math.h>
 
 
-#define STEP 1.0f
-#define M_PI_HALF 1.5708f
-
-
 static int windowWidth = 800;
 static int windowHeight = 400;
 
-static float POVX = 0.0f;
-static float POVY = 0.0f;
+
+// INPUT HANDLING
 static unsigned int UP_PRESSED = 0;
 static unsigned int DOWN_PRESSED = 0;
 static unsigned int RIGHT_PRESSED = 0;
 static unsigned int LEFT_PRESSED = 0;
 static int mouseDownX = 0;
 static int mouseDownY = 0;
+
+
+// FIRST PERSON PERSPECTIVE USING KEYBOARD (WASD), MOUSE (LOOK)
+#define STEP .10f
+static float cameraX = 0.0f;
+static float cameraY = 0.0f;
 static float mouseRotationX = 180.0f;
 static float mouseRotationY = 0.0f;
-static float startRotationX = 0.0f;
-static float startRotationY = 0.0f;
-
-
-static GLfloat spin = 0.0f;
-static float *_points;
-static uint32_t *_indices;
-static float *_colors;
-static unsigned int _numPoints;
-static unsigned int _numIndices;
+static float startRotationX = 0.0f;  // POV heading on mouse down
+static float startRotationY = 0.0f;  // POV heading on mouse down
 
 void init(){
 	glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 	glShadeModel(GL_FLAT);
+}
+
+void unitSquare(float x, float y, float width, float height){
+	static const GLfloat _unit_square[] = {
+	    -0.5f, 0.5f, 0.0f,     0.5f, 0.5f, 0.0f,     -0.5f, -0.5f, 0.0f,     0.5f, -0.5f, 0.0f  };
+	static const GLfloat _unit_square_normals[] = {
+	    0.0f, 0.0f, 1.0f,     0.0f, 0.0f, 1.0f,     0.0f, 0.0f, 1.0f,     0.0f, 0.0f, 1.0f  };
+	glPushMatrix();
+	glTranslatef(x, y, 0.0);
+	glScalef(width, height, 1.0);
+	glEnableClientState(GL_VERTEX_ARRAY);
+	glEnableClientState(GL_NORMAL_ARRAY);
+	glVertexPointer(3, GL_FLOAT, 0, _unit_square);
+	glNormalPointer(GL_FLOAT, 0, _unit_square_normals);
+	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+	glDisableClientState(GL_NORMAL_ARRAY);
+	glDisableClientState(GL_VERTEX_ARRAY);
+	glPopMatrix();
 }
 
 void display(){
@@ -52,39 +64,40 @@ void display(){
 	glEnable(GL_DEPTH_TEST);
 	
 	glPushMatrix();
-		// glTranslatef(0, 0, -30);
-		// glTranslatef(0, 0, -50);
-		// glScalef(.1, .1, -.1);
-   		glRotatef(mouseRotationY, -1, 0, 0);
-	    glRotatef(mouseRotationX, 0, -1, 0);
+		glRotatef(mouseRotationY, -1, 0, 0);
+		glRotatef(mouseRotationX, 0, 0, -1);
+		glTranslatef(cameraX, cameraY, 0);
+		// first person perspective has been established
+		// draw below
 
-		glTranslatef(POVY, 0, -POVX);
 		glPushMatrix();
-
-		// glRotatef(-90, 1, 0, 0);
-		glTranslatef(0,0,-30);
-
-	glPushMatrix();
-	glRotatef(spin, 0.0f, 0.0f, 1.0f);
-		glColor3f(1.0, 1.0, 1.0);
-		glRectf(-25.0, -25.0, 25.0, 25.0);
-	glPopMatrix();
+			glTranslatef(0.0f, 0.0f, -1.5f);
+			int XOffset = cameraX;
+			int ZOffset = cameraY;
+			for(int i = -8; i <= 8; i++){
+				for(int j = -8; j <= 8; j++){
+					float b = abs(((i+j+XOffset+ZOffset)%2));
+					if(b) glColor3f(0.2, 0.2, 0.2);
+					else glColor3f(0.4, 0.4, 0.4);
+					unitSquare(i-XOffset, j-ZOffset, 1, 1);
+				}
+			}
+		glPopMatrix();
 
 		// glRotatef(180, -1, 0, 0);  // ORTHO 1
 		// glRotatef(120+cos(spin*.0015)*30, -1, 0, 0);  // PERSPECTIVE 1
 
 		// glRotatef(sin(spin*.004)*90, 0.0f, 0.0f, 1.0f);  // PERSPECTIVE 2
 		glPushMatrix();
-		glScalef(-1.0f, 1.0f, .10f);
-		glEnableClientState(GL_COLOR_ARRAY);
-		glEnableClientState(GL_VERTEX_ARRAY);
-		glColor3f(0.5f, 1.0f, 0.5f);
-		glColorPointer(3, GL_FLOAT, 0, _colors);
-		glVertexPointer(3, GL_FLOAT, 0, _points);
-		// glDrawArrays(GL_POINTS, 0, _numPoints);
-		// glDrawElements(GL_TRIANGLES, _numIndices, GL_UNSIGNED_INT, _indices);
-		glDisableClientState(GL_VERTEX_ARRAY);
-		glDisableClientState(GL_COLOR_ARRAY);
+			glEnableClientState(GL_COLOR_ARRAY);
+			glEnableClientState(GL_VERTEX_ARRAY);
+			// glColor3f(0.5f, 1.0f, 0.5f);
+			// glColorPointer(3, GL_FLOAT, 0, _colors);
+			// glVertexPointer(3, GL_FLOAT, 0, _points);
+			// glDrawArrays(GL_POINTS, 0, _numPoints);
+			// glDrawElements(GL_TRIANGLES, _numIndices, GL_UNSIGNED_INT, _indices);
+			glDisableClientState(GL_VERTEX_ARRAY);
+			glDisableClientState(GL_COLOR_ARRAY);
 		glPopMatrix();
 
 		// glPushMatrix();
@@ -97,71 +110,68 @@ void display(){
 		// glDisableClientState(GL_VERTEX_ARRAY);
 		// glPopMatrix();
 
+
 	glPopMatrix();
-	glPopMatrix();
+
 	glutSwapBuffers();
 	// glFlush();
 }
 
-void spinDisplay(void){
-	spin = spin - 2.0;
-	if(spin > 360.0){
-		spin = spin - 360.0;
-	}
-	glutPostRedisplay();
-}
+// void spinDisplay(void){
+// 	spin = spin - 2.0;
+// 	if(spin > 360.0){
+// 		spin = spin - 360.0;
+// 	}
+// 	glutPostRedisplay();
+// }
 
 void update(){
 
-    float lookAzimuth = 0;
-    float mouseAzimuth = mouseRotationX/180.*3.14159f-M_PI_HALF;    
-    lookAzimuth += mouseAzimuth;
-    
-    if(UP_PRESSED){
-        float x = sinf(lookAzimuth);
-        float y = cosf(lookAzimuth);
-        POVX += x;
-        POVY += y;
-    }
-    if(DOWN_PRESSED){
-        float x = sinf(lookAzimuth);
-        float y = cosf(lookAzimuth);
-        POVX -= x;
-        POVY -= y;
-    }
-    if(LEFT_PRESSED){
-        float x = sinf(lookAzimuth+M_PI_HALF);
-        float y = cosf(lookAzimuth+M_PI_HALF);
-        POVX -= x;
-        POVY -= y;
-    }
-    if(RIGHT_PRESSED){
-        float x = sinf(lookAzimuth+M_PI_HALF);
-        float y = cosf(lookAzimuth+M_PI_HALF);
-        POVX += x;
-        POVY += y;
-    }
+	float lookAzimuth = 0;
+	float mouseAzimuth = mouseRotationX/180.*M_PI;    
+	lookAzimuth += mouseAzimuth;
+	
+	if(UP_PRESSED){
+		float x = STEP * sinf(lookAzimuth);
+		float y = STEP * -cosf(lookAzimuth);
+		cameraX += x;
+		cameraY += y;
+	}
+	if(DOWN_PRESSED){
+		float x = STEP * sinf(lookAzimuth);
+		float y = STEP * -cosf(lookAzimuth);
+		cameraX -= x;
+		cameraY -= y;
+	}
+	if(LEFT_PRESSED){
+		float x = STEP * sinf(lookAzimuth+M_PI_2);
+		float y = STEP * -cosf(lookAzimuth+M_PI_2);
+		cameraX -= x;
+		cameraY -= y;
+	}
+	if(RIGHT_PRESSED){
+		float x = STEP * sinf(lookAzimuth+M_PI_2);
+		float y = STEP * -cosf(lookAzimuth+M_PI_2);
+		cameraX += x;
+		cameraY += y;
+	}
 	glutPostRedisplay();
 }
 
 void mouse(int button, int state, int x, int y){
 	switch(button){
 		case GLUT_LEFT_BUTTON:
-			if(state == GLUT_DOWN)
+			// if(state == GLUT_DOWN) { }
 				// glutIdleFunc(spinDisplay);
-				mouseDownX = x;
-				mouseDownY = y;
-				startRotationX = mouseRotationX;
-				startRotationY = mouseRotationY;
-			break;
+			mouseDownX = x;
+			mouseDownY = y;
+			startRotationX = mouseRotationX;
+			startRotationY = mouseRotationY;
+		break;
 		case GLUT_MIDDLE_BUTTON:
-			if(state == GLUT_DOWN)
-				// glutIdleFunc(NULL);
-				mouseDownX = x;
-				mouseDownY = y;
-				startRotationX = mouseRotationX;
-				startRotationY = mouseRotationY;
-			break;
+		break;
+		case GLUT_RIGHT_BUTTON:
+		break;
 		default:
 			break;
 	}
@@ -172,17 +182,9 @@ void mouseMotion(int x, int y)
 	mouseRotationX = startRotationX + mouseDownX - x;
 	mouseRotationY = startRotationY + mouseDownY - y;
 	glutPostRedisplay();
-	// printf("%f, %f\n", mouseRotationX, mouseRotationY);
-  // If button1 pressed, zoom in/out if mouse is moved up/down.
-  // if (g_bButton1Down)
-  //   {
-  //     g_fViewDistance = (y - g_yClick) / 3.0;
-  //     if (g_fViewDistance < VIEWING_DISTANCE_MIN)
-  //        g_fViewDistance = VIEWING_DISTANCE_MIN;
-  //     glutPostRedisplay();
-  //   }
 }
-void keyboard(unsigned char key, int x, int y){
+
+void keyboardDown(unsigned char key, int x, int y){
 	switch (key){
 		case 27:             // ESCAPE key
 			exit (0);
@@ -261,7 +263,7 @@ int main(int argc, char **argv){
 	glutMouseFunc(mouse);
 	glutMotionFunc(mouseMotion);
 	glutKeyboardUpFunc(keyboardUp); 
-	glutKeyboardFunc(keyboard);
+	glutKeyboardFunc(keyboardDown);
 	glutPostRedisplay();
 	glutMainLoop();
 	return 0;

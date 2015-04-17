@@ -1,2 +1,5 @@
 #OpenGL Skeleton
-###cross-platform GLUT scene with keyboard mouse movement
+
+* cross-platform Mac, Linux, Windows
+* command line compile, type `make`
+* first person perspective, keyboard mouse move+look
