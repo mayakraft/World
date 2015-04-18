@@ -13,6 +13,13 @@
 #include <math.h>
 
 
+// 0: first person perspective, X Y movement
+// 1: polar, focus on origin, Y radius
+// 2: orthographic from above, X Y panning
+#define PERSPECTIVE 0
+
+
+// size of window in OS
 static int windowWidth = 800;
 static int windowHeight = 400;
 
@@ -34,12 +41,16 @@ static float mouseRotationX = 180.0f;
 static float mouseRotationY = 0.0f;
 static float startRotationX = 0.0f;  // POV heading on mouse down
 static float startRotationY = 0.0f;  // POV heading on mouse down
+// POLAR PERSPECTIVE
+static float cameraRadius = 10.0f;
+
 
 void init(){
 	glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 	glShadeModel(GL_FLAT);
 }
 
+// draws a XY 1x1 square in the Z = 0 plane
 void unitSquare(float x, float y, float width, float height){
 	static const GLfloat _unit_square[] = {
 	    -0.5f, 0.5f, 0.0f,     0.5f, 0.5f, 0.0f,     -0.5f, -0.5f, 0.0f,     0.5f, -0.5f, 0.0f  };
@@ -60,34 +71,38 @@ void unitSquare(float x, float y, float width, float height){
 
 void display(){
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
 	glEnable(GL_DEPTH_TEST);
-	
+
 	glPushMatrix();
-		glRotatef(mouseRotationY, -1, 0, 0);
-		glRotatef(mouseRotationX, 0, 0, -1);
-		glTranslatef(cameraX, cameraY, 0);
-		// first person perspective has been established
-		// draw below
+		// apply perspective inside this matrix
+		if(PERSPECTIVE == 0){
+			glRotatef(mouseRotationY, -1, 0, 0);
+			glRotatef(mouseRotationX, 0, 0, -1);
+			glTranslatef(cameraX, cameraY, 0);
+		}
+		if(PERSPECTIVE == 1){
+			glTranslatef(0, 0, -cameraRadius);
+			glRotatef(mouseRotationY, -1, 0, 0);
+			glRotatef(mouseRotationX, 0, 0, -1);
+		}
+
+		// perspective has been established
+		// draw stuff below
 
 		glPushMatrix();
 			glTranslatef(0.0f, 0.0f, -1.5f);
-			int XOffset = cameraX;
+			int XOffset = cameraX;  // remove floating point part
 			int ZOffset = cameraY;
 			for(int i = -8; i <= 8; i++){
 				for(int j = -8; j <= 8; j++){
-					float b = abs(((i+j+XOffset+ZOffset)%2));
-					if(b) glColor3f(0.2, 0.2, 0.2);
-					else glColor3f(0.4, 0.4, 0.4);
+					int b = abs(((i+j+XOffset+ZOffset)%2));
+					if(b) glColor3f(0.16, 0.16, 0.16);
+					else glColor3f(0.6, 0.6, 0.6);
 					unitSquare(i-XOffset, j-ZOffset, 1, 1);
 				}
 			}
 		glPopMatrix();
 
-		// glRotatef(180, -1, 0, 0);  // ORTHO 1
-		// glRotatef(120+cos(spin*.0015)*30, -1, 0, 0);  // PERSPECTIVE 1
-
-		// glRotatef(sin(spin*.004)*90, 0.0f, 0.0f, 1.0f);  // PERSPECTIVE 2
 		glPushMatrix();
 			glEnableClientState(GL_COLOR_ARRAY);
 			glEnableClientState(GL_VERTEX_ARRAY);
@@ -113,24 +128,28 @@ void display(){
 
 	glPopMatrix();
 
+	// bring back buffer to the front on vertical refresh, auto-calls glFlush
 	glutSwapBuffers();
 	// glFlush();
 }
 
-// void spinDisplay(void){
-// 	spin = spin - 2.0;
-// 	if(spin > 360.0){
-// 		spin = spin - 360.0;
-// 	}
-// 	glutPostRedisplay();
-// }
+// process input devices if in polar perspective mode
+void updatePolar(){
+	if(UP_PRESSED)
+		cameraRadius -= STEP;
+	if(DOWN_PRESSED)
+		cameraRadius += STEP;
+	if(cameraRadius < 0) 
+		cameraRadius = 0;
+	glutPostRedisplay();
+}
 
-void update(){
-
+// process input devices if in first person perspective mode
+void updateFirstPerson(){
+	// map movement direction to the direction the person is facing
 	float lookAzimuth = 0;
 	float mouseAzimuth = mouseRotationX/180.*M_PI;    
 	lookAzimuth += mouseAzimuth;
-	
 	if(UP_PRESSED){
 		float x = STEP * sinf(lookAzimuth);
 		float y = STEP * -cosf(lookAzimuth);
@@ -177,8 +196,7 @@ void mouse(int button, int state, int x, int y){
 	}
 }
 
-void mouseMotion(int x, int y)
-{
+void mouseMotion(int x, int y){
 	mouseRotationX = startRotationX + mouseDownX - x;
 	mouseRotationY = startRotationY + mouseDownY - y;
 	glutPostRedisplay();
@@ -186,10 +204,12 @@ void mouseMotion(int x, int y)
 
 void keyboardDown(unsigned char key, int x, int y){
 	switch (key){
-		case 27:             // ESCAPE key
+		case 27:  // ESCAPE key
 			exit (0);
 			break;
 		case 119:
+
+		// W A S D
 		case GLUT_KEY_UP:
 			UP_PRESSED = 1;
 			break;
@@ -208,8 +228,12 @@ void keyboardDown(unsigned char key, int x, int y){
 		// case 't':
 		// 	break;
 	}
-	if(UP_PRESSED || DOWN_PRESSED || RIGHT_PRESSED || LEFT_PRESSED)
-		glutIdleFunc(update);
+	if(UP_PRESSED || DOWN_PRESSED || RIGHT_PRESSED || LEFT_PRESSED){
+		if(PERSPECTIVE == 0)
+			glutIdleFunc(updateFirstPerson);
+		if(PERSPECTIVE == 1)
+			glutIdleFunc(updatePolar);
+	}
 }
 
 void keyboardUp(unsigned char key,int x,int y){
@@ -245,8 +269,10 @@ void reshape(int w, int h){
 	glViewport(0,0,(GLsizei) w, (GLsizei) h);
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
-	// glOrtho(-40.0, 40.0, -40/a, 40/a, -100.0, 100.0);
-	glFrustum (-1.0, 1.0, -1.0/a, 1.0/a, 1.5, 2000.0);
+	if(PERSPECTIVE == 0 || PERSPECTIVE == 1)
+		glFrustum (-1.0, 1.0, -1.0/a, 1.0/a, 1.5, 2000.0);
+	else if (PERSPECTIVE == 2)
+		glOrtho(-40.0, 40.0, -40/a, 40/a, -100.0, 100.0);
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
 }

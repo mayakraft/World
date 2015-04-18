@@ -2,4 +2,8 @@
 
 * cross-platform Mac, Linux, Windows
 * command line compile, type `make`
-* first person perspective, keyboard mouse move+look
+
+## multiple perspective modes
+
+* first person perspective, keyboard + mouse
+* polar observation, rotation around origin, keyboard + mouse
