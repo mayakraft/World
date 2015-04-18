@@ -1,16 +1,16 @@
 #OpenGL Skeleton
 
 * cross-platform Mac, Linux, Windows
-* command line compile, type `make`
+* command line compile- type `make`
 
-## perspective options
+## perspectives
 
-* first person perspective, keyboard + mouse
-* polar observation rotating around origin, keyboard + mouse
-* orthographic, keyboard
+* first person, walking
+* polar observation rotating around origin, zooming
+* orthographic, panning
 
+## inputs
 
-switch between perspectives with keyboard `1` `2` `3` 
-
-
+* switch between perspectives with keyboard `1` `2` `3` 
 * arrow keys are `W` `A` `S` `D`
+* mouse
