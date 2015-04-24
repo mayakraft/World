@@ -8,7 +8,6 @@
 #  include <GL/glut.h>
 #endif
 
-#include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
 
@@ -61,6 +60,8 @@ void init(){
 }
 
 void reshape(int w, int h){
+	windowWidth = w;
+	windowHeight = h;
 	float a = (float)windowWidth / windowHeight;
 	glViewport(0,0,(GLsizei) w, (GLsizei) h);
 	glMatrixMode(GL_PROJECTION);
@@ -141,7 +142,7 @@ void display(){
 	// glFlush();
 }
 
-// process input devices if in polar perspective mode
+// process input devices if in orthographic mode
 void updateOrthographic(){
 	if(UP_PRESSED)
 		panY -= STEP;
@@ -224,43 +225,38 @@ void mouseMotion(int x, int y){
 }
 
 void keyboardDown(unsigned char key, int x, int y){
-	switch (key){
-		case 27:  // ESCAPE key
-			exit (0);
-			break;
-
-		// W A S D
-		case 119:  // W
-			UP_PRESSED = 1;
-			break;
-		case 115:  // S
-			DOWN_PRESSED = 1;
-			break;
-		case 97:   // A
-			RIGHT_PRESSED = 1;
-			break;
-		case 100:  // D
-			LEFT_PRESSED = 1;
-			break;
-		case '1':
-			PERSPECTIVE = 0;
-			// mouseTotalOffsetX = mouseTotalOffsetY = 0;
-			reshape(windowWidth, windowHeight);
-			glutPostRedisplay();
-			break;
-		case '2':
-			PERSPECTIVE = 1;
-			// mouseTotalOffsetX = mouseTotalOffsetY = 0;
-			reshape(windowWidth, windowHeight);
-			glutPostRedisplay();
-			break;
-		case '3':
-			PERSPECTIVE = 2;
-			mouseTotalOffsetX = mouseTotalOffsetY = 0;
-			reshape(windowWidth, windowHeight);
-			glutPostRedisplay();
-			break;
+	if(key == 27)  // ESCAPE key
+		exit (0);
+	// W A S D
+	else if(key == 119) // W
+		UP_PRESSED = 1;
+	else if(key == 115) // S
+		DOWN_PRESSED = 1;
+	else if(key == 97) // A
+		RIGHT_PRESSED = 1;
+	else if(key == 100)  // D
+		LEFT_PRESSED = 1;
+	else if(key == ' '){  // SPACE BAR
 	}
+	else if(key == '1'){
+		PERSPECTIVE = 0;
+		// mouseTotalOffsetX = mouseTotalOffsetY = 0;
+		reshape(windowWidth, windowHeight);
+		glutPostRedisplay();
+	}
+	else if(key == '2'){
+		PERSPECTIVE = 1;
+		// mouseTotalOffsetX = mouseTotalOffsetY = 0;
+		reshape(windowWidth, windowHeight);
+		glutPostRedisplay();
+	}
+	else if(key == '3'){
+		PERSPECTIVE = 2;
+		mouseTotalOffsetX = mouseTotalOffsetY = 0;
+		reshape(windowWidth, windowHeight);
+		glutPostRedisplay();	
+	}
+	
 	// anything that affects the screen and requires a redisplay
 	// put it in this if statement
 	if(UP_PRESSED || DOWN_PRESSED || RIGHT_PRESSED || LEFT_PRESSED){
@@ -274,20 +270,15 @@ void keyboardDown(unsigned char key, int x, int y){
 }
 
 void keyboardUp(unsigned char key,int x,int y){
-	switch (key){
-		case 119:  // W
-			UP_PRESSED = 0;
-			break;
-		case 115:  // S
-			DOWN_PRESSED = 0;
-			break;
-		case 97:   // A
-			RIGHT_PRESSED = 0;
-			break;
-		case 100:  // D
-			LEFT_PRESSED = 0;
-			break;
-	}
+	if(key == 119) // W
+		UP_PRESSED = 0;
+	else if(key == 115) // S
+		DOWN_PRESSED = 0;
+	else if(key == 97) // A
+		RIGHT_PRESSED = 0;
+	else if(key == 100) // D
+		LEFT_PRESSED = 0;
+	
 	if(!(UP_PRESSED || DOWN_PRESSED || RIGHT_PRESSED || LEFT_PRESSED))
 		glutIdleFunc(NULL);
 }
