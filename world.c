@@ -18,13 +18,9 @@
 // 1: polar, focus on origin, Y radius
 // 2: orthographic from above, X Y panning
 static int PERSPECTIVE = 0;
-
-
 // size of window in OS
 static int windowWidth = 800;
 static int windowHeight = 400;
-
-
 // INPUT HANDLING
 static unsigned int UP_PRESSED = 0;    // KEY UP:0   KEY DOWN:1
 static unsigned int DOWN_PRESSED = 0;
@@ -57,6 +53,8 @@ static float panY = 0.0f;
 void init(){
 	glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 	glShadeModel(GL_FLAT);
+	glLineWidth(5);
+	glPointSize(10);
 }
 
 void reshape(int w, int h){
@@ -90,6 +88,34 @@ void unitSquare(float x, float y, float width, float height){
 	glNormalPointer(GL_FLOAT, 0, _unit_square_normals);
 	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 	glDisableClientState(GL_NORMAL_ARRAY);
+	glDisableClientState(GL_VERTEX_ARRAY);
+	glPopMatrix();
+}
+
+void unitAxis(float x, float y, float z, float scale){
+	static const GLfloat _unit_axis_vertices[] = { 
+		1.0f, 0.0f, 0.0f,    
+		-1.0f, 0.0f, 0.0f,
+		0.0f, 1.0f,  0.0f,    
+		0.0f, -1.0f, 0.0f,
+		0.0f, 0.0f, 1.0f,     
+		0.0f, 0.0f, -1.0f};
+	static const GLfloat _unit_axis_normals[] = { 
+		0.0f, 1.0f, 1.0f, 
+		0.0f, 1.0f, 1.0f, 
+		0.0f, 0.0f, 1.0f,
+		0.0f, 0.0f, 1.0f,
+		1.0f, 0.0f, 0.0f,
+		1.0f, 0.0f, 0.0f};
+	glPushMatrix();
+	glTranslatef(x, y, z);
+	glScalef(scale, scale, scale);
+	glEnableClientState(GL_VERTEX_ARRAY);
+	// glEnableClientState(GL_NORMAL_ARRAY);
+	glVertexPointer(3, GL_FLOAT, 0, _unit_axis_vertices);
+	// glNormalPointer(GL_FLOAT, 0, _unit_axis_normals);
+	glDrawArrays(GL_LINES, 0, 6);
+	// glDisableClientState(GL_NORMAL_ARRAY);
 	glDisableClientState(GL_VERTEX_ARRAY);
 	glPopMatrix();
 }
@@ -133,8 +159,17 @@ void display(){
 					unitSquare(i-XOffset, j-ZOffset, 1, 1);
 				}
 			}
+			for(int i = -8; i <= 8; i++){
+				for(int j = -8; j <= 8; j++){
+					for(int k = -8; k <= 8; k++){
+						int b = abs(((i+j+XOffset+ZOffset)%2));
+						if(b) glColor3f(0.0, 0.0, 0.0);
+						else glColor3f(1.0, 1.0, 1.0);
+						unitAxis(i-XOffset, j-ZOffset, k, 1.0f);
+					}
+				}
+			}
 		glPopMatrix();
-
 
 	glPopMatrix();
 	// bring back buffer to the front on vertical refresh, auto-calls glFlush

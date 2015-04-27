@@ -5,9 +5,9 @@
 
 ## perspectives
 
-* first person, walking
-* polar observation rotating around origin, zooming
-* orthographic, panning
+* `1` first person, walking
+* `2` polar observation rotating around origin, zooming
+* `3` orthographic, panning
 
 ## inputs
 
