@@ -56,7 +56,6 @@ void init(){
 	glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 	glShadeModel(GL_FLAT);
 	glLineWidth(1);
-	glPointSize(10);
 }
 
 void reshape(int w, int h){
@@ -170,22 +169,39 @@ void display(){
 			}
 			// 3 DIMENSIONS OF SCATTERED AXES
 			else{
-				static int nAxes = 20;
+				static int span = 5;
+				static int nAxes = 3; // on either side (multiply by 2 and +1)
+				float XModOffset = walkX - (((int)walkX)/span)*span;
+				float YModOffset = walkY - (((int)walkY)/span)*span;
 				glColor3f(1.0, 1.0, 1.0);
-				for(int i = -nAxes; i < nAxes; i++){
-					for(int j = -nAxes; j < nAxes; j++){
-						for(int k = -nAxes; k < nAxes; k++){
-							int b = abs(((i+j+XOffset+ZOffset)%2));
-							if((i-XOffset)%5 == 0 && (j-ZOffset)%5 == 0 && k%5 == 0){
-								float distance = sqrt(powf(i,2) + powf(j,2) + powf(k,2));
-								float brightness = 1.0 - distance/nAxes;
-								glColor3f(brightness, brightness, brightness);
-								// glLineWidth(100.0/distance/distance);
-								unitAxis(i-XOffset, j-ZOffset, k, 1.0f);
-							}
+				for(int i = -nAxes*span; i < nAxes*span; i+=span){
+					for(int j = -nAxes*span; j < nAxes*span; j+=span){
+						for(int k = -nAxes*span; k < nAxes*span; k+=span){
+							float distance = sqrt(powf(i+XModOffset,2) + powf(j+YModOffset,2) + powf(k,2));
+							float brightness = 1.0 - distance/(nAxes*span);
+							glColor3f(brightness, brightness, brightness);
+							// glLineWidth(100.0/distance/distance);
+							unitAxis(i+XModOffset - walkX, j+YModOffset - walkY, k, 1.0f);
+							// unitAxis(i - floor(XOffset/span-1)*span, j - floor(ZOffset/span-1)*span, k, 1.0f);
 						}
 					}
 				}
+				// static int span = 5;
+				// static int nAxes = 20;
+				// for(int i = -nAxes; i < nAxes; i++){
+				// 	for(int j = -nAxes; j < nAxes; j++){
+				// 		for(int k = -nAxes; k < nAxes; k++){
+				// 			int b = abs(((i+j+XOffset+ZOffset)%2));
+				// 			if((i-XOffset)%span == 0 && (j-ZOffset)%span == 0 && k%span == 0){
+				// 				float distance = sqrt(powf(i,2) + powf(j,2) + powf(k,2));
+				// 				float brightness = 1.0 - distance/nAxes;
+				// 				glColor3f(brightness, brightness, brightness);
+				// 				// glLineWidth(100.0/distance/distance);
+				// 				unitAxis(i-XOffset, j-ZOffset, k, 1.0f);
+				// 			}
+				// 		}
+				// 	}
+				// }
 			}
 		glPopMatrix();
 
