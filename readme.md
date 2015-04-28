@@ -13,6 +13,7 @@
 
 * switch between perspectives with keyboard `1` `2` `3` 
 * arrow keys are `W` `A` `S` `D`
+* change landscape `SPACE BAR`
 * mouse
 
 ## try it out

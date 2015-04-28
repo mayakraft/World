@@ -10,7 +10,7 @@
 
 #include <stdlib.h>
 #include <math.h>
-
+#include <stdio.h>
 
 // CHOOSE YOUR OWN PERSPECTIVE
 //
@@ -36,6 +36,8 @@ static int mouseDragStartY = 0;
 static int mouseTotalOffsetStartX = 0;
 static int mouseTotalOffsetStartY = 0;
 
+static unsigned char landscape = 0;
+
 
 #define STEP .10f  // WALKING SPEED. @60fps, walk speed = 6 units/second
 
@@ -53,7 +55,7 @@ static float panY = 0.0f;
 void init(){
 	glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 	glShadeModel(GL_FLAT);
-	glLineWidth(5);
+	glLineWidth(1);
 	glPointSize(10);
 }
 
@@ -77,8 +79,11 @@ void reshape(int w, int h){
 
 // draws a XY 1x1 square in the Z = 0 plane
 void unitSquare(float x, float y, float width, float height){
-	static const GLfloat _unit_square_vertex[] = { -0.5f, 0.5f, 0.0f,     0.5f, 0.5f, 0.0f,    -0.5f, -0.5f, 0.0f,    0.5f, -0.5f, 0.0f };
-	static const GLfloat _unit_square_normals[] = { 0.0f, 0.0f, 1.0f,     0.0f, 0.0f, 1.0f,     0.0f, 0.0f, 1.0f,     0.0f, 0.0f, 1.0f  };
+//	static const GLfloat _unit_square_vertex[] = { -0.5f, 0.5f, 0.0f,     0.5f, 0.5f, 0.0f,    -0.5f, -0.5f, 0.0f,    0.5f, -0.5f, 0.0f };
+	static const GLfloat _unit_square_vertex[] = { 
+		0.0f, 1.0f, 0.0f,     1.0f, 1.0f, 0.0f,    0.0f, 0.0f, 0.0f,    1.0f, 0.0f, 0.0f };
+	static const GLfloat _unit_square_normals[] = { 
+		0.0f, 0.0f, 1.0f,     0.0f, 0.0f, 1.0f,    0.0f, 0.0f, 1.0f,    0.0f, 0.0f, 1.0f };
 	glPushMatrix();
 	glTranslatef(x, y, 0.0);
 	glScalef(width, height, 1.0);
@@ -111,11 +116,11 @@ void unitAxis(float x, float y, float z, float scale){
 	glTranslatef(x, y, z);
 	glScalef(scale, scale, scale);
 	glEnableClientState(GL_VERTEX_ARRAY);
-	// glEnableClientState(GL_NORMAL_ARRAY);
+	glEnableClientState(GL_NORMAL_ARRAY);
 	glVertexPointer(3, GL_FLOAT, 0, _unit_axis_vertices);
-	// glNormalPointer(GL_FLOAT, 0, _unit_axis_normals);
+	glNormalPointer(GL_FLOAT, 0, _unit_axis_normals);
 	glDrawArrays(GL_LINES, 0, 6);
-	// glDisableClientState(GL_NORMAL_ARRAY);
+	glDisableClientState(GL_NORMAL_ARRAY);
 	glDisableClientState(GL_VERTEX_ARRAY);
 	glPopMatrix();
 }
@@ -148,24 +153,37 @@ void display(){
 			int XOffset = 0;
 			int ZOffset = 0;
 			if(PERSPECTIVE == 0){
-				XOffset = walkX;  // math.floor
-				ZOffset = walkY;
+				XOffset = ceil(walkX);
+				ZOffset = ceil(walkY);
 			}
-			for(int i = -8; i <= 8; i++){
-				for(int j = -8; j <= 8; j++){
-					int b = abs(((i+j+XOffset+ZOffset)%2));
-					if(b) glColor3f(0.0, 0.0, 0.0);
-					else glColor3f(1.0, 1.0, 1.0);
-					unitSquare(i-XOffset, j-ZOffset, 1, 1);
+			// CHECKERBOARD LANDSCAPE
+			if(!landscape){
+				static int nSqrs = 8;
+				for(int i = -nSqrs; i <= nSqrs; i++){
+					for(int j = -nSqrs; j <= nSqrs; j++){
+						int b = abs(((i+j+XOffset+ZOffset)%2));
+						if(b) glColor3f(1.0, 1.0, 1.0);
+						else glColor3f(0.0, 0.0, 0.0);
+						unitSquare(i-XOffset, j-ZOffset, 1, 1);
+					}
 				}
 			}
-			for(int i = -8; i <= 8; i++){
-				for(int j = -8; j <= 8; j++){
-					for(int k = -8; k <= 8; k++){
-						int b = abs(((i+j+XOffset+ZOffset)%2));
-						if(b) glColor3f(0.0, 0.0, 0.0);
-						else glColor3f(1.0, 1.0, 1.0);
-						unitAxis(i-XOffset, j-ZOffset, k, 1.0f);
+			// 3 DIMENSIONS OF SCATTERED AXES
+			else{
+				static int nAxes = 20;
+				glColor3f(1.0, 1.0, 1.0);
+				for(int i = -nAxes; i < nAxes; i++){
+					for(int j = -nAxes; j < nAxes; j++){
+						for(int k = -nAxes; k < nAxes; k++){
+							int b = abs(((i+j+XOffset+ZOffset)%2));
+							if((i-XOffset)%5 == 0 && (j-ZOffset)%5 == 0 && k%5 == 0){
+								float distance = sqrt(powf(i,2) + powf(j,2) + powf(k,2));
+								float brightness = 1.0 - distance/nAxes;
+								glColor3f(brightness, brightness, brightness);
+								// glLineWidth(100.0/distance/distance);
+								unitAxis(i-XOffset, j-ZOffset, k, 1.0f);
+							}
+						}
 					}
 				}
 			}
@@ -272,6 +290,9 @@ void keyboardDown(unsigned char key, int x, int y){
 	else if(key == 100)  // D
 		LEFT_PRESSED = 1;
 	else if(key == ' '){  // SPACE BAR
+		landscape = !landscape;
+		reshape(windowWidth, windowHeight);
+		glutPostRedisplay();
 	}
 	else if(key == '1'){
 		PERSPECTIVE = 0;
