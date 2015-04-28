@@ -9,12 +9,13 @@
 * `2` polar observation rotating around origin, zooming
 * `3` orthographic, panning
 
-## inputs
+## input
 
 * switch between perspectives with keyboard `1` `2` `3` 
+* fullscreen `F`
 * arrow keys are `W` `A` `S` `D`
 * change landscape `SPACE BAR`
-* mouse
+* mouse look
 
 ## try it out
 

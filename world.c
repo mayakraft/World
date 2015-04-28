@@ -17,10 +17,11 @@
 // 0: first person perspective, X Y movement
 // 1: polar, focus on origin, Y radius
 // 2: orthographic from above, X Y panning
-static int PERSPECTIVE = 0;
+static unsigned char PERSPECTIVE = 0;
+static unsigned char FULLSCREEN = 0;
 // size of window in OS
-static int windowWidth = 800;
-static int windowHeight = 400;
+static int WIDTH = 800;
+static int HEIGHT = 400;
 // INPUT HANDLING
 static unsigned int UP_PRESSED = 0;    // KEY UP:0   KEY DOWN:1
 static unsigned int DOWN_PRESSED = 0;
@@ -30,16 +31,11 @@ static int mouseDragOffsetX = 0;  // how far mouse is dragged during one session
 static int mouseDragOffsetY = 0;
 static int mouseTotalOffsetX = 0;  // how far mouse has been dragged since program began
 static int mouseTotalOffsetY = 0;
-// helpers
-static int mouseDragStartX = 0;
-static int mouseDragStartY = 0;
-static int mouseTotalOffsetStartX = 0;
-static int mouseTotalOffsetStartY = 0;
-
-static unsigned char landscape = 0;
+static int mouseDragStartX, mouseDragStartY, mouseTotalOffsetStartX, mouseTotalOffsetStartY;
 
 
 #define STEP .10f  // WALKING SPEED. @60fps, walk speed = 6 units/second
+#define MOUSE_SENSITIVITY 0.333f
 
 // PERSPECTIVES
 // FIRST PERSON PERSPECTIVE USING KEYBOARD (WASD), MOUSE (LOOK)
@@ -51,6 +47,8 @@ static float cameraRadius = 15.0f;
 static float panX = 0.0f;
 static float panY = 0.0f;
 
+static unsigned char landscape = 0;  // checkerboard or axes lines
+
 
 void init(){
 	glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
@@ -59,9 +57,9 @@ void init(){
 }
 
 void reshape(int w, int h){
-	windowWidth = w;
-	windowHeight = h;
-	float a = (float)windowWidth / windowHeight;
+	WIDTH = w;
+	HEIGHT = h;
+	float a = (float)WIDTH / HEIGHT;
 	glViewport(0,0,(GLsizei) w, (GLsizei) h);
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
@@ -71,14 +69,12 @@ void reshape(int w, int h){
 		glOrtho(-20.0f, 20.0f, 
 				-20.0f/a, 20.0f/a, 
 				-100.0, 100.0);
-	
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
 }
 
 // draws a XY 1x1 square in the Z = 0 plane
 void unitSquare(float x, float y, float width, float height){
-//	static const GLfloat _unit_square_vertex[] = { -0.5f, 0.5f, 0.0f,     0.5f, 0.5f, 0.0f,    -0.5f, -0.5f, 0.0f,    0.5f, -0.5f, 0.0f };
 	static const GLfloat _unit_square_vertex[] = { 
 		0.0f, 1.0f, 0.0f,     1.0f, 1.0f, 0.0f,    0.0f, 0.0f, 0.0f,    1.0f, 0.0f, 0.0f };
 	static const GLfloat _unit_square_normals[] = { 
@@ -129,16 +125,16 @@ void display(){
 	glEnable(GL_DEPTH_TEST);
 
 	glPushMatrix();
-		// apply perspective inside this matrix
+		// SETUP PERSPECTIVE
 		if(PERSPECTIVE == 0){
-			glRotatef(mouseTotalOffsetY, -1, 0, 0);
-			glRotatef(mouseTotalOffsetX, 0, 0, -1);
+			glRotatef(mouseTotalOffsetY * MOUSE_SENSITIVITY, -1, 0, 0);
+			glRotatef(mouseTotalOffsetX * MOUSE_SENSITIVITY, 0, 0, -1);
 			glTranslatef(walkX, walkY, 0);
 		}
 		if(PERSPECTIVE == 1){
 			glTranslatef(0, 0, -cameraRadius);
-			glRotatef(mouseTotalOffsetY, -1, 0, 0);
-			glRotatef(mouseTotalOffsetX, 0, 0, -1);
+			glRotatef(mouseTotalOffsetY * MOUSE_SENSITIVITY, -1, 0, 0);
+			glRotatef(mouseTotalOffsetX * MOUSE_SENSITIVITY, 0, 0, -1);
 		}
 		if(PERSPECTIVE == 2){
 			glTranslatef(-mouseTotalOffsetX * .05 - panX*2, mouseTotalOffsetY * .05 - panY*2, 0.0f);
@@ -148,60 +144,48 @@ void display(){
 		// draw stuff below
 
 		glPushMatrix();
+			// raise POV 1.0 above the floor
 			glTranslatef(0.0f, 0.0f, -1.0f);
-			int XOffset = 0;
-			int ZOffset = 0;
-			if(PERSPECTIVE == 0){
-				XOffset = ceil(walkX);
-				ZOffset = ceil(walkY);
-			}
+
 			// CHECKERBOARD LANDSCAPE
 			if(!landscape){
 				static int nSqrs = 8;
+				int XOffset = 0;
+				int YOffset = 0;
+				if(PERSPECTIVE == 0){
+					XOffset = ceil(walkX);
+					YOffset = ceil(walkY);
+				}
 				for(int i = -nSqrs; i <= nSqrs; i++){
 					for(int j = -nSqrs; j <= nSqrs; j++){
-						int b = abs(((i+j+XOffset+ZOffset)%2));
+						int b = abs(((i+j+XOffset+YOffset)%2));
 						if(b) glColor3f(1.0, 1.0, 1.0);
 						else glColor3f(0.0, 0.0, 0.0);
-						unitSquare(i-XOffset, j-ZOffset, 1, 1);
+						unitSquare(i-XOffset, j-YOffset, 1, 1);
 					}
 				}
 			}
 			// 3 DIMENSIONS OF SCATTERED AXES
 			else{
 				static int span = 5;
-				static int nAxes = 3; // on either side (multiply by 2 and +1)
-				float XModOffset = walkX - (((int)walkX)/span)*span;
-				float YModOffset = walkY - (((int)walkY)/span)*span;
+				static int numRepeat = 4;  //20 // how many rows/cols/stacks on either side of center
+				float XSpanMod = walkX - floor(walkX/span)*span;
+				float YSpanMod = walkY - floor(walkY/span)*span;
 				glColor3f(1.0, 1.0, 1.0);
-				for(int i = -nAxes*span; i < nAxes*span; i+=span){
-					for(int j = -nAxes*span; j < nAxes*span; j+=span){
-						for(int k = -nAxes*span; k < nAxes*span; k+=span){
-							float distance = sqrt(powf(i+XModOffset,2) + powf(j+YModOffset,2) + powf(k,2));
-							float brightness = 1.0 - distance/(nAxes*span);
+				for(int i = -numRepeat*span; i < numRepeat*span; i+=span){
+					for(int j = -numRepeat*span; j < numRepeat*span; j+=span){
+						for(int k = -numRepeat*span; k < numRepeat*span; k+=span){
+							float distance = sqrtf(powf(i+XSpanMod,2) + powf(j+YSpanMod,2) + powf(k,2));
+							float brightness = 1.0 - distance/(numRepeat*span);
 							glColor3f(brightness, brightness, brightness);
 							// glLineWidth(100.0/distance/distance);
-							unitAxis(i+XModOffset - walkX, j+YModOffset - walkY, k, 1.0f);
-							// unitAxis(i - floor(XOffset/span-1)*span, j - floor(ZOffset/span-1)*span, k, 1.0f);
+							if(PERSPECTIVE == 0)
+								unitAxis(i + XSpanMod - walkX, j + YSpanMod - walkY, k, 1.0f);
+							else
+								unitAxis(i, j, k, 1.0f);
 						}
 					}
 				}
-				// static int span = 5;
-				// static int nAxes = 20;
-				// for(int i = -nAxes; i < nAxes; i++){
-				// 	for(int j = -nAxes; j < nAxes; j++){
-				// 		for(int k = -nAxes; k < nAxes; k++){
-				// 			int b = abs(((i+j+XOffset+ZOffset)%2));
-				// 			if((i-XOffset)%span == 0 && (j-ZOffset)%span == 0 && k%span == 0){
-				// 				float distance = sqrt(powf(i,2) + powf(j,2) + powf(k,2));
-				// 				float brightness = 1.0 - distance/nAxes;
-				// 				glColor3f(brightness, brightness, brightness);
-				// 				// glLineWidth(100.0/distance/distance);
-				// 				unitAxis(i-XOffset, j-ZOffset, k, 1.0f);
-				// 			}
-				// 		}
-				// 	}
-				// }
 			}
 		glPopMatrix();
 
@@ -221,7 +205,6 @@ void updateOrthographic(){
 		panX -= STEP;
 	if(RIGHT_PRESSED)
 		panX += STEP;
-	// reshape(windowWidth, windowHeight);
 	glutPostRedisplay();
 }
 
@@ -240,7 +223,7 @@ void updatePolar(){
 void updateFirstPerson(){
 	// map movement direction to the direction the person is facing
 	float lookAzimuth = 0;
-	float mouseAzimuth = mouseTotalOffsetX/180.*M_PI;    
+	float mouseAzimuth = (mouseTotalOffsetX * MOUSE_SENSITIVITY)/180.*M_PI;    
 	lookAzimuth += mouseAzimuth;
 	if(UP_PRESSED){
 		float x = STEP * sinf(lookAzimuth);
@@ -307,25 +290,34 @@ void keyboardDown(unsigned char key, int x, int y){
 		LEFT_PRESSED = 1;
 	else if(key == ' '){  // SPACE BAR
 		landscape = !landscape;
-		reshape(windowWidth, windowHeight);
+		reshape(WIDTH, HEIGHT);
 		glutPostRedisplay();
+	}
+	else if(key == 'f'){
+		if(!FULLSCREEN)
+			glutFullScreen();
+		else{
+			reshape(WIDTH * .5, HEIGHT * .5);
+        	glutPositionWindow(0,0);
+		}
+		FULLSCREEN = !FULLSCREEN;
 	}
 	else if(key == '1'){
 		PERSPECTIVE = 0;
 		// mouseTotalOffsetX = mouseTotalOffsetY = 0;
-		reshape(windowWidth, windowHeight);
+		reshape(WIDTH, HEIGHT);
 		glutPostRedisplay();
 	}
 	else if(key == '2'){
 		PERSPECTIVE = 1;
 		// mouseTotalOffsetX = mouseTotalOffsetY = 0;
-		reshape(windowWidth, windowHeight);
+		reshape(WIDTH, HEIGHT);
 		glutPostRedisplay();
 	}
 	else if(key == '3'){
 		PERSPECTIVE = 2;
 		mouseTotalOffsetX = mouseTotalOffsetY = 0;
-		reshape(windowWidth, windowHeight);
+		reshape(WIDTH, HEIGHT);
 		glutPostRedisplay();	
 	}
 	
@@ -359,7 +351,7 @@ int main(int argc, char **argv){
 	glutInit(&argc, argv);
 	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB);
 	glutInitWindowPosition(10,10);
-	glutInitWindowSize(windowWidth,windowHeight);
+	glutInitWindowSize(WIDTH,HEIGHT);
 	glutCreateWindow(argv[0]);
 	init();
 	glutDisplayFunc(display);
