@@ -27,9 +27,7 @@ void drawCheckerboard(float walkX, float walkY, int numSquares);
 void drawAxesGrid(float walkX, float walkY, int span, int repeats);
 // DRAW, ALIGNMENT, INPUT HANDLING
 void display();
-void updateOrthographic();  // process input devices if in orthographic mode
-void updatePolar();  // process input devices if in polar perspective mode
-void updateFirstPerson();  // process input devices if in first person perspective mode
+void update();  // process input devices
 // INPUT DEVICES
 void mouseButtons(int button, int state, int x, int y);  // when mouse button state changes
 void mouseMotion(int x, int y);   // when mouse is dragging screen
@@ -38,7 +36,6 @@ void keyboardUp(unsigned char key,int x,int y);
 //
 int main(int argc, char **argv);
 
-////////////////////////////////////////////////////
 ////////////////////////////////////////////////////
 //
 // CHOOSE YOUR OWN PERSPECTIVE
@@ -59,30 +56,26 @@ static unsigned int UP_PRESSED = 0;    // KEY UP:0   KEY DOWN:1
 static unsigned int DOWN_PRESSED = 0;
 static unsigned int RIGHT_PRESSED = 0;
 static unsigned int LEFT_PRESSED = 0;
-static int mouseDragOffsetX = 0;  // how far mouse is dragged during one session (between click and release)
-static int mouseDragOffsetY = 0;
-static int mouseTotalOffsetX = 0;  // how far mouse has been dragged since program began
+static unsigned int PLUS_PRESSED = 0;
+static unsigned int MINUS_PRESSED = 0;
+// set default rotation here:
+// how far mouse has been dragged
+static int mouseTotalOffsetX = 0;  // since program began
 static int mouseTotalOffsetY = 0;
+static int mouseDragOffsetX = 0;  // dragging during one session (between click and release)
+static int mouseDragOffsetY = 0;
 static int mouseDragStartX, mouseDragStartY, mouseTotalOffsetStartX, mouseTotalOffsetStartY;
+// PERSPECTIVES
+static float walkX = 0.0f;
+static float walkY = 0.0f;
+static float polarRadius = 15.0f;  // POLAR PERSPECTIVE
+static unsigned char landscape = 0;  // checkerboard or axes lines
+// zoom scale, logarithmic. powers of 10.
+static float ZOOM = 1.0;
 
 
 #define STEP .10f  // WALKING SPEED. @60fps, walk speed = 6 units/second
 #define MOUSE_SENSITIVITY 0.333f
-
-// zoom scale, logarithmic. powers of 10.
-static float ZOOM = 1.0;
-
-// PERSPECTIVES
-// FIRST PERSON PERSPECTIVE USING KEYBOARD (WASD), MOUSE (LOOK)
-static float walkX = 0.0f;
-static float walkY = 0.0f;
-// POLAR PERSPECTIVE
-static float cameraRadius = 15.0f;
-// ORTHOGRAPHIC
-static float panX = 0.0f;
-static float panY = 0.0f;
-
-static unsigned char landscape = 0;  // checkerboard or axes lines
 
 
 void init(){
@@ -129,19 +122,13 @@ void unitSquare(float x, float y, float width, float height){
 
 void unitAxis(float x, float y, float z, float scale){
 	static const GLfloat _unit_axis_vertices[] = { 
-		1.0f, 0.0f, 0.0f,    
-		-1.0f, 0.0f, 0.0f,
-		0.0f, 1.0f,  0.0f,    
-		0.0f, -1.0f, 0.0f,
-		0.0f, 0.0f, 1.0f,     
-		0.0f, 0.0f, -1.0f};
+		1.0f, 0.0f, 0.0f,    -1.0f, 0.0f, 0.0f,
+		0.0f, 1.0f, 0.0f,     0.0f, -1.0f, 0.0f,
+		0.0f, 0.0f, 1.0f,     0.0f, 0.0f, -1.0f};
 	static const GLfloat _unit_axis_normals[] = { 
-		0.0f, 1.0f, 1.0f, 
-		0.0f, 1.0f, 1.0f, 
-		0.0f, 0.0f, 1.0f,
-		0.0f, 0.0f, 1.0f,
-		1.0f, 0.0f, 0.0f,
-		1.0f, 0.0f, 0.0f};
+		0.0f, 1.0f, 1.0f,     0.0f, 1.0f, 1.0f, 
+		0.0f, 0.0f, 1.0f,     0.0f, 0.0f, 1.0f,
+		1.0f, 0.0f, 0.0f,     1.0f, 0.0f, 0.0f};
 	glPushMatrix();
 	glTranslatef(x, y, z);
 	glScalef(scale, scale, scale);
@@ -156,12 +143,8 @@ void unitAxis(float x, float y, float z, float scale){
 }
 
 void drawCheckerboard(float walkX, float walkY, int numSquares){
-	int XOffset = 0;
-	int YOffset = 0;
-	if(POV == FPP){
-		XOffset = ceil(walkX);
-		YOffset = ceil(walkY);
-	}
+	int XOffset = ceil(walkX);
+	int YOffset = ceil(walkY);
 	for(int i = -numSquares; i <= numSquares; i++){
 		for(int j = -numSquares; j <= numSquares; j++){
 			int b = abs(((i+j+XOffset+YOffset)%2));
@@ -177,23 +160,25 @@ void drawCheckerboard(float walkX, float walkY, int numSquares){
 void drawAxesGrid(float walkX, float walkY, int span, int repeats){
 	float XSpanMod = walkX - floor(walkX/span)*span;
 	float YSpanMod = walkY - floor(walkY/span)*span;
-	glColor3f(1.0, 1.0, 1.0);
 	for(int i = -repeats*span; i < repeats*span; i+=span){
 		for(int j = -repeats*span; j < repeats*span; j+=span){
 			for(int k = -repeats*span; k < repeats*span; k+=span){
-				// distance approximation works just fine in this case
 				// float distance = powf(i+XSpanMod,2) + powf(j+YSpanMod,2) + powf(k,2);//fabs(floor(i+XSpanMod)) + fabs(floor(j+YSpanMod)) + abs(k);
+				// distance approximation works just fine in this case
 				float distance = fabs(i+XSpanMod-1) + fabs(j+YSpanMod-1) + abs(k);
 				float brightness = 1.0 - distance/(repeats*span);
 				glColor3f(brightness, brightness, brightness);
 				// glLineWidth(100.0/distance/distance);
-				if(POV == FPP)
-					unitAxis(i + XSpanMod - walkX, j + YSpanMod - walkY, k, 1.0f);
-				else
-					unitAxis(i, j, k, 1.0f);
+				unitAxis(i + XSpanMod - walkX, j + YSpanMod - walkY, k, 1.0f);
 			}
 		}
 	}
+}
+
+float modulusContext(float complete, int modulus){
+	double wholePart;
+	double fracPart = modf(complete, &wholePart);
+	return ( ((int)wholePart) % modulus ) + fracPart;
 }
 
 void display(){
@@ -206,55 +191,37 @@ void display(){
 			case FPP:
 				glRotatef(mouseTotalOffsetY * MOUSE_SENSITIVITY, -1, 0, 0);
 				glRotatef(mouseTotalOffsetX * MOUSE_SENSITIVITY, 0, 0, -1);
-				// glTranslatef(walkX, walkY, 0);
+				// raise POV 1.0 above the floor, 1.0 is an arbitrary value
+				glTranslatef(0.0f, 0.0f, -1.0f);
 				break;
 		
 			case POLAR:
-				glTranslatef(0, 0, -cameraRadius);
+				glTranslatef(0, 0, -polarRadius);
 				glRotatef(mouseTotalOffsetY * MOUSE_SENSITIVITY, -1, 0, 0);
 				glRotatef(mouseTotalOffsetX * MOUSE_SENSITIVITY, 0, 0, -1);
 				break;
 
 			case ORTHO:
-				glTranslatef(-mouseTotalOffsetX * .05 - panX*2, mouseTotalOffsetY * .05 - panY*2, 0.0f);
+				glTranslatef(-mouseTotalOffsetX * .05, mouseTotalOffsetY * .05, 0.0f);
 		}
 
 		// perspective has been established
 		// draw stuff below
 
 		glPushMatrix();
-			// raise POV 1.0 above the floor
-			glTranslatef(0.0f, 0.0f, -1.0f);
-
-			glColor3f(1.0, 1.0, 1.0);
-			unitAxis(0,0,0, 1);
-
 			// CHECKERBOARD LANDSCAPE
 			if(!landscape){
-				glPushMatrix();
-				double intX, intY;
-				double fracX = modf(walkX, &intX);
-				double fracY = modf(walkY, &intY);
-				float newX = ((int)intX)%2 + fracX;
-				float newY = ((int)intY)%2 + fracY;
+				float newX = modulusContext(walkX, 2);
+				float newY = modulusContext(walkY, 2);
 				glTranslatef(newX, newY, 0);
 				drawCheckerboard(newX, newY, 8);
-				glPopMatrix();
 			}
 			// 3 DIMENSIONS OF SCATTERED AXES
 			else{
-				double intX, intY;
-				double fracX = modf(walkX, &intX);
-				double fracY = modf(walkY, &intY);
-				float newX = ((int)intX)%5 + fracX;
-				float newY = ((int)intY)%5 + fracY;
-				if(POV == FPP){
-					glTranslatef(newX, newY, 0);
-					drawAxesGrid(newX, newY, 5, 4);
-				}
-				else{
-					drawAxesGrid(intX, intY, 5, 4);
-				}
+				float newX = modulusContext(walkX, 5);
+				float newY = modulusContext(walkY, 5);
+				glTranslatef(newX, newY, 0);
+				drawAxesGrid(newX, newY, 5, 4);
 			}
 		glPopMatrix();
 
@@ -264,60 +231,37 @@ void display(){
 	// glFlush();
 }
 
-// process input devices if in orthographic mode
-void updateOrthographic(){
-	if(UP_PRESSED)
-		panY -= STEP;
-	if(DOWN_PRESSED)
-		panY += STEP;
-	if(LEFT_PRESSED)
-		panX -= STEP;
-	if(RIGHT_PRESSED)
-		panX += STEP;
-	glutPostRedisplay();
-}
-
-// process input devices if in polar perspective mode
-void updatePolar(){
-	if(UP_PRESSED)
-		cameraRadius -= STEP;
-	if(DOWN_PRESSED)
-		cameraRadius += STEP;
-	if(cameraRadius < 0) 
-		cameraRadius = 0;
-	glutPostRedisplay();
-}
-
 // process input devices if in first person perspective mode
-void updateFirstPerson(){
-	// map movement direction to the direction the person is facing
+void update(){
 	float lookAzimuth = 0;
-	float mouseAzimuth = (mouseTotalOffsetX * MOUSE_SENSITIVITY)/180.*M_PI;    
-	lookAzimuth += mouseAzimuth;
+	// map movement direction to the direction the person is facing
+	if(POV == FPP)
+		lookAzimuth = (mouseTotalOffsetX * MOUSE_SENSITIVITY)/180.*M_PI;
+
 	if(UP_PRESSED){
-		float x = STEP * sinf(lookAzimuth);
-		float y = STEP * -cosf(lookAzimuth);
-		walkX += x;
-		walkY += y;
+		walkX += STEP * sinf(lookAzimuth);
+		walkY += STEP * -cosf(lookAzimuth);
 	}
 	if(DOWN_PRESSED){
-		float x = STEP * sinf(lookAzimuth);
-		float y = STEP * -cosf(lookAzimuth);
-		walkX -= x;
-		walkY -= y;
+		walkX -= STEP * sinf(lookAzimuth);
+		walkY -= STEP * -cosf(lookAzimuth);
 	}
 	if(LEFT_PRESSED){
-		float x = STEP * sinf(lookAzimuth+M_PI_2);
-		float y = STEP * -cosf(lookAzimuth+M_PI_2);
-		walkX -= x;
-		walkY -= y;
+		walkX -= STEP * sinf(lookAzimuth+M_PI_2);
+		walkY -= STEP * -cosf(lookAzimuth+M_PI_2);
 	}
 	if(RIGHT_PRESSED){
-		float x = STEP * sinf(lookAzimuth+M_PI_2);
-		float y = STEP * -cosf(lookAzimuth+M_PI_2);
-		walkX += x;
-		walkY += y;
+		walkX += STEP * sinf(lookAzimuth+M_PI_2);
+		walkY += STEP * -cosf(lookAzimuth+M_PI_2);
 	}
+	if(MINUS_PRESSED)
+		polarRadius += STEP;
+	if(PLUS_PRESSED){
+		polarRadius -= STEP;
+		if(polarRadius < 0) 
+			polarRadius = 0;
+	}
+
 	glutPostRedisplay();
 }
 
@@ -357,6 +301,10 @@ void keyboardDown(unsigned char key, int x, int y){
 		RIGHT_PRESSED = 1;
 	else if(key == 100)  // D
 		LEFT_PRESSED = 1;
+	else if(key == '+' || key == '=') // PLUS
+		PLUS_PRESSED = 1;
+	else if(key == '-' || key == '_') // MINUS
+		MINUS_PRESSED = 1;
 	else if(key == ' '){  // SPACE BAR
 		landscape = !landscape;
 		reshape(WIDTH, HEIGHT);
@@ -392,13 +340,8 @@ void keyboardDown(unsigned char key, int x, int y){
 	
 	// anything that affects the screen and requires a redisplay
 	// put it in this if statement
-	if(UP_PRESSED || DOWN_PRESSED || RIGHT_PRESSED || LEFT_PRESSED){
-		if(POV == FPP)
-			glutIdleFunc(updateFirstPerson);
-		if(POV == POLAR)
-			glutIdleFunc(updatePolar);
-		if(POV == ORTHO)
-			glutIdleFunc(updateOrthographic);
+	if(UP_PRESSED || DOWN_PRESSED || RIGHT_PRESSED || LEFT_PRESSED || PLUS_PRESSED || MINUS_PRESSED){
+		glutIdleFunc(update);
 	}
 }
 
@@ -411,8 +354,12 @@ void keyboardUp(unsigned char key,int x,int y){
 		RIGHT_PRESSED = 0;
 	else if(key == 100) // D
 		LEFT_PRESSED = 0;
+	else if(key == '+' || key == '=') // PLUS
+		PLUS_PRESSED = 0;
+	else if(key == '-' || key == '_') // MINUS
+		MINUS_PRESSED = 0;
 	
-	if(!(UP_PRESSED || DOWN_PRESSED || RIGHT_PRESSED || LEFT_PRESSED))
+	if(!(UP_PRESSED || DOWN_PRESSED || RIGHT_PRESSED || LEFT_PRESSED || PLUS_PRESSED || MINUS_PRESSED))
 		glutIdleFunc(NULL);
 }
 
