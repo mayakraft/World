@@ -58,6 +58,8 @@ static unsigned int RIGHT_PRESSED = 0;
 static unsigned int LEFT_PRESSED = 0;
 static unsigned int PLUS_PRESSED = 0;
 static unsigned int MINUS_PRESSED = 0;
+static unsigned int COMMA_PRESSED = 0;
+static unsigned int PERIOD_PRESSED = 0;
 // set default rotation here:
 // how far mouse has been dragged
 static int mouseTotalOffsetX = 0;  // since program began
@@ -70,8 +72,8 @@ static float walkX = 0.0f;
 static float walkY = 0.0f;
 static float polarRadius = 15.0f;  // POLAR PERSPECTIVE
 static unsigned char landscape = 0;  // checkerboard or axes lines
-// zoom scale, logarithmic. powers of 10.
-static float ZOOM = 1.0;
+// zoom scale, converted to logarithmic
+static float ZOOM = 0.0;
 
 
 #define STEP .10f  // WALKING SPEED. @60fps, walk speed = 6 units/second
@@ -108,8 +110,8 @@ void unitSquare(float x, float y, float width, float height){
 	static const GLfloat _unit_square_normals[] = { 
 		0.0f, 0.0f, 1.0f,     0.0f, 0.0f, 1.0f,    0.0f, 0.0f, 1.0f,    0.0f, 0.0f, 1.0f };
 	glPushMatrix();
-	glTranslatef(x, y, 0.0);
 	glScalef(width, height, 1.0);
+	glTranslatef(x, y, 0.0);
 	glEnableClientState(GL_VERTEX_ARRAY);
 	glEnableClientState(GL_NORMAL_ARRAY);
 	glVertexPointer(3, GL_FLOAT, 0, _unit_square_vertex);
@@ -155,6 +157,23 @@ void drawCheckerboard(float walkX, float walkY, int numSquares){
 	}
 }
 
+void drawZoomboard(float zoom){
+	glPushMatrix();
+	glScalef(zoom, zoom, zoom);
+	for(int a = -5; a < 8; a++){
+		for(int i = -1; i <= 1; i++){
+			for(int j = -1; j <= 1; j++){
+				int b = abs(((i+j)%2));
+				if(b) glColor3f(1.0, 1.0, 1.0);
+				else glColor3f(0.0, 0.0, 0.0);
+				if(!(i == 0 && j == 0))
+					unitSquare(i-.5, j-.5, 1.0/powf(3,a), 1.0/powf(3,a));
+			}
+		}
+	}
+	glPopMatrix();
+}
+
 // span: how many units to skip inbetween each axis
 // repeats: how many rows/cols/stacks on either side of center 
 void drawAxesGrid(float walkX, float walkY, int span, int repeats){
@@ -163,7 +182,6 @@ void drawAxesGrid(float walkX, float walkY, int span, int repeats){
 	for(int i = -repeats*span; i < repeats*span; i+=span){
 		for(int j = -repeats*span; j < repeats*span; j+=span){
 			for(int k = -repeats*span; k < repeats*span; k+=span){
-				// float distance = powf(i+XSpanMod,2) + powf(j+YSpanMod,2) + powf(k,2);//fabs(floor(i+XSpanMod)) + fabs(floor(j+YSpanMod)) + abs(k);
 				// distance approximation works just fine in this case
 				float distance = fabs(i+XSpanMod-1) + fabs(j+YSpanMod-1) + abs(k);
 				float brightness = 1.0 - distance/(repeats*span);
@@ -210,18 +228,26 @@ void display(){
 
 		glPushMatrix();
 			// CHECKERBOARD LANDSCAPE
-			if(!landscape){
+			if(landscape == 0){
 				float newX = modulusContext(walkX, 2);
 				float newY = modulusContext(walkY, 2);
 				glTranslatef(newX, newY, 0);
 				drawCheckerboard(newX, newY, 8);
 			}
 			// 3 DIMENSIONS OF SCATTERED AXES
-			else{
+			else if(landscape == 1){
 				float newX = modulusContext(walkX, 5);
 				float newY = modulusContext(walkY, 5);
 				glTranslatef(newX, newY, 0);
 				drawAxesGrid(newX, newY, 5, 4);
+			}
+			else if(landscape == 2){
+				// float newX = modulusContext(walkX, 3);
+				// float newY = modulusContext(walkY, 3);
+				glTranslatef(walkX, walkY, 0);
+				static double intpart;
+				float zoom = powf(3,modf(ZOOM, &intpart));
+				drawZoomboard(zoom);
 			}
 		glPopMatrix();
 
@@ -261,6 +287,11 @@ void update(){
 		if(polarRadius < 0) 
 			polarRadius = 0;
 	}
+	if(COMMA_PRESSED)
+		ZOOM -= STEP * .25;
+	if(PERIOD_PRESSED)
+		ZOOM += STEP * .25;
+
 
 	glutPostRedisplay();
 }
@@ -305,8 +336,16 @@ void keyboardDown(unsigned char key, int x, int y){
 		PLUS_PRESSED = 1;
 	else if(key == '-' || key == '_') // MINUS
 		MINUS_PRESSED = 1;
+	else if(key == ',' || key == '<') // COMMA
+	// else if(key == 'n') // COMMA
+		COMMA_PRESSED = 1;
+	else if(key == '.' || key == '>') // PERIOD
+	// else if(key == 'm') // PERIOD
+		PERIOD_PRESSED = 1;
 	else if(key == ' '){  // SPACE BAR
-		landscape = !landscape;
+		landscape = (landscape+1)%3;
+		if(landscape == 2)
+			walkX = walkY = 0.0f;
 		reshape(WIDTH, HEIGHT);
 		glutPostRedisplay();
 	}
@@ -340,7 +379,7 @@ void keyboardDown(unsigned char key, int x, int y){
 	
 	// anything that affects the screen and requires a redisplay
 	// put it in this if statement
-	if(UP_PRESSED || DOWN_PRESSED || RIGHT_PRESSED || LEFT_PRESSED || PLUS_PRESSED || MINUS_PRESSED){
+	if(UP_PRESSED || DOWN_PRESSED || RIGHT_PRESSED || LEFT_PRESSED || PLUS_PRESSED || MINUS_PRESSED || PERIOD_PRESSED || COMMA_PRESSED){
 		glutIdleFunc(update);
 	}
 }
@@ -358,8 +397,14 @@ void keyboardUp(unsigned char key,int x,int y){
 		PLUS_PRESSED = 0;
 	else if(key == '-' || key == '_') // MINUS
 		MINUS_PRESSED = 0;
+	else if(key == ',' || key == '<') // COMMA
+	// else if(key == 'n') // COMMA
+		COMMA_PRESSED = 0;
+	else if(key == '.' || key == '>') // PERIOD
+	// else if(key == 'm') // PERIOD
+		PERIOD_PRESSED = 0;
 	
-	if(!(UP_PRESSED || DOWN_PRESSED || RIGHT_PRESSED || LEFT_PRESSED || PLUS_PRESSED || MINUS_PRESSED))
+	if(!(UP_PRESSED || DOWN_PRESSED || RIGHT_PRESSED || LEFT_PRESSED || PLUS_PRESSED || MINUS_PRESSED || PERIOD_PRESSED || COMMA_PRESSED))
 		glutIdleFunc(NULL);
 }
 
