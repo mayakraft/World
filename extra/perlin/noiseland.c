@@ -11,6 +11,7 @@
 #include <stdlib.h>
 #include <math.h>
 #include <stdio.h>
+#include "noise.c"
 
 ////////////////////////////////////////////////////
 ////////////////////////////////////////////////////
@@ -21,7 +22,7 @@
 void initOpenGL();  // contains glEnable calls and general setup
 void reshape(int w, int h);  // contains viewport and frustum calls
 // SHAPES
-void unitSquare(float x, float y, float width, float height);
+void unitSquare(float x, float y, float WIDTH, float HEIGHT);
 void unitAxis(float x, float y, float z, float scale);
 void drawCheckerboard(float walkX, float walkY, int numSquares);
 void drawAxesGrid(float walkX, float walkY, int span, int repeats);
@@ -47,9 +48,14 @@ typedef enum{
 
 static perspective_t POV = FPP;
 
+static float *_points;
+static uint32_t *_indices;
+static float *_colors;
+static unsigned int _numPoints;
+static unsigned int _numIndices;
 // size of window in OS
 static int WIDTH = 800;
-static int HEIGHT = 400;
+static int HEIGHT = 800;
 static unsigned char FULLSCREEN = 0;  // fullscreen:1   window:0
 // INPUT HANDLING
 static unsigned int UP_PRESSED = 0;    // KEY UP:0   KEY DOWN:1
@@ -80,10 +86,100 @@ static float ZOOM = 0.0;
 #define MOUSE_SENSITIVITY 0.333f
 
 
+#define ZSCALE 10.0
+
 void initOpenGL(){
 	glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 	glShadeModel(GL_FLAT);
 	glLineWidth(1);
+    _points = (float*)malloc(sizeof(float) * WIDTH*HEIGHT * 3);
+    
+    for(int h = 0; h < HEIGHT; h++){
+        for(int w = 0; w < WIDTH; w++){
+            _points[(h*WIDTH+w)*3+0] = (w - WIDTH*.5) * .1;         // x
+            _points[(h*WIDTH+w)*3+1] = (h - HEIGHT*.5) * .1;        // y
+            float vec[2] = {w*.01, h*.01};
+            _points[(h*WIDTH+w)*3+2] = noise2(vec) * ZSCALE;///1000.0;    // z, convert meters to km
+        }
+    }
+
+    // smaller dents
+    float freq = .02;
+    for(int loop = 0; loop < 20; loop++){
+    for(int h = 0; h < HEIGHT; h++){
+        for(int w = 0; w < WIDTH; w++){
+            _points[(h*WIDTH+w)*3+0] = (w - WIDTH*.5) * .1;         // x
+            _points[(h*WIDTH+w)*3+1] = (h - HEIGHT*.5) * .1;        // y
+            float vec[2] = {w*freq, h*freq};
+            _points[(h*WIDTH+w)*3+2] += noise2(vec) * ZSCALE/(freq*100);///1000.0;    // z, convert meters to km
+        }
+    }
+    freq *= 2;
+	}
+
+    _indices = (uint32_t*)malloc(sizeof(uint32_t) * 2*(WIDTH-1)*(HEIGHT-1) * 3);
+
+    // inside INDICES, (WIDTH-1) and (HEIGHT-1) are max
+    // inside POINTS, WIDTH and HEIGHT are max
+    for(int h = 0; h < HEIGHT-1; h++){
+        for(int w = 0; w < WIDTH-1; w++){
+            _indices[(h*(WIDTH-1)+w)*6+0] = 1*(h*WIDTH+w);
+            _indices[(h*(WIDTH-1)+w)*6+1] = 1*((h+1)*WIDTH+w);
+            _indices[(h*(WIDTH-1)+w)*6+2] = 1*(h*WIDTH+w+1);
+            _indices[(h*(WIDTH-1)+w)*6+3] = 1*((h+1)*WIDTH+w);
+            _indices[(h*(WIDTH-1)+w)*6+4] = 1*((h+1)*WIDTH+w+1);
+            _indices[(h*(WIDTH-1)+w)*6+5] = 1*(h*WIDTH+w+1);
+        }
+    }
+
+    _colors = (float*)malloc(sizeof(float) * WIDTH*HEIGHT * 3);
+    
+    for(int i = 0; i < WIDTH*HEIGHT; i++){
+        // if(data[i] == -9999){
+            _colors[i*3+0] = 0.0f;
+            _colors[i*3+1] = 0.24f;
+            _colors[i*3+2] = 0.666f;
+
+            float scale = (.5*ZSCALE + _points[i*3+2]) / ZSCALE;
+            // printf("%f\n", _points[i*3+2]);
+            if(scale < 0.0) scale = 0.0;
+            if(scale > 1.0) scale = 1.0;
+
+            _colors[i*3+0] = 0.0f    + 1.0 * scale;
+            _colors[i*3+1] = 0.24f   + .76 * scale;
+            _colors[i*3+2] = 0.666f  + .334 * scale;
+
+
+        // }
+        // else if(data[i] > 400){
+        //     float white = (data[i]-400) / 400.0;
+        // // else if(data[i] > 1200){
+        // //     float white = (data[i]-1200) / 500.0;
+        // // else if(data[i] > 900){
+        // //     float white = (data[i]-900) / 300.0;
+        //     if(white > 1.0f) white = 1.0f;
+        //     _colors[i*3+0] = white;
+        //     _colors[i*3+1] = 0.3f + 0.7f*white;
+        //     _colors[i*3+2] = white;
+        // }
+        // else if(data[i] > 100){
+        //     float dark = (data[i]-100) / 300.0;
+        //     if(dark > 1.0f) dark = 1.0f;
+        //     _colors[i*3+0] = 0.0f;
+        //     _colors[i*3+1] = 0.5f - 0.2f*dark;
+        //     _colors[i*3+2] = 0.0f;
+        // }
+        // else{
+        //     float orange = (100-data[i]) / 100.0;
+        //     if(orange < 0.0f) orange = 0.0f;
+        //     _colors[i*3+0] = orange * .85;
+        //     _colors[i*3+1] = 0.5f;
+        //     _colors[i*3+2] = 0.0;
+        // }
+    }
+
+    _numPoints = HEIGHT * WIDTH;
+    _numIndices = 2*(WIDTH-1)*(HEIGHT-1)*3;
 }
 
 void reshape(int w, int h){
@@ -104,13 +200,13 @@ void reshape(int w, int h){
 }
 
 // draws a XY 1x1 square in the Z = 0 plane
-void unitSquare(float x, float y, float width, float height){
+void unitSquare(float x, float y, float WIDTH, float HEIGHT){
 	static const GLfloat _unit_square_vertex[] = { 
 		0.0f, 1.0f, 0.0f,     1.0f, 1.0f, 0.0f,    0.0f, 0.0f, 0.0f,    1.0f, 0.0f, 0.0f };
 	static const GLfloat _unit_square_normals[] = { 
 		0.0f, 0.0f, 1.0f,     0.0f, 0.0f, 1.0f,    0.0f, 0.0f, 1.0f,    0.0f, 0.0f, 1.0f };
 	glPushMatrix();
-	glScalef(width, height, 1.0);
+	glScalef(WIDTH, HEIGHT, 1.0);
 	glTranslatef(x, y, 0.0);
 	glEnableClientState(GL_VERTEX_ARRAY);
 	glEnableClientState(GL_NORMAL_ARRAY);
@@ -193,6 +289,21 @@ void drawAxesGrid(float walkX, float walkY, int span, int repeats){
 	}
 }
 
+void drawLandscape(){
+	glPushMatrix();
+		glScalef(-1.0f, 1.0f, .10f);
+		glEnableClientState(GL_COLOR_ARRAY);
+		glEnableClientState(GL_VERTEX_ARRAY);
+		glColor3f(0.5f, 1.0f, 0.5f);
+		glColorPointer(3, GL_FLOAT, 0, _colors);
+		glVertexPointer(3, GL_FLOAT, 0, _points);
+		// glDrawArrays(GL_POINTS, 0, _numPoints);
+		glDrawElements(GL_TRIANGLES, _numIndices, GL_UNSIGNED_INT, _indices);
+		glDisableClientState(GL_VERTEX_ARRAY);
+		glDisableClientState(GL_COLOR_ARRAY);
+	glPopMatrix();
+}
+
 float modulusContext(float complete, int modulus){
 	double wholePart;
 	double fracPart = modf(complete, &wholePart);
@@ -220,11 +331,21 @@ void display(){
 				break;
 
 			case ORTHO:
+				// glTranslatef(0, 0,  polarRadius*1);
 				glTranslatef(-mouseTotalOffsetX * .05, mouseTotalOffsetY * .05, 0.0f);
+				break;
 		}
 
 		// perspective has been established
 		// draw stuff below
+
+
+		glPushMatrix();
+			if(landscape == 0)
+				glTranslatef(walkX, walkY, 0);
+			drawLandscape();
+		glPopMatrix();
+
 
 		glPushMatrix();
 			// CHECKERBOARD LANDSCAPE
@@ -232,7 +353,6 @@ void display(){
 				float newX = modulusContext(walkX, 2);
 				float newY = modulusContext(walkY, 2);
 				glTranslatef(newX, newY, 0);
-				drawCheckerboard(newX, newY, 8);
 			}
 			// 3 DIMENSIONS OF SCATTERED AXES
 			else if(landscape == 1){
@@ -343,9 +463,9 @@ void keyboardDown(unsigned char key, int x, int y){
 	// else if(key == 'm') // PERIOD
 		PERIOD_PRESSED = 1;
 	else if(key == ' '){  // SPACE BAR
-		landscape = (landscape+1)%3;
-		if(landscape == 2)
-			walkX = walkY = 0.0f;
+		landscape = !landscape;//(landscape+1)%3;
+		// if(landscape == 2)
+		// 	walkX = walkY = 0.0f;
 		reshape(WIDTH, HEIGHT);
 		glutPostRedisplay();
 	}
