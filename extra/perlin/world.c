@@ -8,6 +8,7 @@
 #  include <GL/glut.h>
 #endif
 
+#include <string.h>
 #include <stdlib.h>
 #include <math.h>
 #include <stdio.h>
@@ -84,6 +85,10 @@ static unsigned char landscape = 0;  // checkerboard or axes lines
 static float ZOOM = 15.0f;   // POLAR PERSPECTIVE
 
 
+static int LAND_WIDTH = 800;
+static int LAND_HEIGHT = 800;
+
+
 #define STEP 1.0f  // WALKING SPEED. @60fps, walk speed = 6 units/second
 #define MOUSE_SENSITIVITY 0.333f
 
@@ -96,38 +101,71 @@ void buildWorld(){
     float freq = START_FREQ;
     // smaller dents
 
-// set Z of points,
-    for(int i = 0; i < HEIGHT*WIDTH; i++)
-	     _points[i*3+2] = 0.0;
+	// set X Y Z back to 0.0
+	memset(_points, 0, sizeof(float)*LAND_HEIGHT*LAND_WIDTH*3);
+	// set X Y to the grid
+	for(int h = 0; h < LAND_HEIGHT; h++){
+		for(int w = 0; w < LAND_WIDTH; w++){
+			_points[(h*LAND_WIDTH+w)*3+0] = (w - LAND_WIDTH*.5) * .1;         // x
+			_points[(h*LAND_WIDTH+w)*3+1] = (h - LAND_HEIGHT*.5) * .1;        // y
+		}
+	}
 
-
-    for(int loop = 0; loop < 20; loop++){
-    	freq *= 2;
+	for(int loop = 0; loop < 20; loop++){
+		freq *= 2;
 		float RX = rand()%1000/500.0 - 1.0;
 		float RY = rand()%1000/500.0 - 1.0;
-	    for(int h = 0; h < HEIGHT; h++){
-    	    for(int w = 0; w < WIDTH; w++){
-        	    _points[(h*WIDTH+w)*3+0] = (w - WIDTH*.5) * .1;         // x
-            	_points[(h*WIDTH+w)*3+1] = (h - HEIGHT*.5) * .1;        // y
- 	           float vec[2] = {w*freq + RX, h*freq + RY};
-    	        _points[(h*WIDTH+w)*3+2] += noise2(vec) * 1.5*ZSCALE/(freq/START_FREQ);///1000.0;    // z, convert meters to km
-        	}
-  		}
+		for(int h = 0; h < LAND_HEIGHT; h++){
+			for(int w = 0; w < LAND_WIDTH; w++){
+				float vec[2] = {w*freq + RX, h*freq + RY};
+				_points[(h*LAND_WIDTH+w)*3+2] += noise2(vec) * 1.5*ZSCALE/(freq/START_FREQ);///1000.0;    // z, convert meters to km
+			}
+		}
 	}
+
+// these next 2 blocks distort along X and Y,
+// potentially makes the land non-continuous, and may create bad geometry
+	//////////////////////////////////////////////////////
+	freq = START_FREQ;
+	for(int loop = 0; loop < 4; loop++){
+		freq *= 2;
+		float RX = rand()%1000/500.0 - 1.0;
+		float RY = rand()%1000/500.0 - 1.0;
+		for(int h = 0; h < LAND_HEIGHT; h++){
+			for(int w = 0; w < LAND_WIDTH; w++){
+				float vec[2] = {w*freq + RX, h*freq + RY};
+				_points[(h*LAND_WIDTH+w)*3+0] += noise2(vec) * 1.5*ZSCALE/(freq/START_FREQ*12);///1000.0;    // z, convert meters to km
+			}
+		}
+	}
+	freq = START_FREQ;
+	for(int loop = 0; loop < 4; loop++){
+		freq *= 2;
+		float RX = rand()%1000/500.0 - 1.0;
+		float RY = rand()%1000/500.0 - 1.0;
+		for(int h = 0; h < LAND_HEIGHT; h++){
+			for(int w = 0; w < LAND_WIDTH; w++){
+				float vec[2] = {w*freq + RX, h*freq + RY};
+				_points[(h*LAND_WIDTH+w)*3+1] += noise2(vec) * 1.5*ZSCALE/(freq/START_FREQ*12);///1000.0;    // z, convert meters to km
+			}
+		}
+	}
+	
+	/////////////////////////////////////////////////////////
     // inside INDICES, (WIDTH-1) and (HEIGHT-1) are max
     // inside POINTS, WIDTH and HEIGHT are max
-    for(int h = 0; h < HEIGHT-1; h++){
-        for(int w = 0; w < WIDTH-1; w++){
-            _indices[(h*(WIDTH-1)+w)*6+0] = 1*(h*WIDTH+w);
-            _indices[(h*(WIDTH-1)+w)*6+1] = 1*((h+1)*WIDTH+w);
-            _indices[(h*(WIDTH-1)+w)*6+2] = 1*(h*WIDTH+w+1);
-            _indices[(h*(WIDTH-1)+w)*6+3] = 1*((h+1)*WIDTH+w);
-            _indices[(h*(WIDTH-1)+w)*6+4] = 1*((h+1)*WIDTH+w+1);
-            _indices[(h*(WIDTH-1)+w)*6+5] = 1*(h*WIDTH+w+1);
+    for(int h = 0; h < LAND_HEIGHT-1; h++){
+        for(int w = 0; w < LAND_WIDTH-1; w++){
+            _indices[(h*(LAND_WIDTH-1)+w)*6+0] = 1*(h*LAND_WIDTH+w);
+            _indices[(h*(LAND_WIDTH-1)+w)*6+1] = 1*((h+1)*LAND_WIDTH+w);
+            _indices[(h*(LAND_WIDTH-1)+w)*6+2] = 1*(h*LAND_WIDTH+w+1);
+            _indices[(h*(LAND_WIDTH-1)+w)*6+3] = 1*((h+1)*LAND_WIDTH+w);
+            _indices[(h*(LAND_WIDTH-1)+w)*6+4] = 1*((h+1)*LAND_WIDTH+w+1);
+            _indices[(h*(LAND_WIDTH-1)+w)*6+5] = 1*(h*LAND_WIDTH+w+1);
         }
     }
    
-    for(int i = 0; i < WIDTH*HEIGHT; i++){
+    for(int i = 0; i < LAND_WIDTH*LAND_HEIGHT; i++){
     	// float RANDOM_WATER_LEVEL = rand()%100/500.0;
 		float scale = (.5*ZSCALE + _points[i*3+2]) / ZSCALE;// - RANDOM_WATER_LEVEL;
 		if(scale < 0.0) scale = 0.0;
@@ -149,7 +187,7 @@ void buildWorld(){
 		    if(white > 1.0f) 
 		    	white = 1.0;
 		    _colors[i*3+0] = white;
-		    _colors[i*3+1] = 0.4f + 0.6f*white;
+		    _colors[i*3+1] = 0.3f + 0.7f*white;
 		    _colors[i*3+2] = white;
 		}
 		// .3 to .3333
@@ -171,11 +209,11 @@ void buildWorld(){
 		}
 	}
 
-	_numPoints = HEIGHT * WIDTH;
-	_numIndices = 2*(WIDTH-1)*(HEIGHT-1)*3;
+	_numPoints = LAND_HEIGHT * LAND_WIDTH;
+	_numIndices = 2*(LAND_WIDTH-1)*(LAND_HEIGHT-1)*3;
 
 // crop ocean
-	for(int i = 0; i < WIDTH * HEIGHT; i++){
+	for(int i = 0; i < LAND_WIDTH * LAND_HEIGHT; i++){
     	if(_points[i*3+2] < -.33 * ZSCALE*.5){
         	_points[i*3+2] = -.33 * ZSCALE*.5;///1000.0;    // z, convert meters to km
     	}
@@ -202,7 +240,7 @@ void reshape(int w, int h){
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
 	if(POV == FPP || POV == POLAR)
-		glFrustum (-.1, .1, -.1/a, .1/a, .1, 100.0);
+		glFrustum (-.1, .1, -.1/a, .1/a, .1, 1000.0);
 	else if (POV == ORTHO)
 		glOrtho(-ZOOM, ZOOM, 
 				-ZOOM/a, ZOOM/a, 
