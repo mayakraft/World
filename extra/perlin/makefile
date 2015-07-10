@@ -18,5 +18,5 @@ ifeq ($(OSTYPE),darwin)
 	LDFLAGS = -framework Carbon -framework OpenGL -framework GLUT  -Wno-deprecated
 endif
 
-$(EXE) : noiseland.c
+$(EXE) : world.c
 	gcc -o $@ $< $(CFLAGS) $(LDFLAGS)
