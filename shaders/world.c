@@ -1,4 +1,5 @@
 #ifdef __APPLE__
+#  include "/usr/local/Cellar/glew/1.12.0/include/GL/glew.h"
 #  include <OpenGL/gl.h>
 #  include <OpenGL/glu.h>
 #  include <GLUT/glut.h>
@@ -11,7 +12,9 @@
 #include <stdlib.h>
 #include <math.h>
 #include <stdio.h>
+#include <string.h>
 
+////////////////////////////////////////////////////
 ////////////////////////////////////////////////////
 //
 // TABLE OF CONTENTS
@@ -19,6 +22,7 @@
 int main(int argc, char **argv);
 // INITIALIZE
 void initOpenGL();  // contains glEnable calls and general setup
+void initShaders();
 void reshape(int w, int h);  // contains viewport and frustum calls
 // DRAW, ALIGNMENT, INPUT HANDLING
 void display();
@@ -36,7 +40,6 @@ void drawAxesGrid(float walkX, float walkY, float walkZ, int span, int repeats);
 void drawCheckerboard(float walkX, float walkY, int numSquares);
 void drawZoomboard(float zoom);
 float modulusContext(float complete, int modulus);
-
 
 ////////////////////////////////////////////////////
 // MANAGE PERSPECTIVE
@@ -62,7 +65,7 @@ static unsigned int COMMA_PRESSED = 0;
 static unsigned int PERIOD_PRESSED = 0;
 static unsigned int FLOAT_UP_PRESSED = 0;
 static unsigned int FLOAT_DOWN_PRESSED = 0;
-// set initial rotation here:
+// set default rotation here:
 // how far mouse has been dragged
 static int mouseTotalOffsetX = 0;  // since program began
 static int mouseTotalOffsetY = 0;
@@ -78,7 +81,7 @@ static unsigned char landscape = 0;  // checkerboard or axes lines
 static float ZOOM = 15.0f;     // POLAR PERSPECTIVE
 
 
-#define STEP .10f  // WALKING SPEED. @ 60 updates/second, walk speed = 6 units/second
+#define STEP .10f  // WALKING SPEED. @60fps, walk speed = 6 units/second
 #define MOUSE_SENSITIVITY 0.333f
 
 
@@ -103,10 +106,80 @@ int main(int argc, char **argv){
 void initOpenGL(){
 	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 	glShadeModel(GL_FLAT);
-	glEnable(GL_DEPTH_TEST);
-	glDepthMask(GL_TRUE);
-	glDepthFunc(GL_LESS);
 	glLineWidth(1);
+ 	glEnable(GL_DEPTH_TEST);
+ 	glDepthMask(GL_TRUE);
+ 	glDepthFunc(GL_LESS);
+ 	// glEnable(GL_CULL_FACE);
+ 	// glCullFace(GL_BACK);
+
+ 	initShaders();
+}
+
+void initShaders(){
+	if (glewIsSupported("GL_VERSION_1_4  GL_ARB_point_sprite")){
+		printf("OpenGL 1.4 + point sprites is available on this system\n");
+	}
+
+	GLuint shader_num_v, shader_num_f;
+	GLenum err = glewInit();
+	if (GLEW_OK != err){
+		// Problem: glewInit failed, something is seriously wrong.
+		printf("Error: %s\n", glewGetErrorString(err));
+	}
+	printf("Status: Using GLEW %s\n", glewGetString(GLEW_VERSION));
+	if (GLEW_ARB_vertex_program)
+	{
+		glEnable(GL_VERTEX_PROGRAM_ARB);
+		glGenProgramsARB(1, &shader_num_v);
+		glBindProgramARB(GL_FRAGMENT_PROGRAM_ARB, shader_num_v);
+		printf("vertex shaders loaded.\n");
+	}
+	if (GLEW_ARB_fragment_program)
+	{
+		glEnable(GL_FRAGMENT_PROGRAM_ARB);
+		glGenProgramsARB(1, &shader_num_f);
+		glBindProgramARB(GL_FRAGMENT_PROGRAM_ARB, shader_num_f);
+		printf("fragment shaders loaded.\n");
+	}
+
+	GLint vertexShaderObject, fragmentShaderObject;
+	GLint vlength, flength;
+
+	const char *VertexShaderSource = "void main(void)\n{\nvec4 a = gl_Vertex;\na.x = a.x * 1.0;\na.y = a.y * 1.0;\na.z = a.z * 1.0;\ngl_Position = gl_ModelViewProjectionMatrix * a;\n}";
+
+	const char *FragmentShaderSource = "void main (void)\n{\ngl_FragColor = vec4(1.0, 1.0, 1.0, 1.0);\n}";
+
+	vlength = strlen(VertexShaderSource);
+	flength = strlen(FragmentShaderSource);
+
+	vertexShaderObject = glCreateShaderObjectARB(GL_VERTEX_SHADER);
+	fragmentShaderObject = glCreateShaderObjectARB(GL_FRAGMENT_SHADER);
+	glShaderSourceARB(vertexShaderObject, 1, &VertexShaderSource, &vlength);
+	glShaderSourceARB(fragmentShaderObject, 1, &FragmentShaderSource, &flength);
+	
+	glCompileShaderARB(vertexShaderObject);
+	glCompileShaderARB(fragmentShaderObject);
+
+	GLint compiled;
+	glGetObjectParameterivARB(vertexShaderObject, GL_COMPILE_STATUS, &compiled);
+	if(compiled)
+		printf("vertex shader successfully compiled\n");
+	glGetObjectParameterivARB(fragmentShaderObject, GL_COMPILE_STATUS, &compiled);
+	if(compiled)
+		printf("fragment shader successfully compiled\n");
+	
+	GLhandleARB program;
+	//Create a program handle.
+	program = glCreateProgramObjectARB();
+	//Attach the shaders. Here, assume that fragmentHandle is a handle to a fragment shader object, 
+	//and that vertexHandle is a handle to a vertex shader object.
+	glAttachObjectARB(program, fragmentShaderObject);
+	glAttachObjectARB(program, vertexShaderObject);
+	//Link the program.
+	glLinkProgramARB(program);
+
+	glUseProgramObjectARB(program);
 }
 
 void reshape(int w, int h){
@@ -117,7 +190,7 @@ void reshape(int w, int h){
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
 	if(POV == FPP || POV == POLAR)
-		glFrustum (-.1, .1, -.1/a, .1/a, .1, 100.0);
+		glFrustum(-.1, .1, -.1/a, .1/a, .1, 100.0);
 	else if (POV == ORTHO)
 		glOrtho(-ZOOM, ZOOM, 
 				-ZOOM/a, ZOOM/a, 
@@ -208,17 +281,9 @@ void update(){
 		originY += STEP * -cosf(lookAzimuth+M_PI_2);
 	}
 	if(FLOAT_UP_PRESSED){
-		// float x =  sinf(lookAzimuth+M_PI_HALF);
-		// float y = cosf(lookAzimuth+M_PI_HALF);
-		// xPos += x;
-		// yPos += y;
 		originZ -= STEP;
 	}
 	if(FLOAT_DOWN_PRESSED){
-		// float x =  sinf(lookAzimuth+M_PI_HALF);
-		// float y = cosf(lookAzimuth+M_PI_HALF);
-		// xPos += x;
-		// yPos += y;
 		originZ += STEP;
 	}
 	if(MINUS_PRESSED){
@@ -307,7 +372,7 @@ void keyboardDown(unsigned char key, int x, int y){
 			glutFullScreen();
 		else{
 			reshape(WIDTH, HEIGHT);
-			glutPositionWindow(0,0);
+        	glutPositionWindow(0,0);
 		}
 		FULLSCREEN = !FULLSCREEN;
 	}
@@ -374,9 +439,10 @@ void drawCheckerboard(float walkX, float walkY, int numSquares){
 	for(int i = -numSquares; i <= numSquares; i++){
 		for(int j = -numSquares; j <= numSquares; j++){
 			int b = abs(((i+j+XOffset+YOffset)%2));
-			if(b) glColor3f(1.0, 1.0, 1.0);
-			else glColor3f(0.0, 0.0, 0.0);
-			unitSquare(i-XOffset, j-YOffset, 1, 1);
+			// if(b) glColor3f(1.0, 1.0, 1.0);
+			// else glColor3f(0.0, 0.0, 0.0);
+			if(b) 
+				unitSquare(i-XOffset, j-YOffset, 1, 1);
 		}
 	}
 }
@@ -390,7 +456,7 @@ void drawZoomboard(float zoom){
 				int b = abs(((i+j)%2));
 				if(b) glColor3f(1.0, 1.0, 1.0);
 				else glColor3f(0.0, 0.0, 0.0);
-				if(!(i == 0 && j == 0))
+				if(!(i == 0 && j == 0) && b)  // "&& b" was added when shaders appeared
 					unitSquare(i-.5, j-.5, 1.0/powf(3,a), 1.0/powf(3,a));
 			}
 		}
@@ -421,13 +487,17 @@ void drawAxesGrid(float walkX, float walkY, float walkZ, int span, int repeats){
 }
 
 // draws a XY 1x1 square in the Z = 0 plane
-void unitSquare(float x, float y, float width, float height){
+void unitSquare(float x, float y, float WIDTH, float HEIGHT){
 	static const GLfloat _unit_square_vertex[] = { 
 		0.0f, 1.0f, 0.0f,     1.0f, 1.0f, 0.0f,    0.0f, 0.0f, 0.0f,    1.0f, 0.0f, 0.0f };
 	static const GLfloat _unit_square_normals[] = { 
 		0.0f, 0.0f, 1.0f,     0.0f, 0.0f, 1.0f,    0.0f, 0.0f, 1.0f,    0.0f, 0.0f, 1.0f };
+	// for(int i = 0; i < 9; i++)
+	// 	_unit_square_normals[i] = rand()%100/50.0 - 1.0f;
+	// static const GLfloat _unit_square_normals[] = { 
+	// 	0.0f, 0.0f, 1.0f,     0.0f, 0.0f, 1.0f,    0.0f, 0.0f, 1.0f,    0.0f, 0.0f, 1.0f };
 	glPushMatrix();
-	glScalef(width, height, 1.0);
+	glScalef(WIDTH, HEIGHT, 1.0);
 	glTranslatef(x, y, 0.0);
 	glEnableClientState(GL_VERTEX_ARRAY);
 	glEnableClientState(GL_NORMAL_ARRAY);

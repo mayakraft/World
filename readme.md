@@ -1,4 +1,4 @@
-#OpenGL World Template
+#OpenGL basic world + interface
 
 Mac, Linux, Windows
 
@@ -8,9 +8,9 @@ Mac, Linux, Windows
 * `3` orthographic: panning, zooming
 
 ## landscapes `SPACE BAR`
-* infinite checkerboard (2D repeating polytope)
-* 3D axes grid (3D repeating polytope)
-* infinite zoom (2D zooming polytope)
+* infinite checkerboard (2D infinitely-repeating scenery)
+* 3D axes grid (3D infinitely-repeating scenery)
+* infinite zoom (2D zooming scenery)
 
 ## more input
 * fullscreen `F`
@@ -20,7 +20,7 @@ Mac, Linux, Windows
 * mouse look
 
 ## try it out
-* type `make` then `./world`
+* `make` then `./world`
 
 ## license
 MIT
