@@ -24,6 +24,7 @@ int main(int argc, char **argv);
 void initOpenGL();  // contains glEnable calls and general setup
 void initShaders();
 void reshape(int w, int h);  // contains viewport and frustum calls
+char *loadFile(char *filename);  // load shader files into string
 // DRAW, ALIGNMENT, INPUT HANDLING
 void display();
 void update();  // process input devices
@@ -33,13 +34,14 @@ void mouseMotion(int x, int y);   // when mouse is dragging screen
 void keyboardDown(unsigned char key, int x, int y);
 void keyboardUp(unsigned char key,int x,int y);
 // WORLD SHAPES
-void unitSquare(float x, float y, float width, float height);
+void unitSquare(float x, float y);
+void square(float x, float y, float width, float height);
 void unitAxis(float x, float y, float z, float scale);
 void drawCheckerboard(float walkX, float walkY, int numSquares);
 void drawAxesGrid(float walkX, float walkY, float walkZ, int span, int repeats);
-void drawCheckerboard(float walkX, float walkY, int numSquares);
 void drawZoomboard(float zoom);
 float modulusContext(float complete, int modulus);
+
 
 ////////////////////////////////////////////////////
 // MANAGE PERSPECTIVE
@@ -105,15 +107,18 @@ int main(int argc, char **argv){
 
 void initOpenGL(){
 	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-	glShadeModel(GL_FLAT);
+	glShadeModel(GL_SMOOTH);
 	glLineWidth(1);
- 	glEnable(GL_DEPTH_TEST);
- 	glDepthMask(GL_TRUE);
- 	glDepthFunc(GL_LESS);
- 	// glEnable(GL_CULL_FACE);
- 	// glCullFace(GL_BACK);
+	glEnable(GL_DEPTH_TEST);
+	glEnable(GL_POLYGON_SMOOTH);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	// glBlendFunc(GL_SRC_ALPHA_SATURATE, GL_ONE);
+	glDepthMask(GL_TRUE);
+	glDepthFunc(GL_LESS);
+	// glEnable(GL_CULL_FACE);
+	// glCullFace(GL_BACK);
 
- 	initShaders();
+	initShaders();
 }
 
 void initShaders(){
@@ -124,62 +129,66 @@ void initShaders(){
 	GLuint shader_num_v, shader_num_f;
 	GLenum err = glewInit();
 	if (GLEW_OK != err){
-		// Problem: glewInit failed, something is seriously wrong.
-		printf("Error: %s\n", glewGetErrorString(err));
+		printf("ERROR %s\n", glewGetErrorString(err));
+		exit(1);
 	}
-	printf("Status: Using GLEW %s\n", glewGetString(GLEW_VERSION));
 	if (GLEW_ARB_vertex_program)
 	{
 		glEnable(GL_VERTEX_PROGRAM_ARB);
 		glGenProgramsARB(1, &shader_num_v);
 		glBindProgramARB(GL_FRAGMENT_PROGRAM_ARB, shader_num_v);
-		printf("vertex shaders loaded.\n");
 	}
+	else{  printf("ERROR loading vertex shader\n");	}
 	if (GLEW_ARB_fragment_program)
 	{
 		glEnable(GL_FRAGMENT_PROGRAM_ARB);
 		glGenProgramsARB(1, &shader_num_f);
 		glBindProgramARB(GL_FRAGMENT_PROGRAM_ARB, shader_num_f);
-		printf("fragment shaders loaded.\n");
 	}
+	else{  printf("ERROR loading fragment shader\n");	}
 
 	GLint vertexShaderObject, fragmentShaderObject;
 	GLint vlength, flength;
-
-	const char *VertexShaderSource = "void main(void)\n{\nvec4 a = gl_Vertex;\na.x = a.x * 1.0;\na.y = a.y * 1.0;\na.z = a.z * 1.0;\ngl_Position = gl_ModelViewProjectionMatrix * a;\n}";
-
-	const char *FragmentShaderSource = "void main (void)\n{\ngl_FragColor = vec4(1.0, 1.0, 1.0, 1.0);\n}";
-
+	const char *VertexShaderSource = loadFile("/Users/Robby/Code/World/shaders/shader.vert");
+	const char *FragmentShaderSource = loadFile("/Users/Robby/Code/World/shaders/shader.frag");
 	vlength = strlen(VertexShaderSource);
 	flength = strlen(FragmentShaderSource);
-
 	vertexShaderObject = glCreateShaderObjectARB(GL_VERTEX_SHADER);
 	fragmentShaderObject = glCreateShaderObjectARB(GL_FRAGMENT_SHADER);
 	glShaderSourceARB(vertexShaderObject, 1, &VertexShaderSource, &vlength);
 	glShaderSourceARB(fragmentShaderObject, 1, &FragmentShaderSource, &flength);
-	
 	glCompileShaderARB(vertexShaderObject);
 	glCompileShaderARB(fragmentShaderObject);
 
 	GLint compiled;
 	glGetObjectParameterivARB(vertexShaderObject, GL_COMPILE_STATUS, &compiled);
-	if(compiled)
-		printf("vertex shader successfully compiled\n");
+	if(!compiled){  printf("ERROR compiling vertex shader\n");  }
 	glGetObjectParameterivARB(fragmentShaderObject, GL_COMPILE_STATUS, &compiled);
-	if(compiled)
-		printf("fragment shader successfully compiled\n");
+	if(!compiled){  printf("ERROR compiling fragment shader\n");  }
 	
-	GLhandleARB program;
-	//Create a program handle.
-	program = glCreateProgramObjectARB();
-	//Attach the shaders. Here, assume that fragmentHandle is a handle to a fragment shader object, 
-	//and that vertexHandle is a handle to a vertex shader object.
+	GLhandleARB program = glCreateProgramObjectARB();
 	glAttachObjectARB(program, fragmentShaderObject);
 	glAttachObjectARB(program, vertexShaderObject);
-	//Link the program.
 	glLinkProgramARB(program);
 
 	glUseProgramObjectARB(program);
+}
+
+char * loadFile(char *filename){
+	char * buffer = 0;
+	long length;
+	FILE * f = fopen(filename, "rb");
+	if(f) {
+		fseek (f, 0, SEEK_END);
+		length = ftell (f);
+		fseek (f, 0, SEEK_SET);
+		buffer = malloc (length);
+		if (buffer){
+			fread (buffer, 1, length, f);
+		}
+		fclose (f);
+	}
+	return buffer;
 }
 
 void reshape(int w, int h){
@@ -287,12 +296,12 @@ void update(){
 		originZ += STEP;
 	}
 	if(MINUS_PRESSED){
-		ZOOM += STEP;
+		ZOOM += STEP * 4;
 		reshape(WIDTH, HEIGHT);
 		glutPostRedisplay();
 	}
 	if(PLUS_PRESSED){
-		ZOOM -= STEP;
+		ZOOM -= STEP * 4;
 		if(ZOOM < 0) 
 			ZOOM = 0;
 		reshape(WIDTH, HEIGHT);
@@ -302,7 +311,6 @@ void update(){
 	// 	ZOOM -= STEP * .25;
 	// if(PERIOD_PRESSED)
 	// 	ZOOM += STEP * .25;
-
 
 	glutPostRedisplay();
 }
@@ -433,16 +441,46 @@ void keyboardUp(unsigned char key,int x,int y){
 //////////   WORLD SHAPES    //////////
 ///////////////////////////////////////
 
+// void drawCheckerboard(float walkX, float walkY, int numSquares){
+// 	int XOffset = ceil(walkX);
+// 	int YOffset = ceil(walkY);
+// 	for(int i = -numSquares; i <= numSquares; i++){
+// 		for(int j = -numSquares; j <= numSquares; j++){
+// 			int b = abs(((i+j+XOffset+YOffset)%2));
+// 			// if(b) glColor3f(1.0, 1.0, 1.0);
+// 			// else glColor3f(0.0, 0.0, 0.0);
+// 			if(b) 
+// 				unitSquare(i-XOffset, j-YOffset, 1, 1);
+// 		}
+// 	}
+// }
+
 void drawCheckerboard(float walkX, float walkY, int numSquares){
 	int XOffset = ceil(walkX);
 	int YOffset = ceil(walkY);
-	for(int i = -numSquares; i <= numSquares; i++){
-		for(int j = -numSquares; j <= numSquares; j++){
-			int b = abs(((i+j+XOffset+YOffset)%2));
-			// if(b) glColor3f(1.0, 1.0, 1.0);
-			// else glColor3f(0.0, 0.0, 0.0);
-			if(b) 
-				unitSquare(i-XOffset, j-YOffset, 1, 1);
+	// if even split
+	if(numSquares%2 == 0){
+		for(int i = -numSquares*.5; i <= numSquares*.5; i++){
+			for(int j = -numSquares*.5; j <= numSquares*.5; j++){
+				int b = abs(((i+j+XOffset+YOffset)%2));
+				// if(b) glColor3f(1.0, 1.0, 1.0);
+				// else glColor3f(0.0, 0.0, 0.0);
+				if(b)
+				unitSquare(i-XOffset, j-YOffset);
+			}
+		}
+	}
+// if odd number
+	else{
+		numSquares--;
+		for(int i = -numSquares*.5; i <= numSquares*.5; i++){
+			for(int j = -numSquares*.5; j <= numSquares*.5; j++){
+				int b = abs(((i+j+XOffset+YOffset)%2));
+				// if(b) glColor3f(1.0, 1.0, 1.0);
+				// else glColor3f(0.0, 0.0, 0.0);
+				if(b)
+				unitSquare(i-XOffset - .5, j-YOffset - .5);
+			}
 		}
 	}
 }
@@ -457,47 +495,79 @@ void drawZoomboard(float zoom){
 				if(b) glColor3f(1.0, 1.0, 1.0);
 				else glColor3f(0.0, 0.0, 0.0);
 				if(!(i == 0 && j == 0) && b)  // "&& b" was added when shaders appeared
-					unitSquare(i-.5, j-.5, 1.0/powf(3,a), 1.0/powf(3,a));
+					square(i-.5, j-.5, 1.0/powf(3,a), 1.0/powf(3,a));
 			}
 		}
 	}
 	glPopMatrix();
 }
 
-// span: how many units to skip inbetween each axis
-// repeats: how many rows/cols/stacks on either side of center 
+// // span: how many units to skip inbetween each axis
+// // repeats: how many rows/cols/stacks on either side of center 
+// void drawAxesGrid(float walkX, float walkY, float walkZ, int span, int repeats){
+// 	float XSpanMod = walkX - floor(walkX/span)*span;
+// 	float YSpanMod = walkY - floor(walkY/span)*span;
+// 	float ZSpanMod = walkZ - floor(walkZ/span)*span;
+// 	for(int i = -repeats*span; i < repeats*span; i+=span){
+// 		for(int j = -repeats*span; j < repeats*span; j+=span){
+// 			for(int k = -repeats*span; k < repeats*span; k+=span){
+// 				// distance approximation works just fine in this case
+// 				float distance = fabs(i+XSpanMod-1) + fabs(j+YSpanMod-1) + abs(k);
+// 				float brightness = 1.0 - distance/(repeats*span);
+// 				glColor3f(brightness, brightness, brightness);
+// 				// glLineWidth(100.0/distance/distance);
+// 				unitAxis(i + XSpanMod - walkX, 
+// 					     j + YSpanMod - walkY, 
+// 					     k + ZSpanMod - walkZ, 1.0);
+// 			}
+// 		}
+// 	}
+// }
+
 void drawAxesGrid(float walkX, float walkY, float walkZ, int span, int repeats){
 	float XSpanMod = walkX - floor(walkX/span)*span;
 	float YSpanMod = walkY - floor(walkY/span)*span;
 	float ZSpanMod = walkZ - floor(walkZ/span)*span;
-	for(int i = -repeats*span; i < repeats*span; i+=span){
-		for(int j = -repeats*span; j < repeats*span; j+=span){
-			for(int k = -repeats*span; k < repeats*span; k+=span){
-				// distance approximation works just fine in this case
-				float distance = fabs(i+XSpanMod-1) + fabs(j+YSpanMod-1) + abs(k);
-				float brightness = 1.0 - distance/(repeats*span);
-				glColor3f(brightness, brightness, brightness);
-				// glLineWidth(100.0/distance/distance);
-				unitAxis(i + XSpanMod - walkX, 
-					     j + YSpanMod - walkY, 
-					     k + ZSpanMod - walkZ, 1.0);
+	for(int a = 0; a < 3; a++){
+		// 3 axes
+		glPushMatrix();
+		if(a == 1)
+			glRotatef(90, 0, 1, 0);
+		if(a == 2)
+			glRotatef(90, 1, 0, 0);
+		for(int i = -repeats*span; i < repeats*span; i+=span){
+			for(int j = -repeats*span; j < repeats*span; j+=span){
+				for(int k = -repeats*span; k < repeats*span; k+=span){
+					// distance approximation works just fine in this case
+					float distance = fabs(k+XSpanMod-1) + fabs(j+YSpanMod-1) + abs(i);
+					float brightness = 1.0 - distance/(repeats*span);
+					glColor3f(brightness, brightness, brightness);
+
+					glPushMatrix();
+					glTranslatef(2,2,i + XSpanMod - walkX);
+					unitSquare(k + XSpanMod - walkX, j + YSpanMod - walkY);
+					glPopMatrix();
+				}
 			}
 		}
+		glPopMatrix();
 	}
 }
 
+void square(float x, float y, float width, float height){
+	glPushMatrix();
+	glScalef(width, height, 1.0);
+	unitSquare(x, y);
+	glPopMatrix();
+}
+
 // draws a XY 1x1 square in the Z = 0 plane
-void unitSquare(float x, float y, float WIDTH, float HEIGHT){
+void unitSquare(float x, float y){
 	static const GLfloat _unit_square_vertex[] = { 
 		0.0f, 1.0f, 0.0f,     1.0f, 1.0f, 0.0f,    0.0f, 0.0f, 0.0f,    1.0f, 0.0f, 0.0f };
 	static const GLfloat _unit_square_normals[] = { 
 		0.0f, 0.0f, 1.0f,     0.0f, 0.0f, 1.0f,    0.0f, 0.0f, 1.0f,    0.0f, 0.0f, 1.0f };
-	// for(int i = 0; i < 9; i++)
-	// 	_unit_square_normals[i] = rand()%100/50.0 - 1.0f;
-	// static const GLfloat _unit_square_normals[] = { 
-	// 	0.0f, 0.0f, 1.0f,     0.0f, 0.0f, 1.0f,    0.0f, 0.0f, 1.0f,    0.0f, 0.0f, 1.0f };
 	glPushMatrix();
-	glScalef(WIDTH, HEIGHT, 1.0);
 	glTranslatef(x, y, 0.0);
 	glEnableClientState(GL_VERTEX_ARRAY);
 	glEnableClientState(GL_NORMAL_ARRAY);

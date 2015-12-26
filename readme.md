@@ -1,26 +1,52 @@
-#OpenGL basic world + interface
+# OpenGL basic world + interface
 
-Mac, Linux, Windows
+### Mac, Linux, Windows
 
-## perspectives `1` `2` `3`
-* `1` first person: walking, floating
-* `2` polar: rotating around origin, zooming
-* `3` orthographic: panning, zooming
+this is a hyper minimalist (1 file) framework for graphics (OpenGL) and user input (keyboard, mouse) following the OpenFrameworks / Processing design paradigm
 
-## landscapes `SPACE BAR`
-* infinite checkerboard (2D infinitely-repeating scenery)
-* 3D axes grid (3D infinitely-repeating scenery)
-* infinite zoom (2D zooming scenery)
+# try it out
+type `make` then `make run`
+
+# setup
+
+1. create a blank .c file
+2. `#include "world.c"`
+3. implement a few functions including:
+
+```
+setup(){
+	// runs once at the beginning
+}
+```
+
+```
+update(){
+	// runs every frame, at the beginning
+}
+```
+
+```
+draw(){
+	// runs every frame, after update()
+}
+```
+
+#features
+
+## perspectives `SPACE BAR`
+* first person: looking, walking
+* polar: rotating around origin, zooming
+* orthographic: panning, zooming
+
+## landscapes
+* 'G' 2D ground (2D infinitely-repeating scenery)
+* 'X' 3D grid (3D infinitely-repeating scenery)
 
 ## more input
+* mouse look
 * fullscreen `F`
 * zoom `+` `-`
-* arrow keys are `W` `A` `S` `D`
-* float up/down `Q` `Z`
-* mouse look
+* arrow keys and `W` `A` `S` `D`
 
-## try it out
-* `make` then `./world`
-
-## license
+# license
 MIT

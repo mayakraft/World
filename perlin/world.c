@@ -37,7 +37,6 @@ void unitSquare(float x, float y, float width, float height);
 void unitAxis(float x, float y, float z, float scale);
 void drawCheckerboard(float walkX, float walkY, int numSquares);
 void drawAxesGrid(float walkX, float walkY, float walkZ, int span, int repeats);
-void drawCheckerboard(float walkX, float walkY, int numSquares);
 void drawZoomboard(float zoom);
 float modulusContext(float complete, int modulus);
 
