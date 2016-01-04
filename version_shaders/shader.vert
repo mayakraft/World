@@ -11,7 +11,7 @@ void main(void)
   gl_Position = gl_ModelViewProjectionMatrix * gl_Vertex;
 //  gl_FrontColor = vec4(0.0, clamp(gl_Position[0], 0.0, 1.0), 1.0, 1.0);
   vec4 v = gl_ProjectionMatrix * gl_Vertex;
-  gl_FrontColor = vec4(0.0, v[0], 1.0, 1.0);
+  gl_FrontColor = vec4(1.0-v[0], 1.0-v[1], 1.0-v[2], 1.0);
 }
 
 //void main(void)

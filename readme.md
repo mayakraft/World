@@ -13,19 +13,19 @@ type `make` then `make run`
 2. `#include "world.c"`
 3. implement a few functions including:
 
-```
+```c
 setup(){
 	// runs once at the beginning
 }
 ```
 
-```
+```c
 update(){
 	// runs every frame, at the beginning
 }
 ```
 
-```
+```c
 draw(){
 	// runs every frame, after update()
 }
@@ -33,20 +33,20 @@ draw(){
 
 #features
 
-## perspectives `SPACE BAR`
+## perspectives: switch with `P`
 * first person: looking, walking
 * polar: rotating around origin, zooming
 * orthographic: panning, zooming
 
 ## landscapes
-* 'G' 2D ground (2D infinitely-repeating scenery)
-* 'X' 3D grid (3D infinitely-repeating scenery)
+* `G` 2D ground (2D infinitely-repeating scenery)
+* `X` 3D axes (3D infinitely-repeating scenery)
 
 ## more input
 * mouse look
+* move with arrow keys and `W` `A` `S` `D`
 * fullscreen `F`
 * zoom `+` `-`
-* arrow keys and `W` `A` `S` `D`
 
 # license
 MIT

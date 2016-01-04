@@ -1,11 +1,11 @@
 # Linux (default)
-EXE = empty
+EXE = example
 CFLAGS = -std=gnu99
 LDFLAGS = -lGL -lGLU -lglut -lm
 
 # Windows (cygwin)
 ifeq "$(OS)" "Windows_NT"
-	EXE = empty.exe
+	EXE = example.exe
 	LDFLAGS = -lopengl32 -lglu32 -lglut32
 endif
 
@@ -18,7 +18,7 @@ ifeq ($(OSTYPE),darwin)
 	LDFLAGS = -framework Carbon -framework OpenGL -framework GLUT  -Wno-deprecated
 endif
 
-$(EXE) : empty.c
+$(EXE) : example.c
 	gcc -o $@ $< $(CFLAGS) $(LDFLAGS)
 
 run :

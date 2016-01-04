@@ -15,5 +15,5 @@ void main(void)
 
 //void main(void)
 //{
-//	gl_FragColor = vec4(1.0, gl_PointCoord.y, 1.0, 1.0);
+//	gl_FragColor = vec4(gl_PointCoord.x, gl_PointCoord.y, gl_PointCoord.z, 1.0);
 //}

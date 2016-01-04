@@ -40,7 +40,7 @@ void mouseMoved(int x, int y);
 ////////////////////////////////////////////////////////////////////////////////////////
 // FURTHER CUSTOMIZATION
 
-#define ANIMATIONS 0  // set to false (0) for maximum efficiency, screen will only redraw upon receiving input
+#define ANIMATIONS 1  // set to false (0) for maximum efficiency, screen will only redraw upon receiving input
 #define STEP .10f  // WALKING SPEED. @ 60 updates/second, walk speed = 6 units/second
 #define MOUSE_SENSITIVITY 0.333f
 // WINDOW size upon boot
@@ -116,6 +116,7 @@ float modulusContext(float complete, int modulus);
 #define D_KEY 68
 #define F_KEY 70
 #define G_KEY 71
+#define P_KEY 80
 #define Q_KEY 81
 #define S_KEY 83
 #define W_KEY 87
@@ -128,6 +129,7 @@ float modulusContext(float complete, int modulus);
 #define d_KEY 100
 #define f_KEY 102
 #define g_KEY 103
+#define p_KEY 112
 #define q_KEY 113
 #define s_KEY 115
 #define w_KEY 119
@@ -226,7 +228,7 @@ void display(){
 			float newX = modulusContext(originX, 2);
 			float newY = modulusContext(originY, 2);
 			glTranslatef(newX, newY, originZ);
-			drawCheckerboard(newX, newY, 16);
+			drawCheckerboard(newX, newY, 8);
 			glPopMatrix();
 		}
 		// if(ZOOM_GROUND){
@@ -332,15 +334,6 @@ void keyboardDown(unsigned char key, int x, int y){
 
 	if(key == ESCAPE_KEY)  // ESCAPE key
 		exit (0);
-
-	else if(key == SPACE_BAR){  // SPACE BAR
-		POV = (POV+1)%3;
-		if(POV == ORTHO)
-			mouseDragSumX = mouseDragSumY = 0;
-		// mouseDragSumX = mouseDragSumY = 0;
-		reshape(WIDTH, HEIGHT);
-		glutPostRedisplay();
-	}
 	else if(key == f_KEY || key == F_KEY){
 		if(!FULLSCREEN)
 			glutFullScreen();
@@ -350,37 +343,34 @@ void keyboardDown(unsigned char key, int x, int y){
 		}
 		FULLSCREEN = !FULLSCREEN;
 	}
-	else if(key == PERIOD_KEY){
-		ZOOM_RADIX++;
+	else if(key == P_KEY || key == p_KEY){
+		POV = (POV+1)%3;
+		if(POV == ORTHO)
+			mouseDragSumX = mouseDragSumY = 0;
+		reshape(WIDTH, HEIGHT);
+		glutPostRedisplay();
 	}
-	else if(key == COMMA_KEY){
-		ZOOM_RADIX--;
-		if(ZOOM_RADIX < 2)
-			ZOOM_RADIX = 2;
-	}
-	else if(key == G_KEY || key == g_KEY){  // G
+	else if(key == G_KEY || key == g_KEY){
 		GROUND = !GROUND;
 		reshape(WIDTH, HEIGHT);
 		glutPostRedisplay();
 	}
-	else if (key == X_KEY || key == x_KEY){ // X
+	else if (key == X_KEY || key == x_KEY){
 		GRID = !GRID;
 		reshape(WIDTH, HEIGHT);
 		glutPostRedisplay();
 	}
-
 	keyDown(key);
 	if(!ANIMATIONS)
-		keyboardSetIdleFunc();
+		keyboardSetIdleFunc(); // for efficient screen draw, trigger redraw if needed
 }
 void keyboardUp(unsigned char key, int x, int y){
 	if(keyboard[key] == 0)
 		return;   // prevent repeated keyboard calls
 	keyboard[key] = 0;
-
 	keyUp(key);
 	if(!ANIMATIONS)
-		keyboardSetIdleFunc();
+		keyboardSetIdleFunc();  // for efficient screen draw, turn off redraw if needed
 }
 void specialDown(int key, int x, int y){
 	key += 128;  // special keys get stored in the 128-255 index range
@@ -414,9 +404,9 @@ void keyboardSetIdleFunc(){
 	else
 		glutIdleFunc(NULL);
 }
-///////////////////////////////////////
-//////////   TINY TOOLBOX    //////////
-///////////////////////////////////////
+////////////////////////////////////////
+///////   TINY OPENGL TOOLBOX    ///////
+////////////////////////////////////////
 float modulusContext(float complete, int modulus){
 	double wholePart;
 	double fracPart = modf(complete, &wholePart);
