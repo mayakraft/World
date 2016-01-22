@@ -1,4 +1,4 @@
-#include "world.c"
+#include "world.h"
 
 void setup() { }
 void update() { }

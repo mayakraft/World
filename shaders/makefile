@@ -16,9 +16,11 @@ ifndef OSTYPE
 endif
 ifeq ($(OSTYPE),darwin)
 	# LDFLAGS="-L /usr/local/Cellar/glew/1.12.0/include/GL -lglew" gcc -o world world.c -std=gnu99 -framework Carbon -framework OpenGL -framework GLUT -Wno-deprecated
-
 	LDFLAGS = -framework Carbon -framework OpenGL -framework GLUT -Wno-deprecated -L/usr/local/lib -lGLEW
 endif
 
 $(EXE) : world.c
 	gcc -o $@ $< $(CFLAGS) $(LDFLAGS)
+
+run :
+	./$(EXE) $(ARGS)

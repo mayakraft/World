@@ -1,4 +1,4 @@
-#include "world.c"
+#include "world.h"
 
 void setup(){
 	glPointSize(64);

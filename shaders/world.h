@@ -22,17 +22,16 @@
 //     and that you specify the #include path above
 
 ////////////////////////////////////////////////////////////////////////////////////////
-// WORLD.C is a hyper minimalist (1 file) framework for graphics (OpenGL) and user
+//     WORLD is a hyper minimalist (1 file) framework for graphics (OpenGL) and user
 //   input (keyboard, mouse) following the OpenFrameworks / Processing design paradigm
 ////////////////////////////////////////////////////////////////////////////////////////
 //
 //   SETUP INSTRUCTIONS
 //
 //   1) make an empty .c file
-//   2) #include "world.c"
+//   2) #include "world.h"
 //   3) initialize the following functions:
 //        YOU'RE DONE!-- type 'make', then 'make run'
-
 void setup();
 void update();
 void draw();
@@ -41,17 +40,17 @@ void keyUp(unsigned int key);
 void mouseDown(unsigned int button);
 void mouseUp(unsigned int button);
 void mouseMoved(int x, int y);
+////////////////////////////////////////////////////////////////////////////////////////
 
 
 ////////////////////////////////////////////////////////////////////////////////////////
-// FURTHER CUSTOMIZATION
-
-#define ANIMATIONS 1  // set to false (0) for maximum efficiency, screen will only redraw upon receiving input
-#define STEP .10f  // WALKING SPEED. @ 60 updates/second, walk speed = 6 units/second
+// CUSTOMIZE
+#define CONTINUOUS_REFRESH 1  // (0) = maximum efficiency, screen will only redraw upon receiving input
+#define WALK_INTERVAL .10f  // WALKING SPEED. @ 60 updates/second, walk speed = 6 units/second
 #define MOUSE_SENSITIVITY 0.333f
 // WINDOW size upon boot
-static int WIDTH = 800;  // (readonly) updates on GUI window re-sizing
-static int HEIGHT = 400; // (readonly) 
+static int WIDTH = 800;  // (readonly) set these values here
+static int HEIGHT = 400; // (readonly) setting during runtime will not re-size window
 static unsigned char FULLSCREEN = 0;  // fullscreen:1   window:0
 // INPUT
 static int mouseX = 0;  // get mouse location at any point, units in pixels
@@ -65,13 +64,13 @@ static unsigned char keyboard[256];  // query this at any point for the state of
 static unsigned char GROUND = 1;  // a 2D grid
 static unsigned char GRID = 1;    // a 3D grid
 static float originX = 0.0f;
-static float originY = 0.0f;  // "location of the eye"
+static float originY = 0.0f;  // location of the eye
 static float originZ = 0.0f;
 static float ZOOM = 15.0f;  // POLAR PERSPECTIVE    // zoom scale, converted to logarithmic
 static float ZOOM_RADIX = 3;
 // PERSPECTIVE
 enum{  FPP,  POLAR,  ORTHO  } ; // first persion, polar, orthographic
-static unsigned char POV = FPP;
+static unsigned char POV = FPP;  // initialize point of view in this state
 
 // DEFS
 enum{ FALSE, TRUE };
@@ -167,7 +166,7 @@ int main(int argc, char **argv){
 	glutSpecialUpFunc(specialUp);
 	memset(keyboard,0,256);
 	setup();
-	if(ANIMATIONS)
+	if(CONTINUOUS_REFRESH)
 		glutIdleFunc(updateWorld);
 	glutPostRedisplay();
 	glutMainLoop();
@@ -297,7 +296,7 @@ void display(){
 			float newX = modulusContext(originX, 2);
 			float newY = modulusContext(originY, 2);
 			glTranslatef(newX, newY, originZ);
-			drawCheckerboard(newX, newY, 16);
+			drawCheckerboard(newX, newY, 8);
 			glPopMatrix();
 		}
 		// if(ZOOM_GROUND){
@@ -320,31 +319,31 @@ void updateWorld(){
 	if(POV == FPP)
 		lookAzimuth = (mouseDragSumX * MOUSE_SENSITIVITY)/180.*M_PI;
 	if(keyboard[UP_KEY] || keyboard[W_KEY] || keyboard[w_KEY]){
-		originX += STEP * sinf(lookAzimuth);
-		originY += STEP * -cosf(lookAzimuth);
+		originX += WALK_INTERVAL * sinf(lookAzimuth);
+		originY += WALK_INTERVAL * -cosf(lookAzimuth);
 	}
 	if(keyboard[DOWN_KEY] || keyboard[S_KEY] || keyboard[s_KEY]){
-		originX -= STEP * sinf(lookAzimuth);
-		originY -= STEP * -cosf(lookAzimuth);
+		originX -= WALK_INTERVAL * sinf(lookAzimuth);
+		originY -= WALK_INTERVAL * -cosf(lookAzimuth);
 	}
 	if(keyboard[LEFT_KEY] || keyboard[A_KEY] || keyboard[a_KEY]){
-		originX += STEP * sinf(lookAzimuth+M_PI_2);
-		originY += STEP * -cosf(lookAzimuth+M_PI_2);
+		originX += WALK_INTERVAL * sinf(lookAzimuth+M_PI_2);
+		originY += WALK_INTERVAL * -cosf(lookAzimuth+M_PI_2);
 	}
 	if(keyboard[RIGHT_KEY] || keyboard[D_KEY] || keyboard[d_KEY]){
-		originX -= STEP * sinf(lookAzimuth+M_PI_2);
-		originY -= STEP * -cosf(lookAzimuth+M_PI_2);
+		originX -= WALK_INTERVAL * sinf(lookAzimuth+M_PI_2);
+		originY -= WALK_INTERVAL * -cosf(lookAzimuth+M_PI_2);
 	}
 	if(keyboard[Q_KEY] || keyboard[q_KEY])
-		originZ -= STEP;
+		originZ -= WALK_INTERVAL;
 	if(keyboard[Z_KEY] || keyboard[z_KEY])
-		originZ += STEP;
+		originZ += WALK_INTERVAL;
 	if(keyboard[MINUS_KEY]){
-		ZOOM += STEP * 4;
+		ZOOM += WALK_INTERVAL * 4;
 		reshape(WIDTH, HEIGHT);
 	}
 	if(keyboard[PLUS_KEY]){
-		ZOOM -= STEP * 4;
+		ZOOM -= WALK_INTERVAL * 4;
 		if(ZOOM < 0) 
 			ZOOM = 0;
 		reshape(WIDTH, HEIGHT);
@@ -430,7 +429,7 @@ void keyboardDown(unsigned char key, int x, int y){
 		glutPostRedisplay();
 	}
 	keyDown(key);
-	if(!ANIMATIONS)
+	if(!CONTINUOUS_REFRESH)
 		keyboardSetIdleFunc(); // for efficient screen draw, trigger redraw if needed
 }
 void keyboardUp(unsigned char key, int x, int y){
@@ -438,7 +437,7 @@ void keyboardUp(unsigned char key, int x, int y){
 		return;   // prevent repeated keyboard calls
 	keyboard[key] = 0;
 	keyUp(key);
-	if(!ANIMATIONS)
+	if(!CONTINUOUS_REFRESH)
 		keyboardSetIdleFunc();  // for efficient screen draw, turn off redraw if needed
 }
 void specialDown(int key, int x, int y){
@@ -447,7 +446,7 @@ void specialDown(int key, int x, int y){
 		return;   // prevent repeated keyboard calls
 	keyboard[key] = 1;
 	keyDown(key);
-	if(!ANIMATIONS)
+	if(!CONTINUOUS_REFRESH)
 		keyboardSetIdleFunc();
 }
 void specialUp(int key, int x, int y){
@@ -456,7 +455,7 @@ void specialUp(int key, int x, int y){
 		return;   // prevent repeated keyboard calls
 	keyboard[key] = 0;
 	keyUp(key);
-	if(!ANIMATIONS)
+	if(!CONTINUOUS_REFRESH)
 		keyboardSetIdleFunc();
 }
 void keyboardSetIdleFunc(){
