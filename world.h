@@ -20,12 +20,13 @@
 //   input (keyboard, mouse) following the OpenFrameworks / Processing design paradigm
 ////////////////////////////////////////////////////////////////////////////////////////
 //
-//   SETUP INSTRUCTIONS
+//   HOW TO USE
 //
 //   1) make an empty .c file
 //   2) #include "world.h"
-//   3) initialize the following functions:
-//        YOU'RE DONE!-- type 'make', then 'make run'
+//   3) implement the following functions:
+//      done! type 'make', then 'make run'
+//
 void setup();
 void update();
 void draw();
@@ -65,17 +66,17 @@ static float ZOOM_RADIX = 3;
 // PERSPECTIVE
 enum{  FPP,  POLAR,  ORTHO  } ; // first persion, polar, orthographic
 static unsigned char PERSPECTIVE = FPP;  // initialize point of view in this state
-
-// DEFS
+// TYPES
 enum{ FALSE, TRUE };
 typedef struct Point {
   float x;
   float y;
   float z;
 } Point;
+// TABLE OF CONTENTS:
 int main(int argc, char **argv);  // initialize Open GL context
-void setupOpenGL();  // colors, line width, glEnable
-void reshape(int w, int h);  // contains viewport and frustum calls
+void typicalOpenGLSettings();  // colors, line width, glEnable
+void reshape(int width, int height);  // contains viewport and frustum calls
 // DRAW, ALIGNMENT, INPUT HANDLING
 void display();
 void updateWorld();  // process input devices
@@ -96,6 +97,14 @@ void drawCheckerboard(float walkX, float walkY, int numSquares);
 void drawAxesGrid(float walkX, float walkY, float walkZ, int span, int repeats);
 void drawZoomboard(float zoom);
 float modulusContext(float complete, int modulus);
+
+/// new
+
+void firstPersonPerspective();
+void polarPerspective();
+void orthoPerspective(int x, int y, int width, int height);
+void projection(int width, int height);
+
 #define ESCAPE_KEY 27
 #define SPACE_BAR 32
 #define RETURN_KEY 13
@@ -141,12 +150,13 @@ float modulusContext(float complete, int modulus);
 #define RIGHT_KEY GLUT_KEY_RIGHT+128//230
 #define LEFT_KEY GLUT_KEY_LEFT+128//228
 int main(int argc, char **argv){
+	// initialize glut
 	glutInit(&argc, argv);
 	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH);
 	glutInitWindowPosition(10,10);
 	glutInitWindowSize(WIDTH,HEIGHT);
 	glutCreateWindow(argv[0]);
-	setupOpenGL();
+	// tie this program's functions to glut
 	glutDisplayFunc(display);
 	glutReshapeFunc(reshape);
 	glutMouseFunc(mouseButtons);
@@ -156,15 +166,19 @@ int main(int argc, char **argv){
 	glutKeyboardFunc(keyboardDown);
 	glutSpecialFunc(specialDown);
 	glutSpecialUpFunc(specialUp);
-	memset(keyboard,0,256);
-	setup();
 	if(CONTINUOUS_REFRESH)
 		glutIdleFunc(updateWorld);
+	// setup this program
+	memset(keyboard,0,256);
+	typicalOpenGLSettings();
 	glutPostRedisplay();
+	setup();  // user defined function
+	// begin main loop
 	glutMainLoop();
 	return 0;
 }
-void setupOpenGL(){
+void typicalOpenGLSettings(){
+	firstPersonPerspective();
 	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 	glShadeModel(GL_FLAT);
 	glEnable(GL_DEPTH_TEST);
@@ -172,21 +186,41 @@ void setupOpenGL(){
 	glDepthFunc(GL_LESS);
 	glLineWidth(1);
 }
-void reshape(int w, int h){
-	WIDTH = w;
-	HEIGHT = h;
+void reshape(int width, int height){
+	WIDTH = width;
+	HEIGHT = height;
+	glViewport(0,0,(GLsizei) width, (GLsizei) height);
+	projection(width, height);
+}
+void projection(int width, int height){
 	float a = (float)WIDTH / HEIGHT;
-	glViewport(0,0,(GLsizei) w, (GLsizei) h);
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
-	if(PERSPECTIVE == FPP || PERSPECTIVE == POLAR)
-		glFrustum (-.1, .1, -.1/a, .1/a, .1, 100.0);
-	else if (PERSPECTIVE == ORTHO)
-		glOrtho(-ZOOM, ZOOM,
-				-ZOOM/a, ZOOM/a,
-				-100.0, 100.0);
+	switch(PERSPECTIVE){
+		case FPP:
+		case POLAR:
+			glFrustum (-.1, .1, -.1/a, .1/a, .1, 100.0);
+			break;
+		case ORTHO:
+			// glOrtho(0.0f, windowWidth, windowHeight, 0.0f, 0.0f, 1.0f);
+			glOrtho(0, width, height, 0, -100.0, 100.0);
+			break;
+	}
 	glMatrixMode(GL_MODELVIEW);
-	glLoadIdentity();
+	// glLoadIdentity();
+}
+void firstPersonPerspective(int width, int height){
+	PERSPECTIVE = FPP;
+	projection(width, height);
+}
+void polarPerspective(int width, int height){
+	PERSPECTIVE = POLAR;
+	projection(width, height);
+}
+void orthoPerspective(int x, int y, int width, int height){
+	PERSPECTIVE = ORTHO;
+	// translation x, y
+	projection(width - x, height - y);
 }
 void display(){
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -271,13 +305,17 @@ void updateWorld(){
 		originZ += WALK_INTERVAL;
 	if(keyboard[MINUS_KEY]){
 		ZOOM += WALK_INTERVAL * 4;
-		reshape(WIDTH, HEIGHT);
+		// fix this
+		// ortho requires a projection call
+		// projection(WIDTH, HEIGHT);
 	}
 	if(keyboard[PLUS_KEY]){
 		ZOOM -= WALK_INTERVAL * 4;
 		if(ZOOM < 0)
 			ZOOM = 0;
-		reshape(WIDTH, HEIGHT);
+		// fix this
+		// ortho requires a projection call
+		// projection(WIDTH, HEIGHT);
 	}
 	update();
 	glutPostRedisplay();
@@ -346,17 +384,15 @@ void keyboardDown(unsigned char key, int x, int y){
 		PERSPECTIVE = (PERSPECTIVE+1)%3;
 		if(PERSPECTIVE == ORTHO)
 			mouseDragSumX = mouseDragSumY = 0;
-		reshape(WIDTH, HEIGHT);
+		projection(WIDTH, HEIGHT);
 		glutPostRedisplay();
 	}
 	else if(key == G_KEY || key == g_KEY){
 		GROUND = !GROUND;
-		reshape(WIDTH, HEIGHT);
 		glutPostRedisplay();
 	}
 	else if (key == X_KEY || key == x_KEY){
 		GRID = !GRID;
-		reshape(WIDTH, HEIGHT);
 		glutPostRedisplay();
 	}
 	keyDown(key);
@@ -403,9 +439,13 @@ void keyboardSetIdleFunc(){
 	else
 		glutIdleFunc(NULL);
 }
-////////////////////////////////////////
-///////   TINY OPENGL TOOLBOX    ///////
-////////////////////////////////////////
+
+///////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////        TINY OPENGL TOOLBOX         //////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////
+
+/////////////////////////        PRIMITIVES         //////////////////////////
+
 float modulusContext(float complete, int modulus){
 	double wholePart;
 	double fracPart = modf(complete, &wholePart);
@@ -465,6 +505,9 @@ void drawUnitAxis(float x, float y, float z, float scale){
 	glDisableClientState(GL_VERTEX_ARRAY);
 	glPopMatrix();
 }
+
+/////////////////////////        SCENES         //////////////////////////
+
 void drawCheckerboard(float walkX, float walkY, int numSquares){
 	int XOffset = ceil(walkX);
 	int YOffset = ceil(walkY);
@@ -507,8 +550,8 @@ void drawAxesGrid(float walkX, float walkY, float walkZ, int span, int repeats){
 				glColor3f(brightness, brightness, brightness);
 				// glLineWidth(100.0/distance/distance);
 				drawUnitAxis(i + XSpanMod - walkX,
-					     j + YSpanMod - walkY,
-					     k + ZSpanMod - walkZ, 1.0);
+				             j + YSpanMod - walkY,
+				             k + ZSpanMod - walkZ, 1.0);
 			}
 		}
 	}
