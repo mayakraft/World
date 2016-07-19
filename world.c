@@ -1,6 +1,8 @@
 #include "world.h"
 
-void setup() { }
+void setup() { 
+	orthoPerspective(-6, 0, 12, 12 * HEIGHT/WIDTH);
+}
 void update() { }
 void draw() { }
 void keyDown(unsigned int key) { }

@@ -66,6 +66,7 @@ static float ZOOM_RADIX = 3;
 // PERSPECTIVE
 enum{  FPP,  POLAR,  ORTHO  } ; // first persion, polar, orthographic
 static unsigned char PERSPECTIVE = FPP;  // initialize point of view in this state
+float orthoFrame[4] = {0.0f, 0.0f, 4.0f, 3.0f}; // x, y, width, height
 // TYPES
 enum{ FALSE, TRUE };
 typedef struct Point {
@@ -76,7 +77,7 @@ typedef struct Point {
 // TABLE OF CONTENTS:
 int main(int argc, char **argv);  // initialize Open GL context
 void typicalOpenGLSettings();  // colors, line width, glEnable
-void reshape(int width, int height);  // contains viewport and frustum calls
+void reshapeWindow(int windowWidth, int windowHeight);  // contains viewport and frustum calls
 // DRAW, ALIGNMENT, INPUT HANDLING
 void display();
 void updateWorld();  // process input devices
@@ -100,10 +101,11 @@ float modulusContext(float complete, int modulus);
 
 /// new
 
+void rebuildProjection();  // calls one of the three functions below
+// these also act as setters to manually change the perspective mode
 void firstPersonPerspective();
 void polarPerspective();
-void orthoPerspective(int x, int y, int width, int height);
-void projection(int width, int height);
+void orthoPerspective(float x, float y, float width, float height);
 
 #define ESCAPE_KEY 27
 #define SPACE_BAR 32
@@ -122,6 +124,7 @@ void projection(int width, int height);
 #define B_KEY 66
 #define C_KEY 67
 #define D_KEY 68
+#define E_KEY 69
 #define F_KEY 70
 #define G_KEY 71
 #define P_KEY 80
@@ -135,6 +138,7 @@ void projection(int width, int height);
 #define b_KEY 98
 #define c_KEY 99
 #define d_KEY 100
+#define e_KEY 101
 #define f_KEY 102
 #define g_KEY 103
 #define p_KEY 112
@@ -158,7 +162,7 @@ int main(int argc, char **argv){
 	glutCreateWindow(argv[0]);
 	// tie this program's functions to glut
 	glutDisplayFunc(display);
-	glutReshapeFunc(reshape);
+	glutReshapeFunc(reshapeWindow);
 	glutMouseFunc(mouseButtons);
 	glutMotionFunc(mouseMotion);
 	glutPassiveMotionFunc(mousePassiveMotion);
@@ -186,41 +190,48 @@ void typicalOpenGLSettings(){
 	glDepthFunc(GL_LESS);
 	glLineWidth(1);
 }
-void reshape(int width, int height){
-	WIDTH = width;
-	HEIGHT = height;
-	glViewport(0,0,(GLsizei) width, (GLsizei) height);
-	projection(width, height);
+void reshapeWindow(int windowWidth, int windowHeight){
+	WIDTH = windowWidth;
+	HEIGHT = windowHeight;
+	glViewport(0, 0, (GLsizei) WIDTH, (GLsizei) HEIGHT);
+	rebuildProjection();
 }
-void projection(int width, int height){
+void rebuildProjection(){
+	switch(PERSPECTIVE){
+		case FPP:
+			firstPersonPerspective(); break;
+		case POLAR:
+			polarPerspective(); break;
+		case ORTHO:
+			orthoPerspective(orthoFrame[0], orthoFrame[1], orthoFrame[2], orthoFrame[3]); break;
+	}
+}
+void firstPersonPerspective(){
+	PERSPECTIVE = FPP;
 	float a = (float)WIDTH / HEIGHT;
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
-	switch(PERSPECTIVE){
-		case FPP:
-		case POLAR:
-			glFrustum (-.1, .1, -.1/a, .1/a, .1, 100.0);
-			break;
-		case ORTHO:
-			// glOrtho(0.0f, windowWidth, windowHeight, 0.0f, 0.0f, 1.0f);
-			glOrtho(0, width, height, 0, -100.0, 100.0);
-			break;
-	}
+	glFrustum (-.1, .1, -.1/a, .1/a, .1, 100.0);
 	glMatrixMode(GL_MODELVIEW);
-	// glLoadIdentity();
 }
-void firstPersonPerspective(int width, int height){
-	PERSPECTIVE = FPP;
-	projection(width, height);
-}
-void polarPerspective(int width, int height){
+void polarPerspective(){
 	PERSPECTIVE = POLAR;
-	projection(width, height);
+	float a = (float)WIDTH / HEIGHT;
+	glMatrixMode(GL_PROJECTION);
+	glLoadIdentity();
+	glFrustum (-.1, .1, -.1/a, .1/a, .1, 100.0);
+	glMatrixMode(GL_MODELVIEW);
 }
-void orthoPerspective(int x, int y, int width, int height){
+void orthoPerspective(float x, float y, float width, float height){
 	PERSPECTIVE = ORTHO;
-	// translation x, y
-	projection(width - x, height - y);
+	orthoFrame[0] = x;
+	orthoFrame[1] = y;
+	orthoFrame[2] = width;
+	orthoFrame[3] = height;
+	glMatrixMode(GL_PROJECTION);
+	glLoadIdentity();
+	glOrtho(x, width + x, height + y, y, -100.0, 100.0);
+	glMatrixMode(GL_MODELVIEW);
 }
 void display(){
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -305,17 +316,15 @@ void updateWorld(){
 		originZ += WALK_INTERVAL;
 	if(keyboard[MINUS_KEY]){
 		ZOOM += WALK_INTERVAL * 4;
-		// fix this
-		// ortho requires a projection call
-		// projection(WIDTH, HEIGHT);
+		if(PERSPECTIVE == ORTHO)
+			orthoPerspective(orthoFrame[0], orthoFrame[1], orthoFrame[2], orthoFrame[3]);
 	}
 	if(keyboard[PLUS_KEY]){
 		ZOOM -= WALK_INTERVAL * 4;
 		if(ZOOM < 0)
 			ZOOM = 0;
-		// fix this
-		// ortho requires a projection call
-		// projection(WIDTH, HEIGHT);
+		if(PERSPECTIVE == ORTHO)
+			orthoPerspective(orthoFrame[0], orthoFrame[1], orthoFrame[2], orthoFrame[3]);
 	}
 	update();
 	glutPostRedisplay();
@@ -375,7 +384,7 @@ void keyboardDown(unsigned char key, int x, int y){
 		if(!FULLSCREEN)
 			glutFullScreen();
 		else{
-			reshape(WIDTH, HEIGHT);
+			reshapeWindow(WIDTH, HEIGHT);
 			glutPositionWindow(0,0);
 		}
 		FULLSCREEN = !FULLSCREEN;
@@ -384,7 +393,7 @@ void keyboardDown(unsigned char key, int x, int y){
 		PERSPECTIVE = (PERSPECTIVE+1)%3;
 		if(PERSPECTIVE == ORTHO)
 			mouseDragSumX = mouseDragSumY = 0;
-		projection(WIDTH, HEIGHT);
+		rebuildProjection();
 		glutPostRedisplay();
 	}
 	else if(key == G_KEY || key == g_KEY){
@@ -427,7 +436,7 @@ void specialUp(int key, int x, int y){
 }
 void keyboardSetIdleFunc(){
 	// if any key is pressed, idle function is set to re-draw screen
-	unsigned int keyDown = 0;
+	unsigned char keyDown = 0;
 	for(int i = 0; i < 256; i++){
 		if(keyboard[i] == 1){
 			keyDown = 1;
