@@ -52,20 +52,20 @@ static int mouseX = 0;  // get mouse location at any point, units in pixels
 static int mouseY = 0;
 static int mouseDragX = 0;  // dragging during one session (between click and release)
 static int mouseDragY = 0;
-static int mouseDragSumX = 0;  // since program began  // (FPP head orientation is tied to these)
-static int mouseDragSumY = 0;
 static unsigned char keyboard[256];  // query this at any point for the state of a key (0:up, 1:pressed)
 // GRAPHICS
-static unsigned char GROUND = 1;  // a 2D grid
-static unsigned char GRID = 1;    // a 3D grid
 static float originX = 0.0f;
 static float originY = 0.0f;  // location of the eye
 static float originZ = 0.0f;
 static float ZOOM = 15.0f;  // POLAR PERSPECTIVE    // zoom scale, converted to logarithmic
 static float ZOOM_RADIX = 3;
+static unsigned char GROUND = 1;  // a 2D grid
+static unsigned char GRID = 1;    // a 3D grid
 // PERSPECTIVE
 enum{  FPP,  POLAR,  ORTHO  } ; // first persion, polar, orthographic
 static unsigned char PERSPECTIVE = FPP;  // initialize point of view in this state
+// details of each perspective
+float lookOrientation[3] = {0.0f, 0.0f, 0.0f}; // azimuth, altitude, zoom/FOV
 float orthoFrame[4] = {0.0f, 0.0f, 4.0f, 3.0f}; // x, y, width, height
 // TYPES
 enum{ FALSE, TRUE };
@@ -78,6 +78,11 @@ typedef struct Point {
 int main(int argc, char **argv);  // initialize Open GL context
 void typicalOpenGLSettings();  // colors, line width, glEnable
 void reshapeWindow(int windowWidth, int windowHeight);  // contains viewport and frustum calls
+void rebuildProjection();  // calls one of the three functions below
+// CHANGE PERSPECTIVE
+void firstPersonPerspective();//float azimuth, float altitude, float zoom);
+void polarPerspective();//float azimuth, float altitude, float zoom);
+void orthoPerspective(float x, float y, float width, float height);
 // DRAW, ALIGNMENT, INPUT HANDLING
 void display();
 void updateWorld();  // process input devices
@@ -98,14 +103,6 @@ void drawCheckerboard(float walkX, float walkY, int numSquares);
 void drawAxesGrid(float walkX, float walkY, float walkZ, int span, int repeats);
 void drawZoomboard(float zoom);
 float modulusContext(float complete, int modulus);
-
-/// new
-
-void rebuildProjection();  // calls one of the three functions below
-// these also act as setters to manually change the perspective mode
-void firstPersonPerspective();
-void polarPerspective();
-void orthoPerspective(float x, float y, float width, float height);
 
 #define ESCAPE_KEY 27
 #define SPACE_BAR 32
@@ -212,6 +209,11 @@ void firstPersonPerspective(){
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
 	glFrustum (-.1, .1, -.1/a, .1/a, .1, 100.0);
+	// change POV
+	glRotatef(-lookOrientation[1], 1, 0, 0);
+	glRotatef(-lookOrientation[0], 0, 0, 1);
+	// raise POV 1.0 above the floor, 1.0 is an arbitrary value
+	glTranslatef(0.0f, 0.0f, -1.0f);
 	glMatrixMode(GL_MODELVIEW);
 }
 void polarPerspective(){
@@ -220,6 +222,10 @@ void polarPerspective(){
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
 	glFrustum (-.1, .1, -.1/a, .1/a, .1, 100.0);
+	// change POV
+	glTranslatef(0, 0, -ZOOM);
+	glRotatef(-lookOrientation[1], 1, 0, 0);
+	glRotatef(-lookOrientation[0], 0, 0, 1);
 	glMatrixMode(GL_MODELVIEW);
 }
 void orthoPerspective(float x, float y, float width, float height){
@@ -236,26 +242,6 @@ void orthoPerspective(float x, float y, float width, float height){
 void display(){
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glPushMatrix();
-		// SETUP PERSPECTIVE
-		switch(PERSPECTIVE){
-			case FPP:
-				glRotatef(-mouseDragSumY * MOUSE_SENSITIVITY, 1, 0, 0);
-				glRotatef(-mouseDragSumX * MOUSE_SENSITIVITY, 0, 0, 1);
-				// raise POV 1.0 above the floor, 1.0 is an arbitrary value
-				glTranslatef(0.0f, 0.0f, -1.0f);
-				break;
-
-			case POLAR:
-				glTranslatef(0, 0, -ZOOM);
-				glRotatef(-mouseDragSumY * MOUSE_SENSITIVITY, 1, 0, 0);
-				glRotatef(-mouseDragSumX * MOUSE_SENSITIVITY, 0, 0, 1);
-				break;
-
-			case ORTHO:
-				glTranslatef(-mouseDragSumX * (ZOOM/400.0f), mouseDragSumY * (ZOOM/400.0f), 0.0f);
-				break;
-		}
-		// perspective has been established, draw stuff below
 		// 3D REPEATED STRUCTURE
 		if(GRID){
 			glPushMatrix();
@@ -290,10 +276,8 @@ void display(){
 }
 // process input devices if in first person perspective mode
 void updateWorld(){
-	float lookAzimuth = 0;
 	// map movement direction to the direction the person is facing
-	if(PERSPECTIVE == FPP)
-		lookAzimuth = (mouseDragSumX * MOUSE_SENSITIVITY)/180.*M_PI;
+	float lookAzimuth = lookOrientation[0]/180.0*M_PI;
 	if(keyboard[UP_KEY] || keyboard[W_KEY] || keyboard[w_KEY]){
 		originX += WALK_INTERVAL * sinf(lookAzimuth);
 		originY += WALK_INTERVAL * -cosf(lookAzimuth);
@@ -316,15 +300,13 @@ void updateWorld(){
 		originZ += WALK_INTERVAL;
 	if(keyboard[MINUS_KEY]){
 		ZOOM += WALK_INTERVAL * 4;
-		if(PERSPECTIVE == ORTHO)
-			orthoPerspective(orthoFrame[0], orthoFrame[1], orthoFrame[2], orthoFrame[3]);
+		rebuildProjection();
 	}
 	if(keyboard[PLUS_KEY]){
 		ZOOM -= WALK_INTERVAL * 4;
 		if(ZOOM < 0)
 			ZOOM = 0;
-		if(PERSPECTIVE == ORTHO)
-			orthoPerspective(orthoFrame[0], orthoFrame[1], orthoFrame[2], orthoFrame[3]);
+		rebuildProjection();
 	}
 	update();
 	glutPostRedisplay();
@@ -332,15 +314,36 @@ void updateWorld(){
 ///////////////////////////////////////
 //////////       INPUT       //////////
 ///////////////////////////////////////
-static int mouseDragStartX, mouseDragStartY, mouseTotalOffsetStartX, mouseTotalOffsetStartY;
+static int mouseDragStartX, mouseDragStartY;
+void mouseUpdatePerspective(int dx, int dy){
+	switch(PERSPECTIVE){
+		case FPP:
+			lookOrientation[0] += (dx * MOUSE_SENSITIVITY);
+			lookOrientation[1] += (dy * MOUSE_SENSITIVITY);
+			// lookOrientation[2] = 0.0;
+			firstPersonPerspective();
+		break;
+		case POLAR:
+			lookOrientation[0] += (dx * MOUSE_SENSITIVITY);
+			lookOrientation[1] += (dy * MOUSE_SENSITIVITY);
+			// lookOrientation[2] = 0.0;
+			polarPerspective();
+			break;
+		case ORTHO:
+			orthoFrame[0] += dx;
+			orthoFrame[1] += dy;
+			orthoPerspective(orthoFrame[0], orthoFrame[1], orthoFrame[2], orthoFrame[3]);
+			break;
+	}
+}
 // when mouse button state changes
 void mouseButtons(int button, int state, int x, int y){
 	if(button == GLUT_LEFT_BUTTON){
 		if(!state){  // button down
+			mouseX = x;
+			mouseY = y;
 			mouseDragStartX = x;
 			mouseDragStartY = y;
-			mouseTotalOffsetStartX = mouseDragSumX;
-			mouseTotalOffsetStartY = mouseDragSumY;
 			mouseDown(button);
 		}
 		else {  // button up
@@ -358,12 +361,13 @@ void mouseButtons(int button, int state, int x, int y){
 }
 // when mouse is dragging screen
 void mouseMotion(int x, int y){
+	// change since last mouse event
+	mouseUpdatePerspective(mouseX - x, mouseY - y);
+	// update new state
 	mouseX = x;
 	mouseY = y;
 	mouseDragX = mouseDragStartX - x;
 	mouseDragY = mouseDragStartY - y;
-	mouseDragSumX = mouseTotalOffsetStartX + mouseDragX;
-	mouseDragSumY = mouseTotalOffsetStartY + mouseDragY;
 	mouseMoved(x, y);
 	glutPostRedisplay();
 }
@@ -391,8 +395,6 @@ void keyboardDown(unsigned char key, int x, int y){
 	}
 	else if(key == P_KEY || key == p_KEY){
 		PERSPECTIVE = (PERSPECTIVE+1)%3;
-		if(PERSPECTIVE == ORTHO)
-			mouseDragSumX = mouseDragSumY = 0;
 		rebuildProjection();
 		glutPostRedisplay();
 	}
