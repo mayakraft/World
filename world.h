@@ -64,7 +64,7 @@ static float ZOOM = 15.0f;  // POLAR PERSPECTIVE    // zoom scale, converted to 
 static float ZOOM_RADIX = 3;
 // PERSPECTIVE
 enum{  FPP,  POLAR,  ORTHO  } ; // first persion, polar, orthographic
-static unsigned char POV = FPP;  // initialize point of view in this state
+static unsigned char PERSPECTIVE = FPP;  // initialize point of view in this state
 
 // DEFS
 enum{ FALSE, TRUE };
@@ -89,7 +89,7 @@ void specialDown(int key, int x, int y);
 void specialUp(int key, int x, int y);
 void keyboardSetIdleFunc();
 // WORLD SHAPES
-void drawSquare(float x, float y, float width, float height);
+void drawRect(float x, float y, float width, float height);
 void drawUnitSquare(float x, float y);
 void drawUnitAxis(float x, float y, float z, float scale);
 void drawCheckerboard(float walkX, float walkY, int numSquares);
@@ -152,7 +152,7 @@ int main(int argc, char **argv){
 	glutMouseFunc(mouseButtons);
 	glutMotionFunc(mouseMotion);
 	glutPassiveMotionFunc(mousePassiveMotion);
-	glutKeyboardUpFunc(keyboardUp); 
+	glutKeyboardUpFunc(keyboardUp);
 	glutKeyboardFunc(keyboardDown);
 	glutSpecialFunc(specialDown);
 	glutSpecialUpFunc(specialUp);
@@ -179,11 +179,11 @@ void reshape(int w, int h){
 	glViewport(0,0,(GLsizei) w, (GLsizei) h);
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
-	if(POV == FPP || POV == POLAR)
+	if(PERSPECTIVE == FPP || PERSPECTIVE == POLAR)
 		glFrustum (-.1, .1, -.1/a, .1/a, .1, 100.0);
-	else if (POV == ORTHO)
-		glOrtho(-ZOOM, ZOOM, 
-				-ZOOM/a, ZOOM/a, 
+	else if (PERSPECTIVE == ORTHO)
+		glOrtho(-ZOOM, ZOOM,
+				-ZOOM/a, ZOOM/a,
 				-100.0, 100.0);
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
@@ -192,14 +192,14 @@ void display(){
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glPushMatrix();
 		// SETUP PERSPECTIVE
-		switch(POV){
+		switch(PERSPECTIVE){
 			case FPP:
 				glRotatef(-mouseDragSumY * MOUSE_SENSITIVITY, 1, 0, 0);
 				glRotatef(-mouseDragSumX * MOUSE_SENSITIVITY, 0, 0, 1);
 				// raise POV 1.0 above the floor, 1.0 is an arbitrary value
 				glTranslatef(0.0f, 0.0f, -1.0f);
 				break;
-		
+
 			case POLAR:
 				glTranslatef(0, 0, -ZOOM);
 				glRotatef(-mouseDragSumY * MOUSE_SENSITIVITY, 1, 0, 0);
@@ -247,7 +247,7 @@ void display(){
 void updateWorld(){
 	float lookAzimuth = 0;
 	// map movement direction to the direction the person is facing
-	if(POV == FPP)
+	if(PERSPECTIVE == FPP)
 		lookAzimuth = (mouseDragSumX * MOUSE_SENSITIVITY)/180.*M_PI;
 	if(keyboard[UP_KEY] || keyboard[W_KEY] || keyboard[w_KEY]){
 		originX += WALK_INTERVAL * sinf(lookAzimuth);
@@ -275,7 +275,7 @@ void updateWorld(){
 	}
 	if(keyboard[PLUS_KEY]){
 		ZOOM -= WALK_INTERVAL * 4;
-		if(ZOOM < 0) 
+		if(ZOOM < 0)
 			ZOOM = 0;
 		reshape(WIDTH, HEIGHT);
 	}
@@ -343,8 +343,8 @@ void keyboardDown(unsigned char key, int x, int y){
 		FULLSCREEN = !FULLSCREEN;
 	}
 	else if(key == P_KEY || key == p_KEY){
-		POV = (POV+1)%3;
-		if(POV == ORTHO)
+		PERSPECTIVE = (PERSPECTIVE+1)%3;
+		if(PERSPECTIVE == ORTHO)
 			mouseDragSumX = mouseDragSumY = 0;
 		reshape(WIDTH, HEIGHT);
 		glutPostRedisplay();
@@ -411,7 +411,7 @@ float modulusContext(float complete, int modulus){
 	double fracPart = modf(complete, &wholePart);
 	return ( ((int)wholePart) % modulus ) + fracPart;
 }
-void drawSquare(float x, float y, float width, float height){
+void drawRect(float x, float y, float width, float height){
 	glPushMatrix();
 	glScalef(width, height, 1.0);
 	drawUnitSquare(x, y);
@@ -429,9 +429,9 @@ void drawPoint(float x, float y, float z){
 }
 // draws a XY 1x1 square in the Z = 0 plane
 void drawUnitSquare(float x, float y){
-	static const GLfloat _unit_square_vertex[] = { 
+	static const GLfloat _unit_square_vertex[] = {
 		0.0f, 1.0f, 0.0f,     1.0f, 1.0f, 0.0f,    0.0f, 0.0f, 0.0f,    1.0f, 0.0f, 0.0f };
-	static const GLfloat _unit_square_normals[] = { 
+	static const GLfloat _unit_square_normals[] = {
 		0.0f, 0.0f, 1.0f,     0.0f, 0.0f, 1.0f,    0.0f, 0.0f, 1.0f,    0.0f, 0.0f, 1.0f };
 	glPushMatrix();
 	glTranslatef(x, y, 0.0);
@@ -445,12 +445,12 @@ void drawUnitSquare(float x, float y){
 	glPopMatrix();
 }
 void drawUnitAxis(float x, float y, float z, float scale){
-	static const GLfloat _unit_axis_vertices[] = { 
+	static const GLfloat _unit_axis_vertices[] = {
 		1.0f, 0.0f, 0.0f,    -1.0f, 0.0f, 0.0f,
 		0.0f, 1.0f, 0.0f,     0.0f, -1.0f, 0.0f,
 		0.0f, 0.0f, 1.0f,     0.0f, 0.0f, -1.0f};
-	static const GLfloat _unit_axis_normals[] = { 
-		0.0f, 1.0f, 1.0f,     0.0f, 1.0f, 1.0f, 
+	static const GLfloat _unit_axis_normals[] = {
+		0.0f, 1.0f, 1.0f,     0.0f, 1.0f, 1.0f,
 		0.0f, 0.0f, 1.0f,     0.0f, 0.0f, 1.0f,
 		1.0f, 0.0f, 0.0f,     1.0f, 0.0f, 0.0f};
 	glPushMatrix();
@@ -493,7 +493,7 @@ void drawCheckerboard(float walkX, float walkY, int numSquares){
 	}
 }
 // span: how many units to skip inbetween each axis
-// repeats: how many rows/cols/stacks on either side of center 
+// repeats: how many rows/cols/stacks on either side of center
 void drawAxesGrid(float walkX, float walkY, float walkZ, int span, int repeats){
 	float XSpanMod = walkX - floor(walkX/span)*span;
 	float YSpanMod = walkY - floor(walkY/span)*span;
@@ -506,8 +506,8 @@ void drawAxesGrid(float walkX, float walkY, float walkZ, int span, int repeats){
 				float brightness = 1.0 - distance/(repeats*span);
 				glColor3f(brightness, brightness, brightness);
 				// glLineWidth(100.0/distance/distance);
-				drawUnitAxis(i + XSpanMod - walkX, 
-					     j + YSpanMod - walkY, 
+				drawUnitAxis(i + XSpanMod - walkX,
+					     j + YSpanMod - walkY,
 					     k + ZSpanMod - walkZ, 1.0);
 			}
 		}

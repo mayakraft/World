@@ -10,7 +10,7 @@ type `make` then `make run`
 # setup
 
 1. create a blank .c file
-2. `#include "world.c"`
+2. `#include "world.h"`
 3. implement a few functions including:
 
 ```c
