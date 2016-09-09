@@ -14,6 +14,7 @@
 #include <math.h>
 #include <stdio.h>
 #include <string.h>
+#include <time.h>
 
 ////////////////////////////////////////////////////////////////////////////////////////
 //     WORLD is a hyper minimalist (1 file) framework for graphics (OpenGL) and user
@@ -76,6 +77,8 @@ static unsigned char PERSPECTIVE = FPP;  // initialize point of view in this sta
 Point3D polarLookAt = {0.0f, 0.0f, 0.0f}; // x, y, z  // location of the eye
 float lookOrientation[3] = {0.0f, 0.0f, 0.0f}; // azimuth, altitude, zoom/FOV
 float orthoFrame[4] = {0.0f, 0.0f, 4.0f, 3.0f}; // x, y, width, height
+// time
+static time_t startTime;
 
 // TABLE OF CONTENTS:
 int main(int argc, char **argv);  // initialize Open GL context
@@ -106,7 +109,8 @@ void drawCheckerboard(float walkX, float walkY, int numSquares);
 void drawAxesGrid(float walkX, float walkY, float walkZ, int span, int repeats);
 void drawZoomboard(float zoom);
 float modulusContext(float complete, int modulus);
-
+// time
+time_t elapsedSeconds();
 
 GLuint loadTexture(const char * filename, int width, int height);
 
@@ -148,6 +152,7 @@ int main(int argc, char **argv){
 		glutIdleFunc(updateWorld);
 	// setup this program
 	memset(keyboard,0,256);
+	startTime = time(NULL);
 	typicalOpenGLSettings();
 	glutPostRedisplay();
 	setup();  // user defined function
@@ -184,6 +189,9 @@ GLuint loadTexture(const char * filename, int width, int height){
 	free(data);
 	glBindTexture(GL_TEXTURE_2D, 0);
 	return texture;
+}
+time_t elapsedSeconds(){
+	return time(NULL) - startTime;
 }
 void typicalOpenGLSettings(){
 	firstPersonPerspective();
