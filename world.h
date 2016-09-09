@@ -59,6 +59,8 @@ static int mouseDragX = 0;  // dragging during one session (between click and re
 static int mouseDragY = 0;
 static unsigned char keyboard[256];  // query this at any point for the state of a key (0:up, 1:pressed)
 // GRAPHICS
+static float NEAR_CLIP = 0.1;
+static float FAR_CLIP = 1000.0;
 static float FOV = 0.1;
 static float originX = 0.0f;
 static float originY = 0.0f;  
@@ -180,7 +182,7 @@ void firstPersonPerspective(){
 	float a = (float)WIDTH / HEIGHT;
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
-	glFrustum (-FOV, FOV, -FOV/a, FOV/a, .1, 100.0);
+	glFrustum (-FOV, FOV, -FOV/a, FOV/a, NEAR_CLIP, FAR_CLIP);
 	// change POV
 	glRotatef(-lookOrientation[1], 1, 0, 0);
 	glRotatef(-lookOrientation[0], 0, 0, 1);
@@ -196,7 +198,7 @@ void polarPerspective(float x, float y, float z){
 	float a = (float)WIDTH / HEIGHT;
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
-	glFrustum (-FOV, FOV, -FOV/a, FOV/a, .1, 100.0);
+	glFrustum (-FOV, FOV, -FOV/a, FOV/a, NEAR_CLIP, FAR_CLIP);
 	// change POV
 	glTranslatef(0, 0, -ZOOM);
 	glRotatef(-lookOrientation[1], 1, 0, 0);
@@ -243,6 +245,7 @@ void display(){
 		// 	drawZoomboard(zoom);
 		// }
 		glPushMatrix();
+			glTranslatef(originX, originY, originZ);
 			draw();
 		glPopMatrix();
 	glPopMatrix();
