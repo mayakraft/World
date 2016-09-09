@@ -107,6 +107,9 @@ void drawAxesGrid(float walkX, float walkY, float walkZ, int span, int repeats);
 void drawZoomboard(float zoom);
 float modulusContext(float complete, int modulus);
 
+
+GLuint loadTexture(const char * filename, int width, int height);
+
 #define ESCAPE_KEY 27
 #define SPACE_BAR 32
 #define RETURN_KEY 13
@@ -152,10 +155,41 @@ int main(int argc, char **argv){
 	glutMainLoop();
 	return 0;
 }
+GLuint loadTexture(const char * filename, int width, int height){
+	GLuint texture;
+	unsigned char * data;
+	FILE * file;
+	file = fopen(filename, "rb");
+	if (file == NULL) return 0;
+	data = (unsigned char *)malloc(width * height * 3);
+	fread(data, width * height * 3, 1, file);
+	fclose(file);
+	for(int i = 0; i < width * height; i++){
+		int index = i*3;
+		unsigned char B,R;
+		B = data[index];
+		R = data[index+2];
+		data[index] = R;
+		data[index+2] = B;
+	}
+	glGenTextures(1, &texture);
+	glBindTexture(GL_TEXTURE_2D, texture);
+	// glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
+	// glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_NEAREST);
+	// glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	gluBuild2DMipmaps(GL_TEXTURE_2D, 3, width, height, GL_RGB, GL_UNSIGNED_BYTE, data);
+	free(data);
+	glBindTexture(GL_TEXTURE_2D, 0);
+	return texture;
+}
 void typicalOpenGLSettings(){
 	firstPersonPerspective();
 	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 	glShadeModel(GL_FLAT);
+	glEnable(GL_TEXTURE_2D);
 	glEnable(GL_DEPTH_TEST);
 	glDepthMask(GL_TRUE);
 	glDepthFunc(GL_LESS);
@@ -245,7 +279,9 @@ void display(){
 		// 	drawZoomboard(zoom);
 		// }
 		glPushMatrix();
-			glTranslatef(originX, originY, originZ);
+			glColor3f(1.0, 1.0, 1.0);
+			// unclear if world should move with
+			// glTranslatef(originX, originY, originZ);
 			draw();
 		glPopMatrix();
 	glPopMatrix();
@@ -470,15 +506,19 @@ void drawUnitSquare(float x, float y){
 		0.0f, 1.0f, 0.0f,     1.0f, 1.0f, 0.0f,    0.0f, 0.0f, 0.0f,    1.0f, 0.0f, 0.0f };
 	static const GLfloat _unit_square_normals[] = {
 		0.0f, 0.0f, 1.0f,     0.0f, 0.0f, 1.0f,    0.0f, 0.0f, 1.0f,    0.0f, 0.0f, 1.0f };
+	static const GLfloat _texture_coordinates[] = {0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f };
 	glPushMatrix();
 	glTranslatef(x, y, 0.0);
 	glEnableClientState(GL_VERTEX_ARRAY);
 	glEnableClientState(GL_NORMAL_ARRAY);
+	glEnableClientState(GL_TEXTURE_COORD_ARRAY);  
 	glVertexPointer(3, GL_FLOAT, 0, _unit_square_vertex);
 	glNormalPointer(GL_FLOAT, 0, _unit_square_normals);
+	glTexCoordPointer(2, GL_FLOAT, 0, _texture_coordinates);
 	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 	glDisableClientState(GL_NORMAL_ARRAY);
 	glDisableClientState(GL_VERTEX_ARRAY);
+	glDisableClientState(GL_TEXTURE_COORD_ARRAY);
 	glPopMatrix();
 }
 void drawUnitAxis(float x, float y, float z, float scale){
