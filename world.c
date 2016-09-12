@@ -19,21 +19,28 @@ GLuint constellationTex[NUM_CONSTELLATIONS];
 unsigned int visibleConstellations[10];
 unsigned int visibleWarpLines = 15;
 
+
 float latitude = 0;
 float longitude = 0;
 
-unsigned char fixedStars = 1;
-unsigned char showConstellations = 0;
+unsigned int flippedUniverse = 0;
+
+float fadeInValue = 0;
+
+unsigned char showConstellations = 1;
 unsigned char showTarget = 0;
 unsigned char targetAcquired = 0;
 unsigned char interplanetaryTravel = 0;
+time_t interplanetaryTravelStartTime = 0; 
+
+time_t fadeInTime = -1;
+time_t fadeOutTime = -1;
 
 float matrix[16] = {1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1};
 
 float constellationMatrix[NUM_CONSTELLATIONS][16];
 
-float launchBeginX = 0;
-float launchBeginY = 0;
+float newOriginZ = 0;
 
 void renderStars(){
 	glPushMatrix();
@@ -166,6 +173,12 @@ void setup() {
 	glEnable(GL_LIGHTING);
 
 	glPointSize(1);
+
+	fadeInTime = elapsedSeconds() + 3;
+	fadeInValue = 0.0;
+
+				glutFullScreen();
+
 }
 
 void logMat4(const float *m){
@@ -185,8 +198,8 @@ unsigned char mat4IdentitySimilarity(const float *m){
 }
 
 void update() { 
-	static float SKY_INTERVAL = 0.0015;
-	// static float SKY_INTERVAL = 0.1;
+	// static float SKY_INTERVAL = 0.0015;
+	static float SKY_INTERVAL = 0.0025;
 	float changeX = 0;
 	float changeY = 0;
 	float lookAzimuth = lookOrientation[0]/180.0*M_PI;
@@ -228,7 +241,27 @@ void update() {
 
 
 	if(interplanetaryTravel){
-		originZ -= 5;
+		originZ -= 100;
+		if(elapsedSeconds() - interplanetaryTravelStartTime > 5){
+			interplanetaryTravel = 0;
+			newOriginZ += originZ;
+			originZ = 0;
+			fillConstellationArray(visibleConstellations);
+			showConstellations = 1;
+			fadeInTime = elapsedSeconds() + 1;
+			fadeInValue = 0.0;
+		}
+	}
+
+	if(fadeInTime == elapsedSeconds()){
+		fadeInValue += 0.05;
+		if(fadeInValue > 1.0)
+			fadeInValue = 1.0;
+	}
+	if(fadeOutTime == elapsedSeconds()){
+		fadeInValue -= 0.05;
+		if(fadeInValue < 0.0)
+			fadeInValue = 0;
 	}
 }
 void draw() {
@@ -265,26 +298,11 @@ void draw() {
 		}
 		glColor3f(1.0, 1.0, 1.0);
 
-		if(fixedStars){
-			glColor3f(0.66, 0.66, 0.66);
-			glPushMatrix();
-				// glRotatef(-90, 1, 0, 0);
-				glPushMatrix();
-					glScalef(100, 100, 100);
-					glMultMatrixf(matrix);
-					renderStars();
-				glPopMatrix();
-			glPopMatrix();
-			glColor3f(1.0, 1.0, 1.0);
-		}
-
-
-
-
 		if(showConstellations){
 			glEnable(GL_BLEND);
 			glDisable(GL_DEPTH_TEST);
 			glBlendFunc(GL_SRC_COLOR, GL_ONE_MINUS_SRC_COLOR);
+			glColor3f(fadeInValue, fadeInValue, fadeInValue);
 			for(int i = 0; i < 10; i++){
 				glPushMatrix();
 					glMultMatrixf(matrix);
@@ -304,9 +322,9 @@ void draw() {
 	glPopMatrix();
 
 	glPushMatrix();
-	// world moves with person
-		glTranslatef(originX - launchBeginX, originY - launchBeginY, originZ);
-		if(GROUND){
+		glTranslatef(originX, originY, originZ);
+
+		if(GROUND && !interplanetaryTravel){
 			glPushMatrix();
 				glTranslatef(0.0, 0.0, -1.0);
 				glScalef(500, 500, 500);
@@ -314,23 +332,30 @@ void draw() {
 				drawUnitSquare(-0.5, -0.5);
 			glPopMatrix();
 		}
+
+	glPopMatrix();
+
+	glPushMatrix();
+	// world moves with person
+		glTranslatef(originX, originY, originZ + newOriginZ);
 		
 		glColor3f(1.0, 1.0, 1.0);
-
-		if(!fixedStars){
+		
 			glColor3f(0.66, 0.66, 0.66);
 			glPushMatrix();
 				// glRotatef(-90, 1, 0, 0);
 				glPushMatrix();
-					glScalef(10, 10, 10);
+					glScalef(10000, 10000, 10000);
+					// glTranslatef(0, 0, -newOriginZ);
 					glMultMatrixf(matrix);
-					renderStars();
+					glPushMatrix();
+						// glTranslatef(0, 0, newOriginZ);
+						renderStars();
+					glPushMatrix();
 				glPopMatrix();
 			glPopMatrix();
 			glColor3f(1.0, 1.0, 1.0);
-		}
-
-
+		// }
 	glPopMatrix();
 
 	static int count = 0;
@@ -346,38 +371,8 @@ void draw() {
 			visibleWarpLines = 15;
 		}
 	}
-
-	// glPushMatrix();
-	// 	glScalef(100, 100, 100);
-	// 	glRotatef(-90, 1, 0, 0);
-	// 	glPushMatrix();
-	// 			glRotatef(latitude*3, 0, 1, 0);
-	// 		glPushMatrix();
-	// 		glRotatef(-longitude*3, 1, 0, 0);
-	// 			glBindTexture(GL_TEXTURE_2D, texture);
-	// 			drawUnitSphere();
-	// 			glBindTexture(GL_TEXTURE_2D, 0);
-	// 		glPopMatrix();
-	// 	glPopMatrix();
-
-	// glPopMatrix();
-
-
-	// glPushMatrix();
-	// 	glScalef(90, 90, 90);
-	// 	glRotatef(-90, 1, 0, 0);
-	// 	glPushMatrix();
-	// 		glRotatef(latitude*3, 0, 1, 0);
-	// 		glRotatef(-longitude*3, 1, 0, 0);
-	// 		glBindTexture(GL_TEXTURE_2D, texture_lines);
-	// 		drawUnitSphere();
-	// 		glBindTexture(GL_TEXTURE_2D, 0);
-	// 	glPopMatrix();
-
-	// glPopMatrix();
 	
 	glEnable(GL_LIGHTING);
-
 
 	if(GROUND){
 		glPushMatrix();
@@ -388,10 +383,7 @@ void draw() {
 		glPopMatrix();
 	}
 
-
-
 	if(showTarget){
-
 		orthoPerspective(0, 0, WIDTH, HEIGHT);
 		glPushMatrix();
 
@@ -413,30 +405,25 @@ void draw() {
 		glPopMatrix();
 
 		firstPersonPerspective();
-
 	}
-
-
 }
+
+
+
 void keyDown(unsigned int key) {
-	// if(key == ' '){
-	// 	fixedStars = !fixedStars;
-	// 	launchBeginX = originX;
-	// 	launchBeginY = originY;
-	// }
 	if(key == ' '){
 		if(targetAcquired){
-			fixedStars = 0;
 			interplanetaryTravel = 1;
+			showConstellations = 0;
+			interplanetaryTravelStartTime = elapsedSeconds();
+			// fadeOutTime = elapsedSeconds() + 1;
 		} else{
 			showTarget = !showTarget;
-			launchBeginX = originX;
-			launchBeginY = originY;			
 		}
 	}
-	if(key == 'c' || key == 'C'){
-		showConstellations = !showConstellations;
-	}
+	// if(key == 'c' || key == 'C'){
+	// 	showConstellations = !showConstellations;
+	// }
 
 }
 void keyUp(unsigned int key) { }

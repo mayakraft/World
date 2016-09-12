@@ -61,7 +61,7 @@ static int mouseDragY = 0;
 static unsigned char keyboard[256];  // query this at any point for the state of a key (0:up, 1:pressed)
 // GRAPHICS
 static float NEAR_CLIP = 0.1;
-static float FAR_CLIP = 100000.0;
+static float FAR_CLIP = 1000000.0;
 static float FOV = 0.1;
 static float originX = 0.0f;
 static float originY = 0.0f;  
@@ -539,35 +539,35 @@ void keyboardDown(unsigned char key, int x, int y){
 
 	if(key == ESCAPE_KEY)  // ESCAPE key
 		exit (0);
-	else if(key == 'F' || key == 'f'){
-		if(!FULLSCREEN)
-			glutFullScreen();
-		else{
-			reshapeWindow(WIDTH, HEIGHT);
-			glutPositionWindow(0,0);
-		}
-		FULLSCREEN = !FULLSCREEN;
-	}
-	else if(key == 'P' || key == 'p'){
-		PERSPECTIVE = (PERSPECTIVE+1)%3;
-		rebuildProjection();
-	}
-	else if(key == '.'){
-		FOV += 0.01;
-		rebuildProjection();
-	}
-	else if(key == ','){
-		FOV -= 0.01;
-		rebuildProjection();
-	}
-	else if(key == 'G' || key == 'g'){
-		GROUND = !GROUND;
-		glutPostRedisplay();
-	}
-	else if (key == 'X' || key == 'x'){
-		GRID = !GRID;
-		glutPostRedisplay();
-	}
+	// else if(key == 'F' || key == 'f'){
+	// 	if(!FULLSCREEN)
+	// 		glutFullScreen();
+	// 	else{
+	// 		reshapeWindow(WIDTH, HEIGHT);
+	// 		glutPositionWindow(0,0);
+	// 	}
+	// 	FULLSCREEN = !FULLSCREEN;
+	// }
+	// else if(key == 'P' || key == 'p'){
+	// 	PERSPECTIVE = (PERSPECTIVE+1)%3;
+	// 	rebuildProjection();
+	// }
+	// else if(key == '.'){
+	// 	FOV += 0.01;
+	// 	rebuildProjection();
+	// }
+	// else if(key == ','){
+	// 	FOV -= 0.01;
+	// 	rebuildProjection();
+	// }
+	// else if(key == 'G' || key == 'g'){
+	// 	GROUND = !GROUND;
+	// 	glutPostRedisplay();
+	// }
+	// else if (key == 'X' || key == 'x'){
+	// 	GRID = !GRID;
+	// 	glutPostRedisplay();
+	// }
 	keyDown(key);
 	if(!CONTINUOUS_REFRESH)
 		keyboardSetIdleFunc(); // for efficient screen draw, trigger redraw if needed
