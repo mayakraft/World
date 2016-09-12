@@ -1,6 +1,7 @@
 #include "world.h"
 
 const unsigned int NUM_CONSTELLATIONS = 46;
+const unsigned int NUM_WARP_LINES = 80;
 
 // LOAD STARS
 // #include "1619stars.c"
@@ -16,12 +17,15 @@ GLuint texture_lines;
 GLuint constellationTex[NUM_CONSTELLATIONS];
 
 unsigned int visibleConstellations[10];
+unsigned int visibleWarpLines = 15;
 
 float latitude = 0;
 float longitude = 0;
 
 unsigned char fixedStars = 1;
 unsigned char showConstellations = 0;
+unsigned char showTarget = 0;
+unsigned char targetAcquired = 0;
 
 float matrix[16] = {1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1};
 
@@ -45,7 +49,14 @@ void fillConstellationArray(unsigned int *a){
 	}
 }
 
+float warpAngles[NUM_WARP_LINES];
+float warpDistances[NUM_WARP_LINES];
+
 void setup() {
+
+	time_t t;
+	srand((unsigned) time(&t));
+
 	GRID = 0;
 	// texture = loadTexture("texture.raw", 32, 32);
 	// texture = loadTexture("spectrum.raw", 512, 256);
@@ -54,6 +65,11 @@ void setup() {
 	// texture_lines = loadTexture("lines.raw", 512, 256);
 
 	setMat4Identity(matrix);
+
+	for(int i = 0; i < NUM_WARP_LINES; i++){
+		warpDistances[i] = arc4random()%400;
+		warpAngles[i] = arc4random()%628 / 100.0;
+	}
 
 	// constellations
 	const char *constellationFiles[NUM_CONSTELLATIONS];
@@ -174,6 +190,13 @@ void update() {
 	// latitude = changeX;
 	// longitude = originY;
 
+	for(int i = 0; i < NUM_WARP_LINES; i++){
+		warpDistances[i] += 10 + arc4random()%3;
+		if(warpDistances[i] > 500){
+			warpDistances[i] = 3 + arc4random()%7;
+		}
+	}
+
 	float rot1[16];
 	float rot2[16];
 	float rot[16];
@@ -197,7 +220,29 @@ void draw() {
 	glPushMatrix();
 	// world is fixed
 
+		glColor3f(0.8, 0.8, 0.8);
+		static const GLfloat _unit_line[] = { 0.0f, 0.0f, 0.0f,    0.0f, 0.0f, 10.0f };
+		for(int i = 0; i < visibleWarpLines; i++){
+
+			if(targetAcquired){
+				float r = arc4random()%66 / 100.0;
+				float g = arc4random()%66 / 100.0;
+				float b = arc4random()%66 / 100.0;
+				glColor3f(0.33 + r, 0.33 + g, 0.33 + b);
+			}
+
+			glPushMatrix();
+				glTranslatef(5 * cosf(warpAngles[i]), 5 * sinf(warpAngles[i]), warpDistances[i]);
+				glEnableClientState(GL_VERTEX_ARRAY);
+				glVertexPointer(3, GL_FLOAT, 0, _unit_line);
+				glDrawArrays(GL_LINES, 0, 2);
+				glDisableClientState(GL_VERTEX_ARRAY);
+			glPopMatrix();
+		}
+		glColor3f(1.0, 1.0, 1.0);
+
 		if(fixedStars){
+			glColor3f(0.66, 0.66, 0.66);
 			glPushMatrix();
 				// glRotatef(-90, 1, 0, 0);
 				glPushMatrix();
@@ -206,6 +251,7 @@ void draw() {
 					renderStars();
 				glPopMatrix();
 			glPopMatrix();
+			glColor3f(1.0, 1.0, 1.0);
 		}
 
 
@@ -248,6 +294,7 @@ void draw() {
 		glColor3f(1.0, 1.0, 1.0);
 
 		if(!fixedStars){
+			glColor3f(0.66, 0.66, 0.66);
 			glPushMatrix();
 				// glRotatef(-90, 1, 0, 0);
 				glPushMatrix();
@@ -256,6 +303,7 @@ void draw() {
 					renderStars();
 				glPopMatrix();
 			glPopMatrix();
+			glColor3f(1.0, 1.0, 1.0);
 		}
 
 
@@ -267,7 +315,11 @@ void draw() {
 		float m[16];
 		mat4x4Mult(constellationMatrix[ visibleConstellations[0] ], matrix, m);
 		if(mat4IdentitySimilarity(m)){
-
+			targetAcquired = 1;
+			visibleWarpLines = NUM_WARP_LINES;
+		} else{
+			targetAcquired = 0;
+			visibleWarpLines = 15;
 		}
 	}
 
@@ -299,7 +351,6 @@ void draw() {
 	// 	glPopMatrix();
 
 	// glPopMatrix();
-
 	
 	glEnable(GL_LIGHTING);
 
@@ -313,12 +364,51 @@ void draw() {
 		glPopMatrix();
 	}
 
+
+
+	if(showTarget){
+
+
+		orthoPerspective(0, 0, WIDTH, HEIGHT);
+		glPushMatrix();
+
+		glDisable(GL_LIGHTING);
+
+		glEnable(GL_BLEND);
+		glDisable(GL_DEPTH_TEST);
+		glBlendFunc(GL_SRC_COLOR, GL_ONE_MINUS_SRC_COLOR);
+
+		glBindTexture(GL_TEXTURE_2D, constellationTex[ visibleConstellations[0] ]);
+		glScalef(HEIGHT, HEIGHT, HEIGHT);
+		drawUnitSquare((WIDTH*0.5 - HEIGHT*0.5)/((float)HEIGHT), 0);
+		glBindTexture (GL_TEXTURE_2D, 0);
+		glDisable(GL_BLEND);
+		glEnable(GL_DEPTH_TEST);
+
+		glEnable(GL_LIGHTING);
+
+		glPopMatrix();
+
+		firstPersonPerspective();
+
+	}
+
+
 }
 void keyDown(unsigned int key) {
+	// if(key == ' '){
+	// 	fixedStars = !fixedStars;
+	// 	launchBeginX = originX;
+	// 	launchBeginY = originY;
+	// }
 	if(key == ' '){
-		fixedStars = !fixedStars;
-		launchBeginX = originX;
-		launchBeginY = originY;
+		if(targetAcquired){
+
+		} else{
+			showTarget = !showTarget;
+			launchBeginX = originX;
+			launchBeginY = originY;			
+		}
 	}
 	if(key == 'c' || key == 'C'){
 		showConstellations = !showConstellations;

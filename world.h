@@ -41,7 +41,7 @@ void mouseMoved(int x, int y);
 
 ////////////////////////////////////////////////////////////////////////////////////////
 // CUSTOMIZE SETTINGS
-#define CONTINUOUS_REFRESH 0  // (0) = maximum efficiency, screen will only redraw upon receiving input
+#define CONTINUOUS_REFRESH 1  // (0) = maximum efficiency, screen will only redraw upon receiving input
 static float MOUSE_SENSITIVITY = 0.333f;
 static float WALK_INTERVAL = 0.1f;  // WALKING SPEED. @ 60 updates/second, walk speed = 6 units/second
 static float ZOOM_SPEED = 0.4f;
