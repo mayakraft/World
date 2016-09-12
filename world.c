@@ -5,20 +5,23 @@ const unsigned int NUM_CONSTELLATIONS = 46;
 // LOAD STARS
 // #include "1619stars.c"
 // unsigned int NUM_STARS = 1619;
-// #include "31608stars.c"
-// unsigned int NUM_STARS = 31608;
-#include "518stars.c"
-unsigned int NUM_STARS = 518;
+#include "31608stars.c"
+unsigned int NUM_STARS = 31608;
+// #include "518stars.c"
+// unsigned int NUM_STARS = 518;
 
 
 GLuint texture;
 GLuint texture_lines;
 GLuint constellationTex[NUM_CONSTELLATIONS];
 
+unsigned int visibleConstellations[10];
+
 float latitude = 0;
 float longitude = 0;
 
 unsigned char fixedStars = 1;
+unsigned char showConstellations = 0;
 
 float matrix[16] = {1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1};
 
@@ -34,6 +37,12 @@ void renderStars(){
 	glDrawArrays(GL_POINTS, 0, NUM_STARS);
 	glDisableClientState(GL_VERTEX_ARRAY);
 	glPopMatrix();
+}
+
+void fillConstellationArray(unsigned int *a){
+	for(int i = 0; i < 10; i++){
+		a[i] = arc4random()%NUM_CONSTELLATIONS;
+	}
 }
 
 void setup() {
@@ -95,16 +104,18 @@ void setup() {
 	constellationFiles[44] = "constellations/The-Young-Goat.raw";
 	constellationFiles[45] = "constellations/Who-Lady-Has-Chair.raw";
 
-	// for(int i = 0; i < NUM_CONSTELLATIONS; i++){
-	// 	constellationTex[i] = loadTexture(constellationFiles[i], 256, 256);
-	// 	float angle1 = i * 10;
-	// 	float angle2 = i * M_PI / NUM_CONSTELLATIONS - M_PI*0.5;
-	// 	float rot1[16];
-	// 	float rot2[16];
-	// 	makeMat4XRot(rot1, angle1);
-	// 	makeMat4YRot(rot2, angle2);
-	// 	mat4x4Mult(rot1, rot2, constellationMatrix[i]);
-	// }
+	for(int i = 0; i < NUM_CONSTELLATIONS; i++){
+		constellationTex[i] = loadTexture(constellationFiles[i], 256, 256);
+		float angle1 = i * 10;
+		float angle2 = i * M_PI / NUM_CONSTELLATIONS - M_PI*0.5;
+		float rot1[16];
+		float rot2[16];
+		makeMat4XRot(rot1, angle1);
+		makeMat4YRot(rot2, angle2);
+		mat4x4Mult(rot1, rot2, constellationMatrix[i]);
+	}
+
+	fillConstellationArray(visibleConstellations);
 
 	glEnable (GL_BLEND);
 	glBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -124,6 +135,18 @@ void setup() {
 	glEnable(GL_LIGHTING);
 
 	glPointSize(1);
+}
+
+void logMat4(const float *m){
+	printf("%f\t%f\t%f\t%f\n%f\t%f\t%f\t%f\n%f\t%f\t%f\t%f\n%f\t%f\t%f\t%f\n", 
+	m[0], m[1], m[2], m[3], m[4], m[5], m[6], m[7], m[8], m[9], m[10], m[11], m[12], m[13], m[14], m[15]);
+}
+
+unsigned char mat4IdentitySimilarity(const float *m){
+	float epsilon = 0.9; // how close to 1 do we need to be?
+	if(m[0] > epsilon && m[5] > epsilon && m[10] > epsilon)
+		return 1;
+	return 0;
 }
 
 void update() { 
@@ -187,24 +210,26 @@ void draw() {
 
 
 
-		glEnable(GL_BLEND);
-		glDisable(GL_DEPTH_TEST);
-		glBlendFunc(GL_SRC_COLOR, GL_ONE_MINUS_SRC_COLOR);
 
-		// for(int i = 0; i < NUM_CONSTELLATIONS; i++){
-		// 	glPushMatrix();
-		// 		glMultMatrixf(matrix);
-		// 		glMultMatrixf(constellationMatrix[i]);
-		// 		glTranslatef(0, 0, 450);
-		// 		glScalef(300, 300, 300);
-		// 		glBindTexture(GL_TEXTURE_2D, constellationTex[i]);
-		// 		drawUnitSquare(-0.5, -0.5);
-		// 		glBindTexture (GL_TEXTURE_2D, 0);
-		// 	glPopMatrix();
-		// }
+		if(showConstellations){
+			glEnable(GL_BLEND);
+			glDisable(GL_DEPTH_TEST);
+			glBlendFunc(GL_SRC_COLOR, GL_ONE_MINUS_SRC_COLOR);
+			for(int i = 0; i < 10; i++){
+				glPushMatrix();
+					glMultMatrixf(matrix);
+					glMultMatrixf(constellationMatrix[ visibleConstellations[i] ]);
+					glTranslatef(0, 0, 450);
+					glScalef(300, 300, 300);
+					glBindTexture(GL_TEXTURE_2D, constellationTex[ visibleConstellations[i] ]);
+					drawUnitSquare(-0.5, -0.5);
+					glBindTexture (GL_TEXTURE_2D, 0);
+				glPopMatrix();
+			}
+			glDisable(GL_BLEND);
+			glEnable(GL_DEPTH_TEST);
+		}
 
-		glDisable(GL_BLEND);
-		glEnable(GL_DEPTH_TEST);
 
 	glPopMatrix();
 
@@ -235,6 +260,16 @@ void draw() {
 
 
 	glPopMatrix();
+
+	static int count = 0;
+	count++;
+	if(count % 10 == 0){
+		float m[16];
+		mat4x4Mult(constellationMatrix[ visibleConstellations[0] ], matrix, m);
+		if(mat4IdentitySimilarity(m)){
+
+		}
+	}
 
 	// glPushMatrix();
 	// 	glScalef(100, 100, 100);
@@ -285,6 +320,10 @@ void keyDown(unsigned int key) {
 		launchBeginX = originX;
 		launchBeginY = originY;
 	}
+	if(key == 'c' || key == 'C'){
+		showConstellations = !showConstellations;
+	}
+
 }
 void keyUp(unsigned int key) { }
 void mouseDown(unsigned int button) { }
