@@ -115,30 +115,86 @@ time_t elapsedSeconds();
 GLuint loadTexture(const char * filename, int width, int height);
 void drawUnitSphere();
 
-// #define INNER_PRODUCT(a,b,r,c) \
-// ((a)._mat[r][0] * (b)._mat[0][c]) \
-// +((a)._mat[r][1] * (b)._mat[1][c]) \
-// +((a)._mat[r][2] * (b)._mat[2][c]) \
-// +((a)._mat[r][3] * (b)._mat[3][c])
-
-// void mat4Mult(const float* l, const float* r, float *m){
-//     m[0] = INNER_PRODUCT(lhs, rhs, 0, 0);
-//     m[1] = INNER_PRODUCT(lhs, rhs, 0, 1);
-//     m[2] = INNER_PRODUCT(lhs, rhs, 0, 2);
-//     m[3] = INNER_PRODUCT(lhs, rhs, 0, 3);
-//     m[4] = INNER_PRODUCT(lhs, rhs, 1, 0);
-//     m[5] = INNER_PRODUCT(lhs, rhs, 1, 1);
-//     m[6] = INNER_PRODUCT(lhs, rhs, 1, 2);
-//     m[7] = INNER_PRODUCT(lhs, rhs, 1, 3);
-//     m[8] = INNER_PRODUCT(lhs, rhs, 2, 0);
-//     m[9] = INNER_PRODUCT(lhs, rhs, 2, 1);
-//     m[10] = INNER_PRODUCT(lhs, rhs, 2, 2);
-//     m[11] = INNER_PRODUCT(lhs, rhs, 2, 3);
-//     m[12] = INNER_PRODUCT(lhs, rhs, 3, 0);
-//     m[13] = INNER_PRODUCT(lhs, rhs, 3, 1);
-//     m[14] = INNER_PRODUCT(lhs, rhs, 3, 2);
-//     m[15] = INNER_PRODUCT(lhs, rhs, 3, 3);
-// }
+void mat4x4Mult(const float *a, const float *b, float *c){
+	c[0] = a[0] * b[0] + a[1] * b[4] + a[2] * b[8] + a[3] * b[12]; 
+	c[1] = a[0] * b[1] + a[1] * b[5] + a[2] * b[9] + a[3] * b[13]; 
+	c[2] = a[0] * b[2] + a[1] * b[6] + a[2] * b[10] + a[3] * b[14]; 
+	c[3] = a[0] * b[3] + a[1] * b[7] + a[2] * b[11] + a[3] * b[15]; 
+	c[4] = a[4] * b[0] + a[5] * b[4] + a[6] * b[8] + a[7] * b[12]; 
+	c[5] = a[4] * b[1] + a[5] * b[5] + a[6] * b[9] + a[7] * b[13]; 
+	c[6] = a[4] * b[2] + a[5] * b[6] + a[6] * b[10] + a[7] * b[14]; 
+	c[7] = a[4] * b[3] + a[5] * b[7] + a[6] * b[11] + a[7] * b[15]; 
+	c[8] = a[8] * b[0] + a[9] * b[4] + a[10] * b[8] + a[11] * b[12]; 
+	c[9] = a[8] * b[1] + a[9] * b[5] + a[10] * b[9] + a[11] * b[13]; 
+	c[10] = a[8] * b[2] + a[9] * b[6] + a[10] * b[10] + a[11] * b[14]; 
+	c[11] = a[8] * b[3] + a[9] * b[7] + a[10] * b[11] + a[11] * b[15]; 
+	c[12] = a[12] * b[0] + a[13] * b[4] + a[14] * b[8] + a[15] * b[12]; 
+	c[13] = a[12] * b[1] + a[13] * b[5] + a[14] * b[9] + a[15] * b[13]; 
+	c[14] = a[12] * b[2] + a[13] * b[6] + a[14] * b[10] + a[15] * b[14]; 
+	c[15] = a[12] * b[3] + a[13] * b[7] + a[14] * b[11] + a[15] * b[15]; 
+}
+// multiply two 3x3 matrices, a and b, store result into c
+void mat3x3Mult(const float* a, const float* b, float* c) {
+	c[0] = a[0] * b[0] + a[1] * b[3] + a[2] * b[6];
+	c[1] = a[0] * b[1] + a[1] * b[4] + a[2] * b[7];
+	c[2] = a[0] * b[2] + a[1] * b[5] + a[2] * b[8];
+	c[3] = a[3] * b[0] + a[4] * b[3] + a[5] * b[6];
+	c[4] = a[3] * b[1] + a[4] * b[4] + a[5] * b[7];
+	c[5] = a[3] * b[2] + a[4] * b[5] + a[5] * b[8];
+	c[6] = a[6] * b[0] + a[7] * b[3] + a[8] * b[6];
+	c[7] = a[6] * b[1] + a[7] * b[4] + a[8] * b[7];
+	c[8] = a[6] * b[2] + a[7] * b[5] + a[8] * b[8];
+}
+void makeMat3XRot(float *m, float angle){
+	m[0] = 1;	m[1] = 0;			m[2] = 0;
+	m[3] = 0;	m[4] = cos(angle);	m[5] = -sin(angle);
+	m[6] = 0;	m[7] = sin(angle);	m[8] = cos(angle);
+}
+void makeMat3YRot(float *m, float angle){
+	m[0] = cos(angle);	m[1] = 0;	m[2] = -sin(angle);
+	m[3] = 0;			m[4] = 1;	m[5] = 0;
+	m[6] = sin(angle);	m[7] = 0;	m[8] = cos(angle);
+}
+void makeMat3ZRot(float *m, float angle){
+	m[0] = cos(angle);	m[1] = -sin(angle);	m[2] = 0;
+	m[3] = sin(angle);	m[4] = cos(angle);	m[5] = 0;
+	m[6] = 0;			m[7] = 0;			m[8] = 1;
+}
+void makeMat4XRot(float *m, float angle){
+	m[0] = 1;	m[1] = 0;			m[2] = 0;			m[3] = 0;
+	m[4] = 0;	m[5] = cos(angle);	m[6] = -sin(angle);	m[7] = 0;
+	m[8] = 0;	m[9] = sin(angle);	m[10] = cos(angle);	m[11] = 0;
+	m[12] = 0;	m[13] = 0;			m[14] = 0;			m[15] = 1;
+}
+void makeMat4YRot(float *m, float angle){
+	m[0] = cos(angle);	m[1] = 0;	m[2] = -sin(angle);	m[3] = 0;
+	m[4] = 0;			m[5] = 1;	m[6] = 0;			m[7] = 0;
+	m[8] = sin(angle);	m[9] = 0;	m[10] = cos(angle);	m[11] = 0;
+	m[12] = 0;			m[13] = 0;	m[14] = 0;			m[15] = 1;
+}
+void makeMat4ZRot(float *m, float angle){
+	m[0] = cos(angle);	m[1] = -sin(angle);	m[2] = 0;	m[3] = 0;
+	m[4] = sin(angle);	m[5] = cos(angle);	m[6] = 0;	m[7] = 0;
+	m[8] = 0;			m[9] = 0;			m[10] = 1;	m[11] = 0;
+	m[12] = 0;			m[13] = 0;			m[14] = 0;	m[15] = 1;
+}
+void setMat3FromMat4(float *m3, float *m4){
+	m3[0] = m4[0]; m3[1] = m4[1]; m3[2] = m4[2];
+	m3[3] = m4[4]; m3[4] = m4[5]; m3[5] = m4[6];
+	m3[6] = m4[8]; m3[7] = m4[9]; m3[8] = m4[10];
+}
+void setMat4FromMat3(float *m4, float *m3){
+	m4[0] = m3[0]; m4[1] = m3[1]; m4[2] = m3[2]; m4[3] = 0;
+	m4[4] = m3[3]; m4[5] = m3[4]; m4[6] = m3[5]; m4[7] = 0;
+	m4[8] = m3[6]; m4[9] = m3[7]; m4[10] = m3[8]; m4[11] = 0;
+	m4[12] = 0; m4[13] = 0; m4[14] = 0; m4[15] = 1;
+}
+void setMat4Identity(float *m){
+	m[0] = 1; m[1] = 0; m[2] = 0; m[3] = 0;
+	m[4] = 0; m[5] = 1; m[6] = 0; m[7] = 0;
+	m[8] = 0; m[9] = 0; m[10] = 1; m[11] = 0;
+	m[12] = 0; m[13] = 0; m[14] = 0; m[15] = 1;
+}
 
 void quaternionToMat4(float *q, float *m){
 	float X = q[0];

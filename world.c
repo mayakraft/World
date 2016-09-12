@@ -1,12 +1,14 @@
 #include "world.h"
 
-const unsigned int NUM_CONSTELLATIONS = 20;
+const unsigned int NUM_CONSTELLATIONS = 46;
 
 // LOAD STARS
 // #include "1619stars.c"
 // unsigned int NUM_STARS = 1619;
-#include "31608stars.c"
-unsigned int NUM_STARS = 31608;
+// #include "31608stars.c"
+// unsigned int NUM_STARS = 31608;
+#include "518stars.c"
+unsigned int NUM_STARS = 518;
 
 
 GLuint texture;
@@ -22,87 +24,6 @@ float matrix[16] = {1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1};
 
 float constellationMatrix[NUM_CONSTELLATIONS][16];
 
-void mat4x4Mult(const float *a, const float *b, float *c){
-	c[0] = a[0] * b[0] + a[1] * b[4] + a[2] * b[8] + a[3] * b[12]; 
-	c[1] = a[0] * b[1] + a[1] * b[5] + a[2] * b[9] + a[3] * b[13]; 
-	c[2] = a[0] * b[2] + a[1] * b[6] + a[2] * b[10] + a[3] * b[14]; 
-	c[3] = a[0] * b[3] + a[1] * b[7] + a[2] * b[11] + a[3] * b[15]; 
-	c[4] = a[4] * b[0] + a[5] * b[4] + a[6] * b[8] + a[7] * b[12]; 
-	c[5] = a[4] * b[1] + a[5] * b[5] + a[6] * b[9] + a[7] * b[13]; 
-	c[6] = a[4] * b[2] + a[5] * b[6] + a[6] * b[10] + a[7] * b[14]; 
-	c[7] = a[4] * b[3] + a[5] * b[7] + a[6] * b[11] + a[7] * b[15]; 
-	c[8] = a[8] * b[0] + a[9] * b[4] + a[10] * b[8] + a[11] * b[12]; 
-	c[9] = a[8] * b[1] + a[9] * b[5] + a[10] * b[9] + a[11] * b[13]; 
-	c[10] = a[8] * b[2] + a[9] * b[6] + a[10] * b[10] + a[11] * b[14]; 
-	c[11] = a[8] * b[3] + a[9] * b[7] + a[10] * b[11] + a[11] * b[15]; 
-	c[12] = a[12] * b[0] + a[13] * b[4] + a[14] * b[8] + a[15] * b[12]; 
-	c[13] = a[12] * b[1] + a[13] * b[5] + a[14] * b[9] + a[15] * b[13]; 
-	c[14] = a[12] * b[2] + a[13] * b[6] + a[14] * b[10] + a[15] * b[14]; 
-	c[15] = a[12] * b[3] + a[13] * b[7] + a[14] * b[11] + a[15] * b[15]; 
-}
-// multiply two 3x3 matrices, a and b, store result into c
-void mat3x3Mult(const float* a, const float* b, float* c) {
-	c[0] = a[0] * b[0] + a[1] * b[3] + a[2] * b[6];
-	c[1] = a[0] * b[1] + a[1] * b[4] + a[2] * b[7];
-	c[2] = a[0] * b[2] + a[1] * b[5] + a[2] * b[8];
-	c[3] = a[3] * b[0] + a[4] * b[3] + a[5] * b[6];
-	c[4] = a[3] * b[1] + a[4] * b[4] + a[5] * b[7];
-	c[5] = a[3] * b[2] + a[4] * b[5] + a[5] * b[8];
-	c[6] = a[6] * b[0] + a[7] * b[3] + a[8] * b[6];
-	c[7] = a[6] * b[1] + a[7] * b[4] + a[8] * b[7];
-	c[8] = a[6] * b[2] + a[7] * b[5] + a[8] * b[8];
-}
-void makeMat3XRot(float *m, float angle){
-	m[0] = 1;	m[1] = 0;			m[2] = 0;
-	m[3] = 0;	m[4] = cos(angle);	m[5] = -sin(angle);
-	m[6] = 0;	m[7] = sin(angle);	m[8] = cos(angle);
-}
-void makeMat3YRot(float *m, float angle){
-	m[0] = cos(angle);	m[1] = 0;	m[2] = -sin(angle);
-	m[3] = 0;			m[4] = 1;	m[5] = 0;
-	m[6] = sin(angle);	m[7] = 0;	m[8] = cos(angle);
-}
-void makeMat3ZRot(float *m, float angle){
-	m[0] = cos(angle);	m[1] = -sin(angle);	m[2] = 0;
-	m[3] = sin(angle);	m[4] = cos(angle);	m[5] = 0;
-	m[6] = 0;			m[7] = 0;			m[8] = 1;
-}
-void makeMat4XRot(float *m, float angle){
-	m[0] = 1;	m[1] = 0;			m[2] = 0;			m[3] = 0;
-	m[4] = 0;	m[5] = cos(angle);	m[6] = -sin(angle);	m[7] = 0;
-	m[8] = 0;	m[9] = sin(angle);	m[10] = cos(angle);	m[11] = 0;
-	m[12] = 0;	m[13] = 0;			m[14] = 0;			m[15] = 1;
-}
-void makeMat4YRot(float *m, float angle){
-	m[0] = cos(angle);	m[1] = 0;	m[2] = -sin(angle);	m[3] = 0;
-	m[4] = 0;			m[5] = 1;	m[6] = 0;			m[7] = 0;
-	m[8] = sin(angle);	m[9] = 0;	m[10] = cos(angle);	m[11] = 0;
-	m[12] = 0;			m[13] = 0;	m[14] = 0;			m[15] = 1;
-}
-void makeMat4ZRot(float *m, float angle){
-	m[0] = cos(angle);	m[1] = -sin(angle);	m[2] = 0;	m[3] = 0;
-	m[4] = sin(angle);	m[5] = cos(angle);	m[6] = 0;	m[7] = 0;
-	m[8] = 0;			m[9] = 0;			m[10] = 1;	m[11] = 0;
-	m[12] = 0;			m[13] = 0;			m[14] = 0;	m[15] = 1;
-}
-void setMat3FromMat4(float *m3, float *m4){
-	m3[0] = m4[0]; m3[1] = m4[1]; m3[2] = m4[2];
-	m3[3] = m4[4]; m3[4] = m4[5]; m3[5] = m4[6];
-	m3[6] = m4[8]; m3[7] = m4[9]; m3[8] = m4[10];
-}
-void setMat4FromMat3(float *m4, float *m3){
-	m4[0] = m3[0]; m4[1] = m3[1]; m4[2] = m3[2]; m4[3] = 0;
-	m4[4] = m3[3]; m4[5] = m3[4]; m4[6] = m3[5]; m4[7] = 0;
-	m4[8] = m3[6]; m4[9] = m3[7]; m4[10] = m3[8]; m4[11] = 0;
-	m4[12] = 0; m4[13] = 0; m4[14] = 0; m4[15] = 1;
-}
-void setMat4Identity(float *m){
-	m[0] = 1; m[1] = 0; m[2] = 0; m[3] = 0;
-	m[4] = 0; m[5] = 1; m[6] = 0; m[7] = 0;
-	m[8] = 0; m[9] = 0; m[10] = 1; m[11] = 0;
-	m[12] = 0; m[13] = 0; m[14] = 0; m[15] = 1;
-}
-
 float launchBeginX = 0;
 float launchBeginY = 0;
 
@@ -115,37 +36,18 @@ void renderStars(){
 	glPopMatrix();
 }
 
-// void spherePoints(int samples){
-//     int rnd = arc4random()%samples;
-//     float points[samples];
-//     float offset = 2.0/samples;
-//     float increment = M_PI * (3.0 - sqrt(5.0));
-
-//     for(int i = 0; i < samples; i++){
-//         y = ((i * offset) - 1) + (offset / 2);
-//         r = math.sqrt(1 - pow(y,2))
-
-//         phi = ((i + rnd) % samples) * increment
-
-//         x = math.cos(phi) * r
-//         z = math.sin(phi) * r
-
-//         points.append([x,y,z])
-// 	}
-//     return points
-
-// }
-
 void setup() {
 	GRID = 0;
 	// texture = loadTexture("texture.raw", 32, 32);
 	// texture = loadTexture("spectrum.raw", 512, 256);
-	texture = loadTexture("stars.raw", 2048, 1024);
+	// texture = loadTexture("stars.raw", 2048, 1024);
 	// texture = loadTexture("constellations.raw", 1024, 512);
-	texture_lines = loadTexture("lines.raw", 512, 256);
+	// texture_lines = loadTexture("lines.raw", 512, 256);
+
+	setMat4Identity(matrix);
 
 	// constellations
-	const char *constellationFiles[20];
+	const char *constellationFiles[NUM_CONSTELLATIONS];
 	constellationFiles[0] = "constellations/Bearer-of-the-Demons-Head.raw";
 	constellationFiles[1] = "constellations/CentaurAndThe-Beast-of-Prey.raw";
 	constellationFiles[2] = "constellations/Cetus.raw";
@@ -166,21 +68,43 @@ void setup() {
 	constellationFiles[17] = "constellations/The-Great-Horse.raw";
 	constellationFiles[18] = "constellations/The-Greater-Bear.raw";
 	constellationFiles[19] = "constellations/The-Greater-Dog.raw";
+	constellationFiles[20] = "constellations/The-Hare.raw";
+	constellationFiles[21] = "constellations/The-Hen.raw";
+	constellationFiles[22] = "constellations/The-Howler.raw";
+	constellationFiles[23] = "constellations/The-Kneeling-Man.raw";
+	constellationFiles[24] = "constellations/The-Lesser-Bear.raw";
+	constellationFiles[25] = "constellations/The-Lesser-Dog.raw";
+	constellationFiles[26] = "constellations/The-Lion.raw";
+	constellationFiles[27] = "constellations/The-Maiden.raw";
+	constellationFiles[28] = "constellations/The-Northern-Crown.raw";
+	constellationFiles[29] = "constellations/The-Ram.raw";
+	constellationFiles[30] = "constellations/The-Raven.raw";
+	constellationFiles[31] = "constellations/The-Reins-holder.raw";
+	constellationFiles[32] = "constellations/The-River.raw";
+	constellationFiles[33] = "constellations/The-Scorpion.raw";
+	constellationFiles[34] = "constellations/The-Shackled-Woman.raw";
+	constellationFiles[35] = "constellations/The-Ship.raw";
+	constellationFiles[36] = "constellations/The-Snake-Charmer.raw";
+	constellationFiles[37] = "constellations/The-Southern-Crown.raw";
+	constellationFiles[38] = "constellations/The-Southern-Whale.raw";
+	constellationFiles[39] = "constellations/The-Triangle.raw";
+	constellationFiles[40] = "constellations/The-Turtle.raw";
+	constellationFiles[41] = "constellations/The-Twins.raw";
+	constellationFiles[42] = "constellations/The-Well-bucket.raw";
+	constellationFiles[43] = "constellations/The-Whale.raw";
+	constellationFiles[44] = "constellations/The-Young-Goat.raw";
+	constellationFiles[45] = "constellations/Who-Lady-Has-Chair.raw";
 
-	for(int i = 0; i < NUM_CONSTELLATIONS; i++){
-		// setMat4Identity(constellationMatrix[i]);
-		constellationTex[i] = loadTexture(constellationFiles[i], 256, 256);
-		// constellationTex[i] = loadTexture(constellationFiles[i], 512, 512);
-		// float angle1 = arc4random()%1000;
-		// float angle2 = arc4random()%1000;
-		float angle1 = i * 10;
-		float angle2 = i * M_PI / NUM_CONSTELLATIONS - M_PI*0.5;
-		float rot1[16];
-		float rot2[16];
-		makeMat4XRot(rot1, angle1);
-		makeMat4YRot(rot2, angle2);
-		mat4x4Mult(rot1, rot2, constellationMatrix[i]);
-	}
+	// for(int i = 0; i < NUM_CONSTELLATIONS; i++){
+	// 	constellationTex[i] = loadTexture(constellationFiles[i], 256, 256);
+	// 	float angle1 = i * 10;
+	// 	float angle2 = i * M_PI / NUM_CONSTELLATIONS - M_PI*0.5;
+	// 	float rot1[16];
+	// 	float rot2[16];
+	// 	makeMat4XRot(rot1, angle1);
+	// 	makeMat4YRot(rot2, angle2);
+	// 	mat4x4Mult(rot1, rot2, constellationMatrix[i]);
+	// }
 
 	glEnable (GL_BLEND);
 	glBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -267,17 +191,17 @@ void draw() {
 		glDisable(GL_DEPTH_TEST);
 		glBlendFunc(GL_SRC_COLOR, GL_ONE_MINUS_SRC_COLOR);
 
-		for(int i = 0; i < NUM_CONSTELLATIONS; i++){
-			glPushMatrix();
-				glMultMatrixf(matrix);
-				glMultMatrixf(constellationMatrix[i]);
-				glTranslatef(0, 0, 450);
-				glScalef(300, 300, 300);
-				glBindTexture(GL_TEXTURE_2D, constellationTex[i]);
-				drawUnitSquare(-0.5, -0.5);
-				glBindTexture (GL_TEXTURE_2D, 0);
-			glPopMatrix();
-		}
+		// for(int i = 0; i < NUM_CONSTELLATIONS; i++){
+		// 	glPushMatrix();
+		// 		glMultMatrixf(matrix);
+		// 		glMultMatrixf(constellationMatrix[i]);
+		// 		glTranslatef(0, 0, 450);
+		// 		glScalef(300, 300, 300);
+		// 		glBindTexture(GL_TEXTURE_2D, constellationTex[i]);
+		// 		drawUnitSquare(-0.5, -0.5);
+		// 		glBindTexture (GL_TEXTURE_2D, 0);
+		// 	glPopMatrix();
+		// }
 
 		glDisable(GL_BLEND);
 		glEnable(GL_DEPTH_TEST);
