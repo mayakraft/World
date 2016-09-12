@@ -26,6 +26,7 @@ unsigned char fixedStars = 1;
 unsigned char showConstellations = 0;
 unsigned char showTarget = 0;
 unsigned char targetAcquired = 0;
+unsigned char interplanetaryTravel = 0;
 
 float matrix[16] = {1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1};
 
@@ -44,8 +45,22 @@ void renderStars(){
 }
 
 void fillConstellationArray(unsigned int *a){
+	int count = 0;
 	for(int i = 0; i < 10; i++){
-		a[i] = arc4random()%NUM_CONSTELLATIONS;
+		a[i] = 99999;
+	}
+	while(count < 10){
+		int try = arc4random()%NUM_CONSTELLATIONS;
+		unsigned char exists = 0;
+		for(int i = 0; i < count; i++){
+			if(a[i] == try){
+				exists = 1;
+			}
+		}
+		if(!exists){
+			a[count] = try;
+			count++;
+		}
 	}
 }
 
@@ -159,10 +174,14 @@ void logMat4(const float *m){
 }
 
 unsigned char mat4IdentitySimilarity(const float *m){
-	float epsilon = 0.9; // how close to 1 do we need to be?
-	if(m[0] > epsilon && m[5] > epsilon && m[10] > epsilon)
+	float epsilon = 0.92; // how close to 1 do we need to be?
+	if(m[10] > epsilon)
 		return 1;
 	return 0;
+	// float epsilon = 0.9; // how close to 1 do we need to be?
+	// if(m[0] > epsilon && m[5] > epsilon && m[10] > epsilon)
+	// 	return 1;
+	// return 0;
 }
 
 void update() { 
@@ -206,6 +225,11 @@ void update() {
 	mat4x4Mult(rot1, rot2, rot);
 	mat4x4Mult(matrix, rot, newMatrix);
 	memcpy(matrix, newMatrix, sizeof(float)*16);
+
+
+	if(interplanetaryTravel){
+		originZ -= 5;
+	}
 }
 void draw() {
 	glDisable(GL_LIGHTING);
@@ -311,7 +335,7 @@ void draw() {
 
 	static int count = 0;
 	count++;
-	if(count % 10 == 0){
+	if(count % 60 == 0){
 		float m[16];
 		mat4x4Mult(constellationMatrix[ visibleConstellations[0] ], matrix, m);
 		if(mat4IdentitySimilarity(m)){
@@ -368,7 +392,6 @@ void draw() {
 
 	if(showTarget){
 
-
 		orthoPerspective(0, 0, WIDTH, HEIGHT);
 		glPushMatrix();
 
@@ -403,7 +426,8 @@ void keyDown(unsigned int key) {
 	// }
 	if(key == ' '){
 		if(targetAcquired){
-
+			fixedStars = 0;
+			interplanetaryTravel = 1;
 		} else{
 			showTarget = !showTarget;
 			launchBeginX = originX;
