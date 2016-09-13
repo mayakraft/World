@@ -1,17 +1,35 @@
 # OpenGL basic world + interface
 
-### Mac, Linux, Windows
+![example](https://66.media.tumblr.com/a54164176d27d4c5d888c5ee58f52318/tumblr_odgrd3iDGu1vfq168o1_500.gif)
 
-this is a hyper minimalist (1 file) framework for graphics (OpenGL) and user input (keyboard, mouse) following the OpenFrameworks / Processing design paradigm
+this is a hyper minimalist (1 file) framework for graphics and user input (keyboard, mouse) following the OpenFrameworks / Processing design paradigm
+
+### Cross platform: Mac, Linux, Windows (cygwin)
+
+Mac / Linux tested. Windows machines might need to install GLUT.
 
 # try it out
 type `make` then `make run`
 
 # setup
 
-1. create a blank .c file
-2. `#include "world.h"`
-3. implement a few functions including:
+create an empty .c file containing:
+
+```c
+#include "world.h"
+
+void setup(){ }
+void update(){ }
+void draw3D(){ }
+void draw2D(){ }
+void keyDown(unsigned int key){ }
+void keyUp(unsigned int key){ }
+void mouseDown(unsigned int button){ }
+void mouseUp(unsigned int button){ }
+void mouseMoved(int x, int y){ }
+```
+
+# features
 
 ```c
 setup(){
@@ -26,27 +44,21 @@ update(){
 ```
 
 ```c
-draw(){
+draw3D(){
 	// runs every frame, after update()
+}
+draw2D(){
+	// a 2D overlay, the last thing to be drawn
 }
 ```
 
-#features
-
-## perspectives: switch with `P`
-* first person: looking, walking
-* polar: rotating around origin, zooming
-* orthographic: panning, zooming
-
-## landscapes
+* `P` switch perspectives (first person, polar, and orthographic perspectives)
 * `G` 2D ground (2D infinitely-repeating scenery)
 * `X` 3D axes (3D infinitely-repeating scenery)
-
-## more input
-* mouse look
-* move with arrow keys and `W` `A` `S` `D`
-* fullscreen `F`
-* zoom `+` `-`
+* mouse to look, move with arrow keys or `W` `A` `S` `D`
+* `F` fullscreen
+* `+` `-` zoom
+* `,` `.` change field of view
 
 # license
 MIT

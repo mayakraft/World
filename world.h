@@ -42,7 +42,7 @@ void mouseMoved(int x, int y);
 
 ////////////////////////////////////////////////////////////////////////////////////////
 // CUSTOMIZE SETTINGS
-#define CONTINUOUS_REFRESH 0  // (0) = maximum efficiency, screen will only redraw upon receiving input
+#define CONTINUOUS_REFRESH 1  // (0) = maximum efficiency, screen can redraw only upon receiving input
 static float MOUSE_SENSITIVITY = 0.333f;
 static float WALK_INTERVAL = 0.1f;  // WALKING SPEED. @ 60 updates/second, walk speed = 6 units/second
 static float ZOOM_SPEED = 0.4f;
@@ -79,6 +79,7 @@ float lookOrientation[3] = {0.0f, 0.0f, 0.0f}; // azimuth, altitude, zoom/FOV
 float orthoFrame[4] = {0.0f, 0.0f, 4.0f, 3.0f}; // x, y, width, height
 // time
 static time_t startTime;
+static unsigned long frameNum;
 
 // TABLE OF CONTENTS:
 int main(int argc, char **argv);  // initialize Open GL context
@@ -102,20 +103,20 @@ void specialDown(int key, int x, int y);
 void specialUp(int key, int x, int y);
 void keyboardSetIdleFunc();
 // WORLD SHAPES
-void drawRect(float x, float y, float width, float height);
-void drawUnitSquare(float x, float y);
-void drawUnitAxis(float x, float y, float z, float scale);
-void drawUnitSphere();
+// all 2D shapes are in the X Y plane, normal along the Z
+void drawRect(float x, float y, float z, float width, float height);
+void drawUnitSquare(float x, float y, float z);
+void draw3DAxesLines(float x, float y, float z, float scale);
+void drawUnitSphere(float x, float y, float z, float radius);
 // combinations of shapes
 void drawCheckerboard(float walkX, float walkY, int numSquares);
 void drawAxesGrid(float walkX, float walkY, float walkZ, int span, int repeats);
 void drawZoomboard(float zoom);
 float modulusContext(float complete, int modulus);
-// time
+// more
 time_t elapsedSeconds();
-
 GLuint loadTexture(const char * filename, int width, int height);
-void drawUnitSphere();
+void text(const char *text, float x, float y, float z);
 
 #define ESCAPE_KEY 27
 #define SPACE_BAR 32
@@ -158,6 +159,7 @@ int main(int argc, char **argv){
 	orthoFrame[3] = HEIGHT;
 	memset(keyboard,0,256);
 	startTime = time(NULL);
+	frameNum = 0;
 	time_t t;
 	srand((unsigned) time(&t));
 	typicalOpenGLSettings();
@@ -185,8 +187,8 @@ void reshapeWindow(int windowWidth, int windowHeight){
 	HEIGHT = windowHeight;
 	glViewport(0, 0, (GLsizei) WIDTH, (GLsizei) HEIGHT);
 	// this overwrites the user's settings
-	orthoFrame[2] = WIDTH;
-	orthoFrame[3] = HEIGHT;
+	// orthoFrame[2] = WIDTH;
+	// orthoFrame[3] = HEIGHT;
 	rebuildProjection();
 }
 void rebuildProjection(){
@@ -229,7 +231,7 @@ void polarPerspective(float x, float y, float z){
 	glMatrixMode(GL_MODELVIEW);
 }
 void orthoPerspective(float x, float y, float width, float height){
-	// PERSPECTIVE = ORTHO;
+	PERSPECTIVE = ORTHO;
 	orthoFrame[0] = x;
 	orthoFrame[1] = y;
 	orthoFrame[2] = width;
@@ -275,7 +277,11 @@ void display(){
 		glPopMatrix();
 	glPopMatrix();
 
-	orthoPerspective(orthoFrame[0], orthoFrame[1], orthoFrame[2], orthoFrame[3]);
+	// TO ORTHOGRAPHIC
+	glMatrixMode(GL_PROJECTION);
+	glLoadIdentity();
+	glOrtho(0, WIDTH, HEIGHT, 0, -100.0, 100.0);
+	glMatrixMode(GL_MODELVIEW);
 	glPushMatrix();
 		draw2D();
 	glPopMatrix();
@@ -287,6 +293,7 @@ void display(){
 }
 // process input devices if in first person perspective mode
 void updateWorld(){
+	frameNum += 1;
 	// map movement direction to the direction the person is facing
 	float lookAzimuth = lookOrientation[0]/180.0*M_PI;
 	originDX = originDY = originDZ = 0;
@@ -467,17 +474,33 @@ void keyboardSetIdleFunc(){
 			break;
 		}
 	}
-	if(keyDown)
+	if(keyDown){
 		glutIdleFunc(updateWorld);
-	else
+	} else {
 		glutIdleFunc(NULL);
+	}
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////        TINY OPENGL TOOLBOX         //////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////
 
-/////////////////////////        PRIMITIVES         //////////////////////////
+// void text(const char *text, float x, float y, void *font){
+void text(const char *text, float x, float y, float z){
+	// GLUT_BITMAP_8_BY_13
+	// GLUT_BITMAP_9_BY_15
+	// GLUT_BITMAP_TIMES_ROMAN_10
+	// GLUT_BITMAP_TIMES_ROMAN_24
+	// GLUT_BITMAP_HELVETICA_10
+	// GLUT_BITMAP_HELVETICA_12
+	// GLUT_BITMAP_HELVETICA_18
+	const char *c;
+	// glRasterPos2f(x, 24+y);
+	glRasterPos3f(x, y, z);
+	for (c = text; *c != '\0'; c++){
+		glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, *c);
+	}
+} 
 
 GLuint loadTexture(const char * filename, int width, int height){
 	GLuint texture;
@@ -514,78 +537,74 @@ float modulusContext(float complete, int modulus){
 	double fracPart = modf(complete, &wholePart);
 	return ( ((int)wholePart) % modulus ) + fracPart;
 }
-void drawRect(float x, float y, float width, float height){
+void drawRect(float x, float y, float z, float width, float height){
 	glPushMatrix();
-	glScalef(width, height, 1.0);
-	drawUnitSquare(x, y);
+		glScalef(width, height, 1.0);
+		drawUnitSquare(x, y, z);
 	glPopMatrix();
 }
 void drawPoint(float x, float y, float z){
 	static const GLfloat _zero_point_vertex[] = { 0.0f, 0.0f, 0.0f };
 	glPushMatrix();
-	glTranslatef(x, y, z);
-	glEnableClientState(GL_VERTEX_ARRAY);
-	glVertexPointer(3, GL_FLOAT, 0, _zero_point_vertex);
-	glDrawArrays(GL_POINTS, 0, 1);
-	glDisableClientState(GL_VERTEX_ARRAY);
+		glTranslatef(x, y, z);
+		glEnableClientState(GL_VERTEX_ARRAY);
+		glVertexPointer(3, GL_FLOAT, 0, _zero_point_vertex);
+		glDrawArrays(GL_POINTS, 0, 1);
+		glDisableClientState(GL_VERTEX_ARRAY);
 	glPopMatrix();
 }
-// draws a XY 1x1 square in the Z = 0 plane
-void drawUnitSquare(float x, float y){
+void drawUnitSquare(float x, float y, float z){
 	static const GLfloat _unit_square_vertex[] = {
 		0.0f, 1.0f, 0.0f,     1.0f, 1.0f, 0.0f,    0.0f, 0.0f, 0.0f,    1.0f, 0.0f, 0.0f };
 	static const GLfloat _unit_square_normals[] = {
 		0.0f, 0.0f, 1.0f,     0.0f, 0.0f, 1.0f,    0.0f, 0.0f, 1.0f,    0.0f, 0.0f, 1.0f };
 	static const GLfloat _texture_coordinates[] = {0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f };
 	glPushMatrix();
-	glTranslatef(x, y, 0.0);
-	glEnableClientState(GL_VERTEX_ARRAY);
-	glEnableClientState(GL_NORMAL_ARRAY);
-	glEnableClientState(GL_TEXTURE_COORD_ARRAY);  
-	glVertexPointer(3, GL_FLOAT, 0, _unit_square_vertex);
-	glNormalPointer(GL_FLOAT, 0, _unit_square_normals);
-	glTexCoordPointer(2, GL_FLOAT, 0, _texture_coordinates);
-	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-	glDisableClientState(GL_NORMAL_ARRAY);
-	glDisableClientState(GL_VERTEX_ARRAY);
-	glDisableClientState(GL_TEXTURE_COORD_ARRAY);
+		glTranslatef(x, y, z);
+		glEnableClientState(GL_VERTEX_ARRAY);
+		glEnableClientState(GL_NORMAL_ARRAY);
+		glEnableClientState(GL_TEXTURE_COORD_ARRAY);  
+		glVertexPointer(3, GL_FLOAT, 0, _unit_square_vertex);
+		glNormalPointer(GL_FLOAT, 0, _unit_square_normals);
+		glTexCoordPointer(2, GL_FLOAT, 0, _texture_coordinates);
+		glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+		glDisableClientState(GL_NORMAL_ARRAY);
+		glDisableClientState(GL_VERTEX_ARRAY);
+		glDisableClientState(GL_TEXTURE_COORD_ARRAY);
 	glPopMatrix();
 }
-void drawUnitAxis(float x, float y, float z, float scale){
-	static const GLfloat _unit_axis_vertices[] = {
+void draw3DAxesLines(float x, float y, float z, float scale){
+	static const GLfloat _axis_lines_vertices[] = {
 		1.0f, 0.0f, 0.0f,    -1.0f, 0.0f, 0.0f,
 		0.0f, 1.0f, 0.0f,     0.0f, -1.0f, 0.0f,
 		0.0f, 0.0f, 1.0f,     0.0f, 0.0f, -1.0f};
-	static const GLfloat _unit_axis_normals[] = {
-		0.0f, 1.0f, 1.0f,     0.0f, 1.0f, 1.0f,
-		0.0f, 0.0f, 1.0f,     0.0f, 0.0f, 1.0f,
-		1.0f, 0.0f, 0.0f,     1.0f, 0.0f, 0.0f};
 	glPushMatrix();
 	glTranslatef(x, y, z);
 	glScalef(scale, scale, scale);
 	glEnableClientState(GL_VERTEX_ARRAY);
-	glEnableClientState(GL_NORMAL_ARRAY);
-	glVertexPointer(3, GL_FLOAT, 0, _unit_axis_vertices);
-	glNormalPointer(GL_FLOAT, 0, _unit_axis_normals);
+	glVertexPointer(3, GL_FLOAT, 0, _axis_lines_vertices);
 	glDrawArrays(GL_LINES, 0, 6);
-	glDisableClientState(GL_NORMAL_ARRAY);
 	glDisableClientState(GL_VERTEX_ARRAY);
 	glPopMatrix();
 }
-void drawUnitSphere(){
+void drawUnitSphere(float x, float y, float z, float radius){
 	static const GLfloat _unit_sphere_vertices[] = {-0.0,-1.0,-0.0,0.0,-0.866025,0.5,-0.0,-1.0,-0.0,0.270320,-0.866025,0.420627,-0.0,-1.0,-0.0,0.454816,-0.866025,0.207708,-0.0,-1.0,0.0,0.494911,-0.866025,-0.071157,-0.0,-1.0,0.0,0.377875,-0.866025,-0.327430,-0.0,-1.0,0.0,0.140866,-0.866025,-0.479746,0.0,-1.0,0.0,-0.140866,-0.866025,-0.479746,0.0,-1.0,0.0,-0.377875,-0.866025,-0.327430,0.0,-1.0,0.0,-0.494911,-0.866025,-0.071158,0.0,-1.0,-0.0,-0.454816,-0.866025,0.207708,0.0,-1.0,-0.0,-0.270320,-0.866025,0.420627,-0.0,-1.0,-0.0,0.0,-0.866025,0.5,0.0,-0.866025,0.5,0.0,-0.5,0.866025,0.270320,-0.866025,0.420627,0.468209,-0.5,0.728547,0.454816,-0.866025,0.207708,0.787764,-0.5,0.359760,0.494911,-0.866025,-0.071157,0.857211,-0.5,-0.123248,0.377875,-0.866025,-0.327430,0.654498,-0.5,-0.567126,0.140866,-0.866025,-0.479746,0.243988,-0.5,-0.830945,-0.140866,-0.866025,-0.479746,-0.243988,-0.5,-0.830945,-0.377875,-0.866025,-0.327430,-0.654498,-0.5,-0.567126,-0.494911,-0.866025,-0.071158,-0.857211,-0.5,-0.123248,-0.454816,-0.866025,0.207708,-0.787764,-0.5,0.359760,-0.270320,-0.866025,0.420627,-0.468209,-0.5,0.728547,0.0,-0.866025,0.5,0.0,-0.5,0.866025,0.0,-0.5,0.866025,0.0,0.0,1.0,0.468209,-0.5,0.728547,0.540641,0.0,0.841254,0.787764,-0.5,0.359760,0.909632,0.0,0.415415,0.857211,-0.5,-0.123248,0.989821,0.0,-0.142315,0.654498,-0.5,-0.567126,0.755750,0.0,-0.654861,0.243988,-0.5,-0.830945,0.281733,0.0,-0.959493,-0.243988,-0.5,-0.830945,-0.281733,0.0,-0.959493,-0.654498,-0.5,-0.567126,-0.755750,0.0,-0.654861,-0.857211,-0.5,-0.123248,-0.989821,0.0,-0.142315,-0.787764,-0.5,0.359760,-0.909632,0.0,0.415415,-0.468209,-0.5,0.728547,-0.540641,0.0,0.841253,0.0,-0.5,0.866025,0.0,0.0,1.0,0.0,0.0,1.0,0.0,0.5,0.866025,0.540641,0.0,0.841254,0.468209,0.5,0.728547,0.909632,0.0,0.415415,0.787764,0.5,0.359760,0.989821,0.0,-0.142315,0.857211,0.5,-0.123248,0.755750,0.0,-0.654861,0.654498,0.5,-0.567126,0.281733,0.0,-0.959493,0.243988,0.5,-0.830945,-0.281733,0.0,-0.959493,-0.243988,0.5,-0.830945,-0.755750,0.0,-0.654861,-0.654498,0.5,-0.567126,-0.989821,0.0,-0.142315,-0.857211,0.5,-0.123248,-0.909632,0.0,0.415415,-0.787764,0.5,0.359760,-0.540641,0.0,0.841253,-0.468209,0.5,0.728547,0.0,0.0,1.0,0.0,0.5,0.866025,0.0,0.5,0.866025,0.0,0.866025,0.5,0.468209,0.5,0.728547,0.270320,0.866025,0.420627,0.787764,0.5,0.359760,0.454816,0.866025,0.207708,0.857211,0.5,-0.123248,0.494911,0.866025,-0.071157,0.654498,0.5,-0.567126,0.377875,0.866025,-0.327430,0.243988,0.5,-0.830945,0.140866,0.866025,-0.479746,-0.243988,0.5,-0.830945,-0.140866,0.866025,-0.479746,-0.654498,0.5,-0.567126,-0.377875,0.866025,-0.327430,-0.857211,0.5,-0.123248,-0.494911,0.866025,-0.071158,-0.787764,0.5,0.359760,-0.454816,0.866025,0.207708,-0.468209,0.5,0.728547,-0.270320,0.866025,0.420627,0.0,0.5,0.866025,0.0,0.866025,0.5,0.0,0.866025,0.5,-0.0,1.0,-0.0,0.270320,0.866025,0.420627,-0.0,1.0,-0.0,0.454816,0.866025,0.207708,-0.0,1.0,-0.0,0.494911,0.866025,-0.071157,-0.0,1.0,0.0,0.377875,0.866025,-0.327430,-0.0,1.0,0.0,0.140866,0.866025,-0.479746,-0.0,1.0,0.0,-0.140866,0.866025,-0.479746,0.0,1.0,0.0,-0.377875,0.866025,-0.327430,0.0,1.0,0.0,-0.494911,0.866025,-0.071158,0.0,1.0,0.0,-0.454816,0.866025,0.207708,0.0,1.0,-0.0,-0.270320,0.866025,0.420627,0.0,1.0,-0.0,0.0,0.866025,0.5,-0.0,1.0,-0.0,-0.0,1.0,-0.0,-0.0,1.0,-0.0,0.0,0.0};
 	static const GLfloat _unit_sphere_normals[] = {-0.0,-1.0,-0.0,0.0,-0.866025,0.5,-0.0,-1.0,-0.0,0.270320,-0.866025,0.420627,-0.0,-1.0,-0.0,0.454816,-0.866025,0.207708,-0.0,-1.0,0.0,0.494911,-0.866025,-0.071157,-0.0,-1.0,0.0,0.377875,-0.866025,-0.327430,-0.0,-1.0,0.0,0.140866,-0.866025,-0.479746,0.0,-1.0,0.0,-0.140866,-0.866025,-0.479746,0.0,-1.0,0.0,-0.377875,-0.866025,-0.327430,0.0,-1.0,0.0,-0.494911,-0.866025,-0.071158,0.0,-1.0,-0.0,-0.454816,-0.866025,0.207708,0.0,-1.0,-0.0,-0.270320,-0.866025,0.420627,-0.0,-1.0,-0.0,0.0,-0.866025,0.5,0.0,-0.866025,0.5,0.0,-0.5,0.866025,0.270320,-0.866025,0.420627,0.468209,-0.5,0.728547,0.454816,-0.866025,0.207708,0.787764,-0.5,0.359760,0.494911,-0.866025,-0.071157,0.857211,-0.5,-0.123248,0.377875,-0.866025,-0.327430,0.654498,-0.5,-0.567126,0.140866,-0.866025,-0.479746,0.243988,-0.5,-0.830945,-0.140866,-0.866025,-0.479746,-0.243988,-0.5,-0.830945,-0.377875,-0.866025,-0.327430,-0.654498,-0.5,-0.567126,-0.494911,-0.866025,-0.071158,-0.857211,-0.5,-0.123248,-0.454816,-0.866025,0.207708,-0.787764,-0.5,0.359760,-0.270320,-0.866025,0.420627,-0.468209,-0.5,0.728547,0.0,-0.866025,0.5,0.0,-0.5,0.866025,0.0,-0.5,0.866025,0.0,0.0,1.0,0.468209,-0.5,0.728547,0.540641,0.0,0.841254,0.787764,-0.5,0.359760,0.909632,0.0,0.415415,0.857211,-0.5,-0.123248,0.989821,0.0,-0.142315,0.654498,-0.5,-0.567126,0.755750,0.0,-0.654861,0.243988,-0.5,-0.830945,0.281733,0.0,-0.959493,-0.243988,-0.5,-0.830945,-0.281733,0.0,-0.959493,-0.654498,-0.5,-0.567126,-0.755750,0.0,-0.654861,-0.857211,-0.5,-0.123248,-0.989821,0.0,-0.142315,-0.787764,-0.5,0.359760,-0.909632,0.0,0.415415,-0.468209,-0.5,0.728547,-0.540641,0.0,0.841253,0.0,-0.5,0.866025,0.0,0.0,1.0,0.0,0.0,1.0,0.0,0.5,0.866025,0.540641,0.0,0.841254,0.468209,0.5,0.728547,0.909632,0.0,0.415415,0.787764,0.5,0.359760,0.989821,0.0,-0.142315,0.857211,0.5,-0.123248,0.755750,0.0,-0.654861,0.654498,0.5,-0.567126,0.281733,0.0,-0.959493,0.243988,0.5,-0.830945,-0.281733,0.0,-0.959493,-0.243988,0.5,-0.830945,-0.755750,0.0,-0.654861,-0.654498,0.5,-0.567126,-0.989821,0.0,-0.142315,-0.857211,0.5,-0.123248,-0.909632,0.0,0.415415,-0.787764,0.5,0.359760,-0.540641,0.0,0.841253,-0.468209,0.5,0.728547,0.0,0.0,1.0,0.0,0.5,0.866025,0.0,0.5,0.866025,0.0,0.866025,0.5,0.468209,0.5,0.728547,0.270320,0.866025,0.420627,0.787764,0.5,0.359760,0.454816,0.866025,0.207708,0.857211,0.5,-0.123248,0.494911,0.866025,-0.071157,0.654498,0.5,-0.567126,0.377875,0.866025,-0.327430,0.243988,0.5,-0.830945,0.140866,0.866025,-0.479746,-0.243988,0.5,-0.830945,-0.140866,0.866025,-0.479746,-0.654498,0.5,-0.567126,-0.377875,0.866025,-0.327430,-0.857211,0.5,-0.123248,-0.494911,0.866025,-0.071158,-0.787764,0.5,0.359760,-0.454816,0.866025,0.207708,-0.468209,0.5,0.728547,-0.270320,0.866025,0.420627,0.0,0.5,0.866025,0.0,0.866025,0.5,0.0,0.866025,0.5,-0.0,1.0,-0.0,0.270320,0.866025,0.420627,-0.0,1.0,-0.0,0.454816,0.866025,0.207708,-0.0,1.0,-0.0,0.494911,0.866025,-0.071157,-0.0,1.0,0.0,0.377875,0.866025,-0.327430,-0.0,1.0,0.0,0.140866,0.866025,-0.479746,-0.0,1.0,0.0,-0.140866,0.866025,-0.479746,0.0,1.0,0.0,-0.377875,0.866025,-0.327430,0.0,1.0,0.0,-0.494911,0.866025,-0.071158,0.0,1.0,0.0,-0.454816,0.866025,0.207708,0.0,1.0,-0.0,-0.270320,0.866025,0.420627,0.0,1.0,-0.0,0.0,0.866025,0.5,-0.0,1.0,-0.0,-0.0,1.0,-0.0,-0.0,1.0,-0.0,0.0,0.0};
 	static const GLfloat _unit_sphere_texture[] = {1.0,0.0,1.0,0.166667,0.909091,0.0,0.909091,0.166667,0.818182,0.0,0.818182,0.166667,0.727273,0.0,0.727273,0.166667,0.636364,0.0,0.636364,0.166667,0.545455,0.0,0.545455,0.166667,0.454545,0.0,0.454545,0.166667,0.363636,0.0,0.363636,0.166667,0.272727,0.0,0.272727,0.166667,0.181818,0.0,0.181818,0.166667,0.090909,0.0,0.090909,0.166667,0.0,0.0,0.0,0.166667,1.0,0.166667,1.0,0.333333,0.909091,0.166667,0.909091,0.333333,0.818182,0.166667,0.818182,0.333333,0.727273,0.166667,0.727273,0.333333,0.636364,0.166667,0.636364,0.333333,0.545455,0.166667,0.545455,0.333333,0.454545,0.166667,0.454545,0.333333,0.363636,0.166667,0.363636,0.333333,0.272727,0.166667,0.272727,0.333333,0.181818,0.166667,0.181818,0.333333,0.090909,0.166667,0.090909,0.333333,0.0,0.166667,0.0,0.333333,1.0,0.333333,1.0,0.5,0.909091,0.333333,0.909091,0.5,0.818182,0.333333,0.818182,0.5,0.727273,0.333333,0.727273,0.5,0.636364,0.333333,0.636364,0.5,0.545455,0.333333,0.545455,0.5,0.454545,0.333333,0.454545,0.5,0.363636,0.333333,0.363636,0.5,0.272727,0.333333,0.272727,0.5,0.181818,0.333333,0.181818,0.5,0.090909,0.333333,0.090909,0.5,0.0,0.333333,0.0,0.5,1.0,0.5,1.0,0.666667,0.909091,0.5,0.909091,0.666667,0.818182,0.5,0.818182,0.666667,0.727273,0.5,0.727273,0.666667,0.636364,0.5,0.636364,0.666667,0.545455,0.5,0.545455,0.666667,0.454545,0.5,0.454545,0.666667,0.363636,0.5,0.363636,0.666667,0.272727,0.5,0.272727,0.666667,0.181818,0.5,0.181818,0.666667,0.090909,0.5,0.090909,0.666667,0.0,0.5,0.0,0.666667,1.0,0.666667,1.0,0.833333,0.909091,0.666667,0.909091,0.833333,0.818182,0.666667,0.818182,0.833333,0.727273,0.666667,0.727273,0.833333,0.636364,0.666667,0.636364,0.833333,0.545455,0.666667,0.545455,0.833333,0.454545,0.666667,0.454545,0.833333,0.363636,0.666667,0.363636,0.833333,0.272727,0.666667,0.272727,0.833333,0.181818,0.666667,0.181818,0.833333,0.090909,0.666667,0.090909,0.833333,0.0,0.666667,0.0,0.833333,1.0,0.833333,1.0,1.0,0.909091,0.833333,0.909091,1.0,0.818182,0.833333,0.818182,1.0,0.727273,0.833333,0.727273,1.0,0.636364,0.833333,0.636364,1.0,0.545455,0.833333,0.545455,1.0,0.454545,0.833333,0.454545,1.0,0.363636,0.833333,0.363636,1.0,0.272727,0.833333,0.272727,1.0,0.181818,0.833333,0.181818,1.0,0.090909,0.833333,0.090909,1.0,0.0,0.833333,0.0,1.0,0.0,1.0,0.0,1.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0};
-	glEnableClientState(GL_VERTEX_ARRAY);
-	glEnableClientState(GL_NORMAL_ARRAY);
-	glEnableClientState(GL_TEXTURE_COORD_ARRAY);  
-	glVertexPointer(3, GL_FLOAT, 0, _unit_sphere_vertices);
-	glNormalPointer(GL_FLOAT, 0, _unit_sphere_normals);
-	glTexCoordPointer(2, GL_FLOAT, 0, _unit_sphere_texture);
-	glDrawArrays(GL_TRIANGLE_STRIP, 0, 147);
-	glDisableClientState(GL_TEXTURE_COORD_ARRAY);
-	glDisableClientState(GL_NORMAL_ARRAY);
-	glDisableClientState(GL_VERTEX_ARRAY);
+	glPushMatrix();
+		glTranslatef(x, y, z);
+		glScalef(radius, radius, radius);
+		glEnableClientState(GL_VERTEX_ARRAY);
+		glEnableClientState(GL_NORMAL_ARRAY);
+		glEnableClientState(GL_TEXTURE_COORD_ARRAY);  
+		glVertexPointer(3, GL_FLOAT, 0, _unit_sphere_vertices);
+		glNormalPointer(GL_FLOAT, 0, _unit_sphere_normals);
+		glTexCoordPointer(2, GL_FLOAT, 0, _unit_sphere_texture);
+		glDrawArrays(GL_TRIANGLE_STRIP, 0, 147);
+		glDisableClientState(GL_TEXTURE_COORD_ARRAY);
+		glDisableClientState(GL_NORMAL_ARRAY);
+		glDisableClientState(GL_VERTEX_ARRAY);
+	glPopMatrix();
 }
 /////////////////////////        SCENES         //////////////////////////
 
@@ -599,7 +618,7 @@ void drawCheckerboard(float walkX, float walkY, int numSquares){
 				int b = abs(((i+j+XOffset+YOffset)%2));
 				if(b) glColor3f(1.0, 1.0, 1.0);
 				else glColor3f(0.0, 0.0, 0.0);
-				drawUnitSquare(i-XOffset, j-YOffset);
+				drawUnitSquare(i-XOffset, j-YOffset, 0);
 			}
 		}
 	}
@@ -611,7 +630,7 @@ void drawCheckerboard(float walkX, float walkY, int numSquares){
 				int b = abs(((i+j+XOffset+YOffset)%2));
 				if(b) glColor3f(1.0, 1.0, 1.0);
 				else glColor3f(0.0, 0.0, 0.0);
-				drawUnitSquare(i-XOffset - .5, j-YOffset - .5);
+				drawUnitSquare(i-XOffset - .5, j-YOffset - .5, 0);
 			}
 		}
 	}
@@ -630,7 +649,7 @@ void drawAxesGrid(float walkX, float walkY, float walkZ, int span, int repeats){
 				float brightness = 1.0 - distance/(repeats*span);
 				glColor3f(brightness, brightness, brightness);
 				// glLineWidth(100.0/distance/distance);
-				drawUnitAxis(i + XSpanMod - walkX,
+				draw3DAxesLines(i + XSpanMod - walkX,
 				             j + YSpanMod - walkY,
 				             k + ZSpanMod - walkZ, 1.0);
 			}
