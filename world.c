@@ -1,7 +1,7 @@
 #include "world.h"
 
+#include "518stars.c"
 #include "1619stars.c"
-unsigned int NUM_STARS = 1619;
 
 GLuint texture;
 float matrix[16];
@@ -9,9 +9,16 @@ unsigned char showOverlay = 0;
 
 void renderStars(){
 	glPushMatrix();
+	glColor3f(1.0, 1.0, 1.0);
 	glEnableClientState(GL_VERTEX_ARRAY);
-	glVertexPointer(3, GL_FLOAT, 0, _star_vertices);
-	glDrawArrays(GL_POINTS, 0, NUM_STARS);
+	glVertexPointer(3, GL_FLOAT, 0, _star_vertices_518);
+	glDrawArrays(GL_POINTS, 0, 518);
+	glDisableClientState(GL_VERTEX_ARRAY);
+
+	glColor3f(0.5, 0.5, 0.5);
+	glEnableClientState(GL_VERTEX_ARRAY);
+	glVertexPointer(3, GL_FLOAT, 0, _star_vertices_1619);
+	glDrawArrays(GL_POINTS, 0, 1619);
 	glDisableClientState(GL_VERTEX_ARRAY);
 	glPopMatrix();
 }
@@ -32,23 +39,11 @@ void update() {
 	memcpy(matrix, newMatrix, sizeof(float)*16);
 }
 void draw3D() {
+	// glTranslatef(originX, originY, originZ + newOriginZ);		
+	glMultMatrixf(matrix);
 	glPushMatrix();
-		glTranslatef(0, 0, 2);
-		glBindTexture(GL_TEXTURE_2D, texture);
-		drawUnitSquare(-0.5, -0.5);
-		glBindTexture (GL_TEXTURE_2D, 0);
-	glPopMatrix();
-
-	glColor3f(0.5, 0.5, 0.5);
-	glPushMatrix();
-		// glTranslatef(originX, originY, originZ + newOriginZ);		
 		glScalef(10, 10, 10);
-		// glTranslatef(0, 0, -newOriginZ);
-		glMultMatrixf(matrix);
-		glPushMatrix();
-			// glTranslatef(0, 0, newOriginZ);
-			renderStars();
-		glPopMatrix();
+		renderStars();
 	glPopMatrix();
 	glColor3f(1.0, 1.0, 1.0);
 }

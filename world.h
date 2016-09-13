@@ -58,7 +58,7 @@ static int mouseDragY = 0;
 static unsigned char keyboard[256];  // query this at any point for the state of a key (0:up, 1:pressed)
 // GRAPHICS
 static float NEAR_CLIP = 0.1;
-static float FAR_CLIP = 1000.0;
+static float FAR_CLIP = 10000.0;
 static float FOV = 0.1;
 static float originX = 0.0f;
 static float originY = 0.0f;

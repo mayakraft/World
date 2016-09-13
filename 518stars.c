@@ -1,5 +1,6 @@
 // 518 stars
-float _star_vertices[] = {
+// const unsigned int NUM_STARS = 518;
+float _star_vertices_518[] = {
 25.990032, 0.951437, 14.470105,
 8.555331, 0.342427, 14.334859,
 29.950174, 1.230281, -30.767408,
