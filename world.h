@@ -115,6 +115,7 @@ float modulusContext(float complete, int modulus);
 time_t elapsedSeconds();
 
 GLuint loadTexture(const char * filename, int width, int height);
+void drawUnitSphere();
 
 #define ESCAPE_KEY 27
 #define SPACE_BAR 32
