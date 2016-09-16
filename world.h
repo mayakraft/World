@@ -118,6 +118,12 @@ time_t elapsedSeconds();
 GLuint loadTexture(const char * filename, int width, int height);
 void text(const char *text, float x, float y, float z);
 
+void initPrimitives();
+static float _circle_vertices[192];
+float *_unit_sphere_vertices, *_unit_sphere_normals, *_unit_sphere_texture;
+
+void drawUnitCircle(float x, float y, float z);
+
 #define ESCAPE_KEY 27
 #define SPACE_BAR 32
 #define RETURN_KEY 13
@@ -155,11 +161,15 @@ int main(int argc, char **argv){
 	if(CONTINUOUS_REFRESH)
 		glutIdleFunc(updateWorld);
 	// setup this program
+	orthoFrame[0] = -WIDTH*0.5;
+	orthoFrame[1] = -HEIGHT*0.5;
 	orthoFrame[2] = WIDTH;
 	orthoFrame[3] = HEIGHT;
+
 	memset(keyboard,0,256);
 	startTime = time(NULL);
 	frameNum = 0;
+	initPrimitives();
 	time_t t;
 	srand((unsigned) time(&t));
 	typicalOpenGLSettings();
@@ -238,44 +248,41 @@ void orthoPerspective(float x, float y, float width, float height){
 	orthoFrame[3] = height;
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
-	glOrtho(x, width + x, height + y, y, -100.0, 100.0);
+	glOrtho(x, width + x, height + y, y, -FAR_CLIP, FAR_CLIP);
 	glMatrixMode(GL_MODELVIEW);
 }
 void display(){
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	glPushMatrix();
-		// 3D REPEATED STRUCTURE
-		if(GRID){
-			glPushMatrix();
-			float newX = modulusContext(originX, 5);
-			float newY = modulusContext(originY, 5);
-			float newZ = modulusContext(originZ, 5);
-			glTranslatef(newX, newY, newZ);
-			drawAxesGrid(newX, newY, newZ, 5, 4);
-			glPopMatrix();
-		}
-		// 2D REPEATED STRUCTURE
-		if(GROUND){
-			glPushMatrix();
-			float newX = modulusContext(originX, 2);
-			float newY = modulusContext(originY, 2);
-			glTranslatef(newX, newY, originZ);
-			drawCheckerboard(newX, newY, 8);
-			glPopMatrix();
-		}
-		// if(ZOOM_GROUND){
-		// 	static double intpart;
-		// 	float zoom = powf(3,modf(-originY, &intpart));
-		// 	drawZoomboard(zoom);
-		// }
-
 		glPushMatrix();
 			glColor3f(1.0, 1.0, 1.0);
 			// unclear if world should move with
 			// glTranslatef(originX, originY, originZ);
 			draw3D();
 		glPopMatrix();
+		// 3D REPEATED STRUCTURE
+		if(GRID){
+			float newX = modulusContext(-originX, 5);
+			float newY = modulusContext(-originY, 5);
+			float newZ = modulusContext(-originZ, 5);
+			glPushMatrix();
+				glTranslatef(newX, newY, newZ);
+				drawAxesGrid(newX, newY, newZ, 5, 4);
+			glPopMatrix();
+		}
+		// 2D REPEATED STRUCTURE
+		if(GROUND){
+			glPushMatrix();
+			float newX = modulusContext(-originX, 2);
+			float newY = modulusContext(-originY, 2);
+			glTranslatef(newX, newY, -originZ);
+			drawCheckerboard(newX, newY, 8);
+			glPopMatrix();
+		}
 	glPopMatrix();
+			glDisable(GL_BLEND);
 
 	// TO ORTHOGRAPHIC
 	glMatrixMode(GL_PROJECTION);
@@ -327,9 +334,9 @@ void updateWorld(){
 			ZOOM = 0;
 		rebuildProjection();
 	}
-	originX += originDX;
-	originY += originDY;
-	originZ += originDZ;
+	originX -= originDX;
+	originY -= originDY;
+	originZ -= originDZ;
 	update();
 	glutPostRedisplay();
 }
@@ -498,10 +505,9 @@ void text(const char *text, float x, float y, float z){
 	// glRasterPos2f(x, 24+y);
 	glRasterPos3f(x, y, z);
 	for (c = text; *c != '\0'; c++){
-		glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, *c);
+		glutBitmapCharacter(GLUT_BITMAP_8_BY_13, *c);
 	}
 } 
-
 GLuint loadTexture(const char * filename, int width, int height){
 	GLuint texture;
 	unsigned char * data;
@@ -524,7 +530,7 @@ GLuint loadTexture(const char * filename, int width, int height){
 	// glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
 	// glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_NEAREST);
 	// glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 	gluBuild2DMipmaps(GL_TEXTURE_2D, 3, width, height, GL_RGB, GL_UNSIGNED_BYTE, data);
@@ -587,10 +593,64 @@ void draw3DAxesLines(float x, float y, float z, float scale){
 	glDisableClientState(GL_VERTEX_ARRAY);
 	glPopMatrix();
 }
+// GLint _sphere_stacks = 7; 
+// GLint _sphere_slices = 13;
+GLint _sphere_stacks = 20; 
+GLint _sphere_slices = 30;
+void initPrimitives(){
+	static unsigned char _geometry_initialized = 0;
+	if (!_geometry_initialized) {
+		// CIRCLE
+		for(int i = 0; i < 64; i++){
+			_circle_vertices[i*3+0] = -sinf(M_PI*2/64.0f*i);
+			_circle_vertices[i*3+1] = cosf(M_PI*2/64.0f*i);
+			_circle_vertices[i*3+2] = 0.0f;
+		}
+		// SPHERE
+		GLfloat m_Scale = 1;
+		GLfloat *vPtr = _unit_sphere_vertices = (GLfloat*)malloc(sizeof(GLfloat) * 3 * ((_sphere_slices*2+2) * (_sphere_stacks)));
+		GLfloat *nPtr = _unit_sphere_normals = (GLfloat*)malloc(sizeof(GLfloat) * 3 * ((_sphere_slices*2+2) * (_sphere_stacks)));
+		GLfloat *tPtr = _unit_sphere_texture = (GLfloat*)malloc(sizeof(GLfloat) * 2 * ((_sphere_slices*2+2) * (_sphere_stacks)));
+		for(unsigned int phiIdx = 0; phiIdx < _sphere_stacks; phiIdx++){
+			// Latitude
+			//starts at -pi/2 goes to pi/2
+			float phi0 = M_PI * ((float)(phiIdx+0) * (1.0/(float)(_sphere_stacks)) - 0.5);  // the first circle
+			float phi1 = M_PI * ((float)(phiIdx+1) * (1.0/(float)(_sphere_stacks)) - 0.5);  // second one
+			float cosPhi0 = cos(phi0);
+			float sinPhi0 = sin(phi0);
+			float cosPhi1 = cos(phi1);
+			float sinPhi1 = sin(phi1);
+			for(unsigned int thetaIdx = 0; thetaIdx < _sphere_slices; thetaIdx++){
+				//longitude
+				float theta = 2.0*M_PI * ((float)thetaIdx) * (1.0/(float)(_sphere_slices - 1));
+				float cosTheta = cos(theta+M_PI*.5);
+				float sinTheta = sin(theta+M_PI*.5);
+				vPtr[0] = m_Scale*cosPhi0 * cosTheta;
+				vPtr[1] = m_Scale*(cosPhi0 * sinTheta);
+				vPtr[2] = -m_Scale*sinPhi0;
+				vPtr[3] = m_Scale*cosPhi1 * cosTheta;
+				vPtr[4] = m_Scale*(cosPhi1 * sinTheta);
+				vPtr[5] = -m_Scale*sinPhi1;
+				nPtr[0] = cosPhi0 * cosTheta;
+				nPtr[1] = cosPhi0 * sinTheta;
+				nPtr[2] = -sinPhi0;
+				nPtr[3] = cosPhi1 * cosTheta;
+				nPtr[4] = cosPhi1 * sinTheta;
+				nPtr[5] = -sinPhi1;
+				GLfloat texX = (float)thetaIdx * (1.0f/(float)(_sphere_slices-1));
+				tPtr[0] = texX;
+				tPtr[1] = (float)(phiIdx + 0) * (1.0f/(float)(_sphere_stacks));
+				tPtr[2] = texX;
+				tPtr[3] = (float)(phiIdx + 1) * (1.0f/(float)(_sphere_stacks));
+				vPtr += 2*3;
+				nPtr += 2*3;
+				tPtr += 2*2;
+			}
+		}
+		_geometry_initialized = 1;
+	}
+}
 void drawUnitSphere(float x, float y, float z, float radius){
-	static const GLfloat _unit_sphere_vertices[] = {-0.0,-1.0,-0.0,0.0,-0.866025,0.5,-0.0,-1.0,-0.0,0.270320,-0.866025,0.420627,-0.0,-1.0,-0.0,0.454816,-0.866025,0.207708,-0.0,-1.0,0.0,0.494911,-0.866025,-0.071157,-0.0,-1.0,0.0,0.377875,-0.866025,-0.327430,-0.0,-1.0,0.0,0.140866,-0.866025,-0.479746,0.0,-1.0,0.0,-0.140866,-0.866025,-0.479746,0.0,-1.0,0.0,-0.377875,-0.866025,-0.327430,0.0,-1.0,0.0,-0.494911,-0.866025,-0.071158,0.0,-1.0,-0.0,-0.454816,-0.866025,0.207708,0.0,-1.0,-0.0,-0.270320,-0.866025,0.420627,-0.0,-1.0,-0.0,0.0,-0.866025,0.5,0.0,-0.866025,0.5,0.0,-0.5,0.866025,0.270320,-0.866025,0.420627,0.468209,-0.5,0.728547,0.454816,-0.866025,0.207708,0.787764,-0.5,0.359760,0.494911,-0.866025,-0.071157,0.857211,-0.5,-0.123248,0.377875,-0.866025,-0.327430,0.654498,-0.5,-0.567126,0.140866,-0.866025,-0.479746,0.243988,-0.5,-0.830945,-0.140866,-0.866025,-0.479746,-0.243988,-0.5,-0.830945,-0.377875,-0.866025,-0.327430,-0.654498,-0.5,-0.567126,-0.494911,-0.866025,-0.071158,-0.857211,-0.5,-0.123248,-0.454816,-0.866025,0.207708,-0.787764,-0.5,0.359760,-0.270320,-0.866025,0.420627,-0.468209,-0.5,0.728547,0.0,-0.866025,0.5,0.0,-0.5,0.866025,0.0,-0.5,0.866025,0.0,0.0,1.0,0.468209,-0.5,0.728547,0.540641,0.0,0.841254,0.787764,-0.5,0.359760,0.909632,0.0,0.415415,0.857211,-0.5,-0.123248,0.989821,0.0,-0.142315,0.654498,-0.5,-0.567126,0.755750,0.0,-0.654861,0.243988,-0.5,-0.830945,0.281733,0.0,-0.959493,-0.243988,-0.5,-0.830945,-0.281733,0.0,-0.959493,-0.654498,-0.5,-0.567126,-0.755750,0.0,-0.654861,-0.857211,-0.5,-0.123248,-0.989821,0.0,-0.142315,-0.787764,-0.5,0.359760,-0.909632,0.0,0.415415,-0.468209,-0.5,0.728547,-0.540641,0.0,0.841253,0.0,-0.5,0.866025,0.0,0.0,1.0,0.0,0.0,1.0,0.0,0.5,0.866025,0.540641,0.0,0.841254,0.468209,0.5,0.728547,0.909632,0.0,0.415415,0.787764,0.5,0.359760,0.989821,0.0,-0.142315,0.857211,0.5,-0.123248,0.755750,0.0,-0.654861,0.654498,0.5,-0.567126,0.281733,0.0,-0.959493,0.243988,0.5,-0.830945,-0.281733,0.0,-0.959493,-0.243988,0.5,-0.830945,-0.755750,0.0,-0.654861,-0.654498,0.5,-0.567126,-0.989821,0.0,-0.142315,-0.857211,0.5,-0.123248,-0.909632,0.0,0.415415,-0.787764,0.5,0.359760,-0.540641,0.0,0.841253,-0.468209,0.5,0.728547,0.0,0.0,1.0,0.0,0.5,0.866025,0.0,0.5,0.866025,0.0,0.866025,0.5,0.468209,0.5,0.728547,0.270320,0.866025,0.420627,0.787764,0.5,0.359760,0.454816,0.866025,0.207708,0.857211,0.5,-0.123248,0.494911,0.866025,-0.071157,0.654498,0.5,-0.567126,0.377875,0.866025,-0.327430,0.243988,0.5,-0.830945,0.140866,0.866025,-0.479746,-0.243988,0.5,-0.830945,-0.140866,0.866025,-0.479746,-0.654498,0.5,-0.567126,-0.377875,0.866025,-0.327430,-0.857211,0.5,-0.123248,-0.494911,0.866025,-0.071158,-0.787764,0.5,0.359760,-0.454816,0.866025,0.207708,-0.468209,0.5,0.728547,-0.270320,0.866025,0.420627,0.0,0.5,0.866025,0.0,0.866025,0.5,0.0,0.866025,0.5,-0.0,1.0,-0.0,0.270320,0.866025,0.420627,-0.0,1.0,-0.0,0.454816,0.866025,0.207708,-0.0,1.0,-0.0,0.494911,0.866025,-0.071157,-0.0,1.0,0.0,0.377875,0.866025,-0.327430,-0.0,1.0,0.0,0.140866,0.866025,-0.479746,-0.0,1.0,0.0,-0.140866,0.866025,-0.479746,0.0,1.0,0.0,-0.377875,0.866025,-0.327430,0.0,1.0,0.0,-0.494911,0.866025,-0.071158,0.0,1.0,0.0,-0.454816,0.866025,0.207708,0.0,1.0,-0.0,-0.270320,0.866025,0.420627,0.0,1.0,-0.0,0.0,0.866025,0.5,-0.0,1.0,-0.0,-0.0,1.0,-0.0,-0.0,1.0,-0.0,0.0,0.0};
-	static const GLfloat _unit_sphere_normals[] = {-0.0,-1.0,-0.0,0.0,-0.866025,0.5,-0.0,-1.0,-0.0,0.270320,-0.866025,0.420627,-0.0,-1.0,-0.0,0.454816,-0.866025,0.207708,-0.0,-1.0,0.0,0.494911,-0.866025,-0.071157,-0.0,-1.0,0.0,0.377875,-0.866025,-0.327430,-0.0,-1.0,0.0,0.140866,-0.866025,-0.479746,0.0,-1.0,0.0,-0.140866,-0.866025,-0.479746,0.0,-1.0,0.0,-0.377875,-0.866025,-0.327430,0.0,-1.0,0.0,-0.494911,-0.866025,-0.071158,0.0,-1.0,-0.0,-0.454816,-0.866025,0.207708,0.0,-1.0,-0.0,-0.270320,-0.866025,0.420627,-0.0,-1.0,-0.0,0.0,-0.866025,0.5,0.0,-0.866025,0.5,0.0,-0.5,0.866025,0.270320,-0.866025,0.420627,0.468209,-0.5,0.728547,0.454816,-0.866025,0.207708,0.787764,-0.5,0.359760,0.494911,-0.866025,-0.071157,0.857211,-0.5,-0.123248,0.377875,-0.866025,-0.327430,0.654498,-0.5,-0.567126,0.140866,-0.866025,-0.479746,0.243988,-0.5,-0.830945,-0.140866,-0.866025,-0.479746,-0.243988,-0.5,-0.830945,-0.377875,-0.866025,-0.327430,-0.654498,-0.5,-0.567126,-0.494911,-0.866025,-0.071158,-0.857211,-0.5,-0.123248,-0.454816,-0.866025,0.207708,-0.787764,-0.5,0.359760,-0.270320,-0.866025,0.420627,-0.468209,-0.5,0.728547,0.0,-0.866025,0.5,0.0,-0.5,0.866025,0.0,-0.5,0.866025,0.0,0.0,1.0,0.468209,-0.5,0.728547,0.540641,0.0,0.841254,0.787764,-0.5,0.359760,0.909632,0.0,0.415415,0.857211,-0.5,-0.123248,0.989821,0.0,-0.142315,0.654498,-0.5,-0.567126,0.755750,0.0,-0.654861,0.243988,-0.5,-0.830945,0.281733,0.0,-0.959493,-0.243988,-0.5,-0.830945,-0.281733,0.0,-0.959493,-0.654498,-0.5,-0.567126,-0.755750,0.0,-0.654861,-0.857211,-0.5,-0.123248,-0.989821,0.0,-0.142315,-0.787764,-0.5,0.359760,-0.909632,0.0,0.415415,-0.468209,-0.5,0.728547,-0.540641,0.0,0.841253,0.0,-0.5,0.866025,0.0,0.0,1.0,0.0,0.0,1.0,0.0,0.5,0.866025,0.540641,0.0,0.841254,0.468209,0.5,0.728547,0.909632,0.0,0.415415,0.787764,0.5,0.359760,0.989821,0.0,-0.142315,0.857211,0.5,-0.123248,0.755750,0.0,-0.654861,0.654498,0.5,-0.567126,0.281733,0.0,-0.959493,0.243988,0.5,-0.830945,-0.281733,0.0,-0.959493,-0.243988,0.5,-0.830945,-0.755750,0.0,-0.654861,-0.654498,0.5,-0.567126,-0.989821,0.0,-0.142315,-0.857211,0.5,-0.123248,-0.909632,0.0,0.415415,-0.787764,0.5,0.359760,-0.540641,0.0,0.841253,-0.468209,0.5,0.728547,0.0,0.0,1.0,0.0,0.5,0.866025,0.0,0.5,0.866025,0.0,0.866025,0.5,0.468209,0.5,0.728547,0.270320,0.866025,0.420627,0.787764,0.5,0.359760,0.454816,0.866025,0.207708,0.857211,0.5,-0.123248,0.494911,0.866025,-0.071157,0.654498,0.5,-0.567126,0.377875,0.866025,-0.327430,0.243988,0.5,-0.830945,0.140866,0.866025,-0.479746,-0.243988,0.5,-0.830945,-0.140866,0.866025,-0.479746,-0.654498,0.5,-0.567126,-0.377875,0.866025,-0.327430,-0.857211,0.5,-0.123248,-0.494911,0.866025,-0.071158,-0.787764,0.5,0.359760,-0.454816,0.866025,0.207708,-0.468209,0.5,0.728547,-0.270320,0.866025,0.420627,0.0,0.5,0.866025,0.0,0.866025,0.5,0.0,0.866025,0.5,-0.0,1.0,-0.0,0.270320,0.866025,0.420627,-0.0,1.0,-0.0,0.454816,0.866025,0.207708,-0.0,1.0,-0.0,0.494911,0.866025,-0.071157,-0.0,1.0,0.0,0.377875,0.866025,-0.327430,-0.0,1.0,0.0,0.140866,0.866025,-0.479746,-0.0,1.0,0.0,-0.140866,0.866025,-0.479746,0.0,1.0,0.0,-0.377875,0.866025,-0.327430,0.0,1.0,0.0,-0.494911,0.866025,-0.071158,0.0,1.0,0.0,-0.454816,0.866025,0.207708,0.0,1.0,-0.0,-0.270320,0.866025,0.420627,0.0,1.0,-0.0,0.0,0.866025,0.5,-0.0,1.0,-0.0,-0.0,1.0,-0.0,-0.0,1.0,-0.0,0.0,0.0};
-	static const GLfloat _unit_sphere_texture[] = {1.0,0.0,1.0,0.166667,0.909091,0.0,0.909091,0.166667,0.818182,0.0,0.818182,0.166667,0.727273,0.0,0.727273,0.166667,0.636364,0.0,0.636364,0.166667,0.545455,0.0,0.545455,0.166667,0.454545,0.0,0.454545,0.166667,0.363636,0.0,0.363636,0.166667,0.272727,0.0,0.272727,0.166667,0.181818,0.0,0.181818,0.166667,0.090909,0.0,0.090909,0.166667,0.0,0.0,0.0,0.166667,1.0,0.166667,1.0,0.333333,0.909091,0.166667,0.909091,0.333333,0.818182,0.166667,0.818182,0.333333,0.727273,0.166667,0.727273,0.333333,0.636364,0.166667,0.636364,0.333333,0.545455,0.166667,0.545455,0.333333,0.454545,0.166667,0.454545,0.333333,0.363636,0.166667,0.363636,0.333333,0.272727,0.166667,0.272727,0.333333,0.181818,0.166667,0.181818,0.333333,0.090909,0.166667,0.090909,0.333333,0.0,0.166667,0.0,0.333333,1.0,0.333333,1.0,0.5,0.909091,0.333333,0.909091,0.5,0.818182,0.333333,0.818182,0.5,0.727273,0.333333,0.727273,0.5,0.636364,0.333333,0.636364,0.5,0.545455,0.333333,0.545455,0.5,0.454545,0.333333,0.454545,0.5,0.363636,0.333333,0.363636,0.5,0.272727,0.333333,0.272727,0.5,0.181818,0.333333,0.181818,0.5,0.090909,0.333333,0.090909,0.5,0.0,0.333333,0.0,0.5,1.0,0.5,1.0,0.666667,0.909091,0.5,0.909091,0.666667,0.818182,0.5,0.818182,0.666667,0.727273,0.5,0.727273,0.666667,0.636364,0.5,0.636364,0.666667,0.545455,0.5,0.545455,0.666667,0.454545,0.5,0.454545,0.666667,0.363636,0.5,0.363636,0.666667,0.272727,0.5,0.272727,0.666667,0.181818,0.5,0.181818,0.666667,0.090909,0.5,0.090909,0.666667,0.0,0.5,0.0,0.666667,1.0,0.666667,1.0,0.833333,0.909091,0.666667,0.909091,0.833333,0.818182,0.666667,0.818182,0.833333,0.727273,0.666667,0.727273,0.833333,0.636364,0.666667,0.636364,0.833333,0.545455,0.666667,0.545455,0.833333,0.454545,0.666667,0.454545,0.833333,0.363636,0.666667,0.363636,0.833333,0.272727,0.666667,0.272727,0.833333,0.181818,0.666667,0.181818,0.833333,0.090909,0.666667,0.090909,0.833333,0.0,0.666667,0.0,0.833333,1.0,0.833333,1.0,1.0,0.909091,0.833333,0.909091,1.0,0.818182,0.833333,0.818182,1.0,0.727273,0.833333,0.727273,1.0,0.636364,0.833333,0.636364,1.0,0.545455,0.833333,0.545455,1.0,0.454545,0.833333,0.454545,1.0,0.363636,0.833333,0.363636,1.0,0.272727,0.833333,0.272727,1.0,0.181818,0.833333,0.181818,1.0,0.090909,0.833333,0.090909,1.0,0.0,0.833333,0.0,1.0,0.0,1.0,0.0,1.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0};
 	glPushMatrix();
 		glTranslatef(x, y, z);
 		glScalef(radius, radius, radius);
@@ -600,14 +660,23 @@ void drawUnitSphere(float x, float y, float z, float radius){
 		glVertexPointer(3, GL_FLOAT, 0, _unit_sphere_vertices);
 		glNormalPointer(GL_FLOAT, 0, _unit_sphere_normals);
 		glTexCoordPointer(2, GL_FLOAT, 0, _unit_sphere_texture);
-		glDrawArrays(GL_TRIANGLE_STRIP, 0, 147);
+		// glDrawArrays(GL_LINE_LOOP, 0, _sphere_slices * _sphere_stacks * 2 );//(_sphere_slices+1) * 2 * (_sphere_stacks-1)+2  );
+		glDrawArrays(GL_TRIANGLE_STRIP, 0,  _sphere_slices * _sphere_stacks * 2 );// (_sphere_slices+1) * 2 * (_sphere_stacks-1)+2  );
 		glDisableClientState(GL_TEXTURE_COORD_ARRAY);
 		glDisableClientState(GL_NORMAL_ARRAY);
 		glDisableClientState(GL_VERTEX_ARRAY);
 	glPopMatrix();
 }
+void drawUnitCircle(float x, float y, float z){
+	glPushMatrix();
+	glTranslatef(x, y, z);
+	glEnableClientState(GL_VERTEX_ARRAY);
+	glVertexPointer(3, GL_FLOAT, 0, _circle_vertices);
+	glDrawArrays(GL_LINE_LOOP, 0, 64);
+	glDisableClientState(GL_VERTEX_ARRAY);
+	glPopMatrix();
+}
 /////////////////////////        SCENES         //////////////////////////
-
 void drawCheckerboard(float walkX, float walkY, int numSquares){
 	int XOffset = ceil(walkX);
 	int YOffset = ceil(walkY);
@@ -618,6 +687,8 @@ void drawCheckerboard(float walkX, float walkY, int numSquares){
 				int b = abs(((i+j+XOffset+YOffset)%2));
 				if(b) glColor3f(1.0, 1.0, 1.0);
 				else glColor3f(0.0, 0.0, 0.0);
+				// if(b) glMaterialfv(GL_FRONT, GL_DIFFUSE, mat_white);
+				// else glMaterialfv(GL_FRONT, GL_DIFFUSE, mat_black);
 				drawUnitSquare(i-XOffset, j-YOffset, 0);
 			}
 		}
@@ -630,6 +701,8 @@ void drawCheckerboard(float walkX, float walkY, int numSquares){
 				int b = abs(((i+j+XOffset+YOffset)%2));
 				if(b) glColor3f(1.0, 1.0, 1.0);
 				else glColor3f(0.0, 0.0, 0.0);
+				// if(b) glMaterialfv(GL_FRONT, GL_DIFFUSE, mat_white);
+				// else glMaterialfv(GL_FRONT, GL_DIFFUSE, mat_black);
 				drawUnitSquare(i-XOffset - .5, j-YOffset - .5, 0);
 			}
 		}
@@ -647,37 +720,17 @@ void drawAxesGrid(float walkX, float walkY, float walkZ, int span, int repeats){
 				// distance approximation works just fine in this case
 				float distance = fabs(i+XSpanMod-1) + fabs(j+YSpanMod-1) + abs(k);
 				float brightness = 1.0 - distance/(repeats*span);
-				glColor3f(brightness, brightness, brightness);
+				glColor4f(1.0, 1.0, 1.0, brightness);
 				// glLineWidth(100.0/distance/distance);
 				draw3DAxesLines(i + XSpanMod - walkX,
-				             j + YSpanMod - walkY,
-				             k + ZSpanMod - walkZ, 1.0);
+				                j + YSpanMod - walkY,
+				                k + ZSpanMod - walkZ, 1.0);
 			}
 		}
 	}
 }
-void drawZoomboard(float zoom){
-	glPushMatrix();
-	glScalef(zoom, zoom, zoom);
-	for(int a = -5; a < 8; a++){
-		glPushMatrix();
-		// glScalef(1.0/powf(ZOOM_RADIX,a), 1.0/powf(ZOOM_RADIX,a), 1.0/powf(ZOOM_RADIX,a));
-		glScalef(1.0f/ZOOM_RADIX, 1.0f/ZOOM_RADIX, 1.0f/ZOOM_RADIX);
-		drawCheckerboard(0,0,ZOOM_RADIX);
-		glPopMatrix();
-		// for(int i = -1; i <= 1; i++){
-		// 	for(int j = -1; j <= 1; j++){
-		// 		int b = abs(((i+j)%2));
-		// 		if(b) glColor3f(1.0, 1.0, 1.0);
-		// 		else glColor3f(0.0, 0.0, 0.0);
-		// 		if(!(i == 0 && j == 0))
-		// 			drawUnitSquare(i-.5, j-.5, 1.0/powf(3,a), 1.0/powf(3,a));
-		// 	}
-		// }
-	}
-	glPopMatrix();
-}
-
+/////////////////////////        MATH         //////////////////////////
+// MATRICES
 unsigned char mat4Inverse(const float m[16], float inverse[16]){
 	float inv[16], det;
 	int i;
@@ -723,17 +776,22 @@ void mat4x4Mult(const float *a, const float *b, float *c){
 	c[14] = a[12] * b[2] + a[13] * b[6] + a[14] * b[10] + a[15] * b[14]; 
 	c[15] = a[12] * b[3] + a[13] * b[7] + a[14] * b[11] + a[15] * b[15]; 
 }
-// multiply two 3x3 matrices, a and b, store result into c
-void mat3x3Mult(const float* a, const float* b, float* c) {
-	c[0] = a[0] * b[0] + a[1] * b[3] + a[2] * b[6];
-	c[1] = a[0] * b[1] + a[1] * b[4] + a[2] * b[7];
-	c[2] = a[0] * b[2] + a[1] * b[5] + a[2] * b[8];
-	c[3] = a[3] * b[0] + a[4] * b[3] + a[5] * b[6];
-	c[4] = a[3] * b[1] + a[4] * b[4] + a[5] * b[7];
-	c[5] = a[3] * b[2] + a[4] * b[5] + a[5] * b[8];
-	c[6] = a[6] * b[0] + a[7] * b[3] + a[8] * b[6];
-	c[7] = a[6] * b[1] + a[7] * b[4] + a[8] * b[7];
-	c[8] = a[6] * b[2] + a[7] * b[5] + a[8] * b[8];
+void mat4x4MultFast(const float *a, const float *b, float *result){
+	// this is counting on a != b != c   eg: cannot do mat4x4MultFast(a, b, a);
+	result[0] = a[0] * b[0] + a[1] * b[3] + a[2] * b[6];
+	result[1] = a[0] * b[1] + a[1] * b[4] + a[2] * b[7];
+	result[2] = a[0] * b[2] + a[1] * b[5] + a[2] * b[8];
+	result[3] = a[3] * b[0] + a[4] * b[3] + a[5] * b[6];
+	result[4] = a[3] * b[1] + a[4] * b[4] + a[5] * b[7];
+	result[5] = a[3] * b[2] + a[4] * b[5] + a[5] * b[8];
+	result[6] = a[6] * b[0] + a[7] * b[3] + a[8] * b[6];
+	result[7] = a[6] * b[1] + a[7] * b[4] + a[8] * b[7];
+	result[8] = a[6] * b[2] + a[7] * b[5] + a[8] * b[8];
+}
+void mat3x3Mult(const float *a, const float *b, float *result) {
+	float c[16];
+	mat4x4MultFast(a, b, c);
+	memcpy(result, c, sizeof(float)*16);
 }
 void makeMat3XRot(float *m, float angle){
 	m[0] = 1;	m[1] = 0;			m[2] = 0;
@@ -784,5 +842,17 @@ void setMat4Identity(float *m){
 	m[4] = 0; m[5] = 1; m[6] = 0; m[7] = 0;
 	m[8] = 0; m[9] = 0; m[10] = 1; m[11] = 0;
 	m[12] = 0; m[13] = 0; m[14] = 0; m[15] = 1;
+}
+// VECTORS
+void mat4Vec4Mult(const float m[16], const float v[4], float result[4]){
+	result[0] = m[0] * v[0] + m[1] * v[1] + m[2] * v[2] + m[3] * v[3];
+	result[1] = m[4] * v[0] + m[5] * v[1] + m[6] * v[2] + m[7] * v[3];
+	result[2] = m[8] * v[0] + m[9] * v[1] + m[10] * v[2] + m[11] * v[3];
+	result[3] = m[12] * v[0] + m[13] * v[1] + m[14] * v[2] + m[15] * v[3];
+}
+void mat3Vec3Mult(const float m[9], const float v[3], float result[3]){
+	result[0] = m[0] * v[0] + m[1] * v[1] + m[2] * v[2];
+	result[1] = m[3] * v[0] + m[4] * v[1] + m[5] * v[2];
+	result[2] = m[6] * v[0] + m[7] * v[1] + m[8] * v[2];
 }
 #endif /* WORLD_FRAMEWORK */

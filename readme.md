@@ -60,5 +60,7 @@ draw2D(){
 * `+` `-` zoom
 * `,` `.` change field of view
 
+![example](https://67.media.tumblr.com/62fe5fd43d7390d15ff228595090e6dd/tumblr_odgrd3iDGu1vfq168o2_500.gif)
+
 # license
 MIT
