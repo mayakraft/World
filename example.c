@@ -20,7 +20,7 @@ void renderStars(){
 }
 
 void setupLighting(){
-	GLfloat light_position1[] = { 0.0, 0.0, 0.0, 0.0 };
+	GLfloat light_position1[] = { 0.0, 0.0, 10.0, 1.0 };
 	GLfloat white[] = {1.0f, 1.0f, 1.0f, 0.0f};
 	// GLfloat light_position2[] = { 10.0, 10.0, -15.0, 0.0 };
 	GLfloat light_position2[] = { 3.0, 3.0, -3.0, 0.0 };
@@ -33,19 +33,21 @@ void setupLighting(){
 	glLightfv(GL_LIGHT1, GL_DIFFUSE, color);
 	glLightfv(GL_LIGHT1, GL_SPECULAR, color);
 	glLightfv(GL_LIGHT1, GL_POSITION, light_position2);
-	// glLightf(GL_LIGHT0, GL_SPOT_CUTOFF, 40.0);
-	// GLfloat spot_direction[] = { 0.0, 0.0, -1.0 };
-	// glLightfv(GL_LIGHT0, GL_SPOT_DIRECTION, spot_direction);
-	// glLightf(GL_LIGHT0, GL_SPOT_EXPONENT, 10.0);
-	// glLightf(GL_LIGHT0, GL_CONSTANT_ATTENUATION, 1.0);
-	glShadeModel(GL_FLAT);
-	// glShadeModel(GL_SMOOTH);	
+	glLightf(GL_LIGHT0, GL_SPOT_CUTOFF, 40.0);
+	GLfloat spot_direction[] = { 0.0, 0.0, -1.0 };
+	glLightfv(GL_LIGHT0, GL_SPOT_DIRECTION, spot_direction);
+	glLightf(GL_LIGHT0, GL_SPOT_EXPONENT, 40.0);
+	glLightf(GL_LIGHT0, GL_CONSTANT_ATTENUATION, 1.0);
+	// glShadeModel(GL_FLAT);
+	glShadeModel(GL_SMOOTH);
+	glEnable(GL_LIGHTING);
 }
 
 void setup() {
 	texture = loadTexture("example/texture.raw", 32, 32);
 	spectrum = loadTexture("example/spectrum.raw", 128, 64);
 	setMat4Identity(matrix);
+	// setupLighting();
 }
 void update() { 
 	static float ROT_SPEED = 0.001;
@@ -57,6 +59,8 @@ void update() {
 }
 void draw3D() {
 	GLfloat mat_white[] = { 1.0f, 1.0f, 1.0f, 1.0f };
+	glColor3f(1.0, 1.0, 1.0);
+	label3DAxes(10);
 	glPushMatrix();
 		glMultMatrixf(matrix);
 		glScalef(10, 10, 10);
@@ -74,13 +78,6 @@ void draw3D() {
 			drawUVSphereLines();
 		glPopMatrix();
 	glPopMatrix();
-	glColor3f(1.0, 1.0, 1.0);
-	text("(10, 0, 0)", 10, 0, 0);
-	text("(0, 10, 0)", 0, 10, 0);
-	text("(0, 0, 10)", 0, 0, 10);
-	text("(-10, 0, 0)", -10, 0, 0);
-	text("(0, -10, 0)", 0, -10, 0);
-	text("(0, 0, -10)", 0, 0, -10);
 }
 void draw2D() {
 	if(showOverlay){

@@ -721,8 +721,26 @@ void drawUnitCircle(float x, float y, float z){
 	glDisableClientState(GL_VERTEX_ARRAY);
 	glPopMatrix();
 }
-/////////////////////////        SCENES         //////////////////////////
+/////////////////////////        HELPFUL ORIENTATION         //////////////////////////
+void label3DAxes(float scale){
+	int scaleInt = scale;
+	char string[50];
+	sprintf(string, "(%d, 0, 0)", scaleInt);
+	text(string, scale, 0, 0);
+	sprintf(string, "(0, %d, 0)", scaleInt);
+	text(string, 0, scale, 0);
+	sprintf(string, "(0, 0, %d)", scaleInt);
+	text(string, 0, 0, scale);
+	sprintf(string, "(%d, 0, 0)", -scaleInt);
+	text(string, -scale, 0, 0);
+	sprintf(string, "(0, %d, 0)", -scaleInt);
+	text(string, 0, -scale, 0);
+	sprintf(string, "(0, 0, %d)", -scaleInt);
+	text(string, 0, 0, -scale);
+}
 void drawCheckerboard(float walkX, float walkY, int numSquares){
+	static GLfloat mat_white[] = { 1.0, 1.0, 1.0, 1.0 };
+	static GLfloat mat_black[] = { 0.0, 0.0, 0.0, 1.0 };
 	int XOffset = ceil(walkX);
 	int YOffset = ceil(walkY);
 	// if even split
@@ -730,10 +748,8 @@ void drawCheckerboard(float walkX, float walkY, int numSquares){
 		for(int i = -numSquares*.5; i <= numSquares*.5; i++){
 			for(int j = -numSquares*.5; j <= numSquares*.5; j++){
 				int b = abs(((i+j+XOffset+YOffset)%2));
-				if(b) glColor3f(1.0, 1.0, 1.0);
-				else glColor3f(0.0, 0.0, 0.0);
-				// if(b) glMaterialfv(GL_FRONT, GL_DIFFUSE, mat_white);
-				// else glMaterialfv(GL_FRONT, GL_DIFFUSE, mat_black);
+				if(b) { glColor3f(1.0, 1.0, 1.0); glMaterialfv(GL_FRONT, GL_DIFFUSE, mat_white); }
+				else { glColor3f(0.0, 0.0, 0.0); glMaterialfv(GL_FRONT, GL_DIFFUSE, mat_black); }
 				drawUnitSquare(i-XOffset, j-YOffset, 0);
 			}
 		}
@@ -744,10 +760,8 @@ void drawCheckerboard(float walkX, float walkY, int numSquares){
 		for(int i = -numSquares*.5; i <= numSquares*.5; i++){
 			for(int j = -numSquares*.5; j <= numSquares*.5; j++){
 				int b = abs(((i+j+XOffset+YOffset)%2));
-				if(b) glColor3f(1.0, 1.0, 1.0);
-				else glColor3f(0.0, 0.0, 0.0);
-				// if(b) glMaterialfv(GL_FRONT, GL_DIFFUSE, mat_white);
-				// else glMaterialfv(GL_FRONT, GL_DIFFUSE, mat_black);
+				if(b) { glColor3f(1.0, 1.0, 1.0); glMaterialfv(GL_FRONT, GL_DIFFUSE, mat_white); }
+				else { glColor3f(0.0, 0.0, 0.0); glMaterialfv(GL_FRONT, GL_DIFFUSE, mat_black); }
 				drawUnitSquare(i-XOffset - .5, j-YOffset - .5, 0);
 			}
 		}
@@ -765,7 +779,9 @@ void drawAxesGrid(float walkX, float walkY, float walkZ, int span, int repeats){
 				// distance approximation works just fine in this case
 				float distance = fabs(i+XSpanMod-1) + fabs(j+YSpanMod-1) + abs(k);
 				float brightness = 1.0 - distance/(repeats*span);
+				GLfloat material[] = { 1.0, 1.0, 1.0, brightness };
 				glColor4f(1.0, 1.0, 1.0, brightness);
+				glMaterialfv(GL_FRONT, GL_DIFFUSE, material);
 				// glLineWidth(100.0/distance/distance);
 				draw3DAxesLines(i + XSpanMod - walkX,
 				                j + YSpanMod - walkY,
