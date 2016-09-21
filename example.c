@@ -19,43 +19,27 @@ void renderStars(){
 	glPopMatrix();
 }
 
-void renderCelestialLines(){
-	float a1 = 0.33;
-	float a2 = 0.166;
-	glPushMatrix();
-		// equator
-		glColor4f(1.0, 1.0, 1.0, a1);
-			drawUnitCircle(0, 0, 0);
-		// latitude
-		glColor4f(1.0, 1.0, 1.0, a2);
-		for(float pos = 1.0/3; pos < 1.0; pos += 1.0/3){
-			glPushMatrix();
-				float r = cosf(pos*M_PI*0.5);
-				r = sqrt(1 - powf(pos,2));
-				glScalef(r, r, 1.0);
-					drawUnitCircle(0, 0, -pos);
-					drawUnitCircle(0, 0, pos);
-			glPopMatrix();
-		}
-		// longitude
-		glColor4f(1.0, 1.0, 1.0, a1);
-			glRotatef(90, 0, 1, 0);
-			drawUnitCircle(0, 0, 0);
-		glColor4f(1.0, 1.0, 1.0, a2);
-			glRotatef(30, 1, 0, 0);
-			drawUnitCircle(0, 0, 0);
-			glRotatef(30, 1, 0, 0);
-			drawUnitCircle(0, 0, 0);
-		glColor4f(1.0, 1.0, 1.0, a1);
-			glRotatef(30, 1, 0, 0);
-			drawUnitCircle(0, 0, 0);
-		glColor4f(1.0, 1.0, 1.0, a2);
-			glRotatef(30, 1, 0, 0);
-			drawUnitCircle(0, 0, 0);
-			glRotatef(30, 1, 0, 0);
-			drawUnitCircle(0, 0, 0);
-	glPopMatrix();	
-	glColor4f(1.0, 1.0, 1.0, 1.0);
+void setupLighting(){
+	GLfloat light_position1[] = { 0.0, 0.0, 0.0, 0.0 };
+	GLfloat white[] = {1.0f, 1.0f, 1.0f, 0.0f};
+	// GLfloat light_position2[] = { 10.0, 10.0, -15.0, 0.0 };
+	GLfloat light_position2[] = { 3.0, 3.0, -3.0, 0.0 };
+	GLfloat color[] = {0.0f, 0.2f, 1.0f, 0.0f};
+	glEnable(GL_LIGHT0);
+	glLightfv(GL_LIGHT0, GL_DIFFUSE, white);
+	glLightfv(GL_LIGHT0, GL_SPECULAR, white);
+	glLightfv(GL_LIGHT0, GL_POSITION, light_position1);
+	glEnable(GL_LIGHT1);
+	glLightfv(GL_LIGHT1, GL_DIFFUSE, color);
+	glLightfv(GL_LIGHT1, GL_SPECULAR, color);
+	glLightfv(GL_LIGHT1, GL_POSITION, light_position2);
+	// glLightf(GL_LIGHT0, GL_SPOT_CUTOFF, 40.0);
+	// GLfloat spot_direction[] = { 0.0, 0.0, -1.0 };
+	// glLightfv(GL_LIGHT0, GL_SPOT_DIRECTION, spot_direction);
+	// glLightf(GL_LIGHT0, GL_SPOT_EXPONENT, 10.0);
+	// glLightf(GL_LIGHT0, GL_CONSTANT_ATTENUATION, 1.0);
+	glShadeModel(GL_FLAT);
+	// glShadeModel(GL_SMOOTH);	
 }
 
 void setup() {
@@ -87,7 +71,7 @@ void draw3D() {
 		glPopMatrix();
 		glPushMatrix();
 			// glScalef(100, 100, 100);
-			renderCelestialLines();
+			drawUVSphereLines();
 		glPopMatrix();
 	glPopMatrix();
 	glColor3f(1.0, 1.0, 1.0);
@@ -100,8 +84,8 @@ void draw3D() {
 }
 void draw2D() {
 	if(showOverlay){
-		glEnable(GL_BLEND);
 		glBlendFunc(GL_SRC_COLOR, GL_ONE_MINUS_SRC_COLOR);
+		glEnable(GL_BLEND);
 		glPushMatrix();
 			glBindTexture(GL_TEXTURE_2D, texture);
 			glScalef(HEIGHT, HEIGHT, HEIGHT);
@@ -110,7 +94,6 @@ void draw2D() {
 		glPopMatrix();
 		glDisable(GL_BLEND);
 	}
-	glColor3f(1.0, 1.0, 1.0);
 	char locationString[50];
 	sprintf(locationString, "%d, %d, %d", (int)originX, (int)originY, (int)originZ );
 	text(locationString, 4, 18, 0);

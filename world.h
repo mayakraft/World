@@ -111,7 +111,6 @@ void drawUnitSphere(float x, float y, float z, float radius);
 // combinations of shapes
 void drawCheckerboard(float walkX, float walkY, int numSquares);
 void drawAxesGrid(float walkX, float walkY, float walkZ, int span, int repeats);
-void drawZoomboard(float zoom);
 float modulusContext(float complete, int modulus);
 // more
 time_t elapsedSeconds();
@@ -123,6 +122,7 @@ static float _circle_vertices[192];
 float *_unit_sphere_vertices, *_unit_sphere_normals, *_unit_sphere_texture;
 
 void drawUnitCircle(float x, float y, float z);
+void drawUVSphereLines();
 
 #define ESCAPE_KEY 27
 #define SPACE_BAR 32
@@ -253,11 +253,12 @@ void orthoPerspective(float x, float y, float width, float height){
 }
 void display(){
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	glPushMatrix();
 		glPushMatrix();
-			glColor3f(1.0, 1.0, 1.0);
+			glColor4f(1.0, 1.0, 1.0, 1.0);
 			// unclear if world should move with
 			// glTranslatef(originX, originY, originZ);
 			draw3D();
@@ -282,13 +283,15 @@ void display(){
 			glPopMatrix();
 		}
 	glPopMatrix();
-			glDisable(GL_BLEND);
+	
+	glDisable(GL_BLEND);
 
 	// TO ORTHOGRAPHIC
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
 	glOrtho(0, WIDTH, HEIGHT, 0, -100.0, 100.0);
 	glMatrixMode(GL_MODELVIEW);
+	glColor4f(1.0, 1.0, 1.0, 1.0);
 	glPushMatrix();
 		draw2D();
 	glPopMatrix();
@@ -543,12 +546,6 @@ float modulusContext(float complete, int modulus){
 	double fracPart = modf(complete, &wholePart);
 	return ( ((int)wholePart) % modulus ) + fracPart;
 }
-void drawRect(float x, float y, float z, float width, float height){
-	glPushMatrix();
-		glScalef(width, height, 1.0);
-		drawUnitSquare(x, y, z);
-	glPopMatrix();
-}
 void drawPoint(float x, float y, float z){
 	static const GLfloat _zero_point_vertex[] = { 0.0f, 0.0f, 0.0f };
 	glPushMatrix();
@@ -559,24 +556,34 @@ void drawPoint(float x, float y, float z){
 		glDisableClientState(GL_VERTEX_ARRAY);
 	glPopMatrix();
 }
-void drawUnitSquare(float x, float y, float z){
+void drawUnitOriginSquare(){
 	static const GLfloat _unit_square_vertex[] = {
 		0.0f, 1.0f, 0.0f,     1.0f, 1.0f, 0.0f,    0.0f, 0.0f, 0.0f,    1.0f, 0.0f, 0.0f };
 	static const GLfloat _unit_square_normals[] = {
 		0.0f, 0.0f, 1.0f,     0.0f, 0.0f, 1.0f,    0.0f, 0.0f, 1.0f,    0.0f, 0.0f, 1.0f };
 	static const GLfloat _texture_coordinates[] = {0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f };
+	glEnableClientState(GL_VERTEX_ARRAY);
+	glEnableClientState(GL_NORMAL_ARRAY);
+	glEnableClientState(GL_TEXTURE_COORD_ARRAY);  
+	glVertexPointer(3, GL_FLOAT, 0, _unit_square_vertex);
+	glNormalPointer(GL_FLOAT, 0, _unit_square_normals);
+	glTexCoordPointer(2, GL_FLOAT, 0, _texture_coordinates);
+	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+	glDisableClientState(GL_NORMAL_ARRAY);
+	glDisableClientState(GL_VERTEX_ARRAY);
+	glDisableClientState(GL_TEXTURE_COORD_ARRAY);
+}
+void drawRect(float x, float y, float z, float width, float height){
 	glPushMatrix();
 		glTranslatef(x, y, z);
-		glEnableClientState(GL_VERTEX_ARRAY);
-		glEnableClientState(GL_NORMAL_ARRAY);
-		glEnableClientState(GL_TEXTURE_COORD_ARRAY);  
-		glVertexPointer(3, GL_FLOAT, 0, _unit_square_vertex);
-		glNormalPointer(GL_FLOAT, 0, _unit_square_normals);
-		glTexCoordPointer(2, GL_FLOAT, 0, _texture_coordinates);
-		glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-		glDisableClientState(GL_NORMAL_ARRAY);
-		glDisableClientState(GL_VERTEX_ARRAY);
-		glDisableClientState(GL_TEXTURE_COORD_ARRAY);
+		glScalef(width, height, 1.0);
+		drawUnitOriginSquare();
+	glPopMatrix();
+}
+void drawUnitSquare(float x, float y, float z){
+	glPushMatrix();
+		glTranslatef(x, y, z);
+		drawUnitOriginSquare();
 	glPopMatrix();
 }
 void draw3DAxesLines(float x, float y, float z, float scale){
@@ -592,6 +599,44 @@ void draw3DAxesLines(float x, float y, float z, float scale){
 	glDrawArrays(GL_LINES, 0, 6);
 	glDisableClientState(GL_VERTEX_ARRAY);
 	glPopMatrix();
+}
+void drawUVSphereLines(){
+	float a1 = 0.33;
+	float a2 = 0.166;
+	glPushMatrix();
+		// equator
+		glColor4f(1.0, 1.0, 1.0, a1);
+			drawUnitCircle(0, 0, 0);
+		// latitude
+		glColor4f(1.0, 1.0, 1.0, a2);
+		for(float pos = 1.0/3; pos < 1.0; pos += 1.0/3){
+			glPushMatrix();
+				float r = cosf(pos*M_PI*0.5);
+				r = sqrt(1 - powf(pos,2));
+				glScalef(r, r, 1.0);
+					drawUnitCircle(0, 0, -pos);
+					drawUnitCircle(0, 0, pos);
+			glPopMatrix();
+		}
+		// longitude
+		glColor4f(1.0, 1.0, 1.0, a1);
+			glRotatef(90, 0, 1, 0);
+			drawUnitCircle(0, 0, 0);
+		glColor4f(1.0, 1.0, 1.0, a2);
+			glRotatef(30, 1, 0, 0);
+			drawUnitCircle(0, 0, 0);
+			glRotatef(30, 1, 0, 0);
+			drawUnitCircle(0, 0, 0);
+		glColor4f(1.0, 1.0, 1.0, a1);
+			glRotatef(30, 1, 0, 0);
+			drawUnitCircle(0, 0, 0);
+		glColor4f(1.0, 1.0, 1.0, a2);
+			glRotatef(30, 1, 0, 0);
+			drawUnitCircle(0, 0, 0);
+			glRotatef(30, 1, 0, 0);
+			drawUnitCircle(0, 0, 0);
+	glPopMatrix();
+	glColor4f(1.0, 1.0, 1.0, 1.0);
 }
 // GLint _sphere_stacks = 7; 
 // GLint _sphere_slices = 13;
