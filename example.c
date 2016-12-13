@@ -51,6 +51,8 @@ void setup() {
 	spectrum = loadTexture("example/spectrum.raw", 128, 64);
 	setMat4Identity(matrix);
 	// setupLighting();
+	polarPerspective(0, 0, 0);
+	lookOrientation[1] = 78;
 }
 void update() { 
 	static float ROT_SPEED = 0.001;
@@ -59,6 +61,8 @@ void update() {
 	makeMat4XRot(rot1, originY * ROT_SPEED);
 	makeMat4YRot(rot2, originX * ROT_SPEED);
 	mat4x4Mult(rot1, rot2, matrix);
+	if(PERSPECTIVE == POLAR)
+		lookOrientation[0] = frameNum * 0.1;
 }
 void draw3D() {
 	GLfloat mat_white[] = { 1.0f, 1.0f, 1.0f, 1.0f };
@@ -80,13 +84,30 @@ void draw3D() {
 	glPushMatrix();
 		glCullFace(GL_BACK);
 		glEnable(GL_CULL_FACE);
-		float brightness = 1.0;//powf(sinf(frameNum*0.003), 12);
+		float brightness = 1.0;
 		glColor4f(1.0, 1.0, 1.0, brightness);
 		glTranslatef(0, 0, 1);
 		glBindTexture(GL_TEXTURE_2D, spectrum);
 		drawUnitSphere(0, 0, 0, 0.5);
 		glBindTexture (GL_TEXTURE_2D, 0);
 		glDisable(GL_CULL_FACE);
+	glPopMatrix();
+
+	glPushMatrix();
+		glTranslatef(4,4,1);
+		drawPlatonicSolidLines(0);
+	glPopMatrix();
+	glPushMatrix();
+		glTranslatef(-4,4,1);
+		drawPlatonicSolidLines(1);
+	glPopMatrix();
+	glPushMatrix();
+		glTranslatef(-4,-4,1);
+		drawPlatonicSolidLines(3);
+	glPopMatrix();
+	glPushMatrix();
+		glTranslatef(4,-4,1);
+		drawPlatonicSolidLines(4);
 	glPopMatrix();
 }
 void draw2D() {
