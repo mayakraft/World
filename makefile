@@ -21,5 +21,11 @@ endif
 $(EXE): example.c
 	gcc -o $@ $< $(CFLAGS) $(LDFLAGS)
 
+shaders: example_shaders.c
+	gcc -o world_shaders $< $(CFLAGS) $(LDFLAGS)
+
 run:
 	./$(EXE) $(ARGS)
+
+run_shaders:
+	./world_shaders $(ARGS)
