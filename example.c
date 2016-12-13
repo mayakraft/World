@@ -6,14 +6,17 @@ unsigned char showOverlay = 0;
 
 #include "example/518stars.c"
 #include "example/1619stars.c"
+
 void renderStars(){
 	glPushMatrix();
-		glColor3f(1.0, 1.0, 1.0);
 		glEnableClientState(GL_VERTEX_ARRAY);
+		// bright stars
 		glVertexPointer(3, GL_FLOAT, 0, _518_stars);
+		glColor3f(1.0, 1.0, 1.0);
 		glDrawArrays(GL_POINTS, 0, 518);
-		glColor3f(0.5, 0.5, 0.5);
+		// dim stars
 		glVertexPointer(3, GL_FLOAT, 0, _1619_stars);
+		glColor3f(0.5, 0.5, 0.5);
 		glDrawArrays(GL_POINTS, 0, 1619);
 		glDisableClientState(GL_VERTEX_ARRAY);
 	glPopMatrix();
@@ -60,23 +63,30 @@ void update() {
 void draw3D() {
 	GLfloat mat_white[] = { 1.0f, 1.0f, 1.0f, 1.0f };
 	glColor3f(1.0, 1.0, 1.0);
-	label3DAxes(10);
+	if(GRID){
+		label3DAxes(5);
+		glPushMatrix();
+			glScalef(5, 5, 5);
+			drawUVSphereLines();
+		glPopMatrix();
+	}
+
 	glPushMatrix();
 		glMultMatrixf(matrix);
 		glScalef(10, 10, 10);
 		renderStars();
-		glPushMatrix();
-			float brightness = powf(sinf(frameNum*0.003), 12);
-			glColor4f(1.0, 1.0, 1.0, brightness);
-			glScalef(2, 2, 2);
-			glBindTexture(GL_TEXTURE_2D, spectrum);
-			drawUnitSphere(0, 0, 0, 2.0);
-			glBindTexture (GL_TEXTURE_2D, 0);
-		glPopMatrix();
-		glPushMatrix();
-			// glScalef(100, 100, 100);
-			drawUVSphereLines();
-		glPopMatrix();
+	glPopMatrix();
+
+	glPushMatrix();
+		glCullFace(GL_BACK);
+		glEnable(GL_CULL_FACE);
+		float brightness = 1.0;//powf(sinf(frameNum*0.003), 12);
+		glColor4f(1.0, 1.0, 1.0, brightness);
+		glTranslatef(0, 0, 1);
+		glBindTexture(GL_TEXTURE_2D, spectrum);
+		drawUnitSphere(0, 0, 0, 0.5);
+		glBindTexture (GL_TEXTURE_2D, 0);
+		glDisable(GL_CULL_FACE);
 	glPopMatrix();
 }
 void draw2D() {
@@ -91,9 +101,26 @@ void draw2D() {
 		glPopMatrix();
 		glDisable(GL_BLEND);
 	}
-	char locationString[50];
-	sprintf(locationString, "%d, %d, %d", (int)originX, (int)originY, (int)originZ );
-	text(locationString, 4, 18, 0);
+	switch(PERSPECTIVE){
+		case FPP: {
+			char locationString[50];
+			sprintf(locationString, "%d, %d, %d", (int)originX, (int)originY, (int)originZ );
+			text(locationString, 4, 18, 0);
+		}
+		break;
+		case POLAR:{
+			char orientationString[50];
+			sprintf(orientationString, "%d, %d, %d", (int)lookOrientation[0], (int)lookOrientation[1], (int)lookOrientation[2] );
+			text(orientationString, 4, 18, 0);
+		}
+		break;
+		case ORTHO:{
+			char frameString[50];
+			sprintf(frameString, "%d, %d, %d, %d", (int)orthoFrame[0], (int)orthoFrame[1], (int)orthoFrame[2], (int)orthoFrame[3] );
+			text(frameString, 4, 18, 0);
+		}
+		break;
+	}
 }
 void keyDown(unsigned int key) { 
 	if(key == ' '){

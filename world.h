@@ -44,7 +44,7 @@ void mouseMoved(int x, int y);
 // CUSTOMIZE SETTINGS
 #define CONTINUOUS_REFRESH 1  // (0) = maximum efficiency, screen can redraw only upon receiving input
 static float MOUSE_SENSITIVITY = 0.333f;
-static float WALK_INTERVAL = 0.1f;  // WALKING SPEED. @ 60 updates/second, walk speed = 6 units/second
+static float WALK_INTERVAL = 0.077f;  // WALKING SPEED. @ 60 UPS (updates/sec), walk speed (units/sec) = INTERVAL * UPS
 static float ZOOM_SPEED = 0.4f;
 // WINDOW size upon boot
 static int WIDTH = 800;  // (readonly) set these values here
@@ -66,7 +66,7 @@ static float originZ = 0.0f;
 static float originDX = 0.0f;
 static float originDY = 0.0f;
 static float originDZ = 0.0f;
-static float ZOOM = 15.0f;  // POLAR PERSPECTIVE    // zoom scale, converted to logarithmic
+static float ZOOM = 7.0f;  // POLAR PERSPECTIVE    // zoom scale, converted to logarithmic
 static float ZOOM_RADIX = 3;
 static unsigned char GROUND = 1;  // a 2D grid
 static unsigned char GRID = 1;    // a 3D grid
@@ -94,6 +94,7 @@ void orthoPerspective(float x, float y, float width, float height);
 void display();
 void updateWorld();  // process input devices
 // INPUT DEVICES
+void moveOriginWithArrowKeys();
 void mouseButtons(int button, int state, int x, int y);  // when mouse button state changes
 void mouseMotion(int x, int y);   // when mouse is dragging screen
 void mousePassiveMotion(int x, int y);  // when mouse is moving but not pressed
@@ -173,6 +174,7 @@ int main(int argc, char **argv){
 	time_t t;
 	srand((unsigned) time(&t));
 	typicalOpenGLSettings();
+	updateWorld();  // update must be called before draw, incl first draw call
 	glutPostRedisplay();
 	setup();  // user defined function
 	// begin main loop
@@ -279,7 +281,7 @@ void display(){
 			float newX = modulusContext(-originX, 2);
 			float newY = modulusContext(-originY, 2);
 			glTranslatef(newX, newY, -originZ);
-			drawCheckerboard(newX, newY, 8);
+			drawCheckerboard(newX, newY, 6);
 			glPopMatrix();
 		}
 	glPopMatrix();
@@ -301,9 +303,28 @@ void display(){
 	glutSwapBuffers();
 	// glFlush();
 }
-// process input devices if in first person perspective mode
 void updateWorld(){
 	frameNum += 1;
+	// keyboard input
+	moveOriginWithArrowKeys();
+	if(keyboard[MINUS_KEY]){
+		ZOOM += ZOOM_SPEED;
+		rebuildProjection();
+	}
+	if(keyboard[PLUS_KEY]){
+		ZOOM -= ZOOM_SPEED;
+		if(ZOOM < 0)
+			ZOOM = 0;
+		rebuildProjection();
+	}
+	update();
+	glutPostRedisplay();
+}
+///////////////////////////////////////
+//////////       INPUT       //////////
+///////////////////////////////////////
+void moveOriginWithArrowKeys(){
+	// process input devices if in first person perspective mode
 	// map movement direction to the direction the person is facing
 	float lookAzimuth = lookOrientation[0]/180.0*M_PI;
 	originDX = originDY = originDZ = 0;
@@ -327,25 +348,10 @@ void updateWorld(){
 		originDZ -= WALK_INTERVAL;
 	if(keyboard['Z'] || keyboard['z'])
 		originDZ += WALK_INTERVAL;
-	if(keyboard[MINUS_KEY]){
-		ZOOM += ZOOM_SPEED;
-		rebuildProjection();
-	}
-	if(keyboard[PLUS_KEY]){
-		ZOOM -= ZOOM_SPEED;
-		if(ZOOM < 0)
-			ZOOM = 0;
-		rebuildProjection();
-	}
 	originX -= originDX;
 	originY -= originDY;
-	originZ -= originDZ;
-	update();
-	glutPostRedisplay();
+	originZ -= originDZ;	
 }
-///////////////////////////////////////
-//////////       INPUT       //////////
-///////////////////////////////////////
 static int mouseDragStartX, mouseDragStartY;
 void mouseUpdatePerspective(int dx, int dy){
 	switch(PERSPECTIVE){
@@ -540,11 +546,6 @@ GLuint loadTexture(const char * filename, int width, int height){
 	free(data);
 	glBindTexture(GL_TEXTURE_2D, 0);
 	return texture;
-}
-float modulusContext(float complete, int modulus){
-	double wholePart;
-	double fracPart = modf(complete, &wholePart);
-	return ( ((int)wholePart) % modulus ) + fracPart;
 }
 void drawPoint(float x, float y, float z){
 	GLfloat _point_vertex[] = { x, y, z };
@@ -747,27 +748,15 @@ void drawCheckerboard(float walkX, float walkY, int numSquares){
 	static GLfloat mat_black[] = { 0.0, 0.0, 0.0, 1.0 };
 	int XOffset = ceil(walkX);
 	int YOffset = ceil(walkY);
-	// if even split
-	if(numSquares%2 == 0){
-		for(int i = -numSquares*.5; i <= numSquares*.5; i++){
-			for(int j = -numSquares*.5; j <= numSquares*.5; j++){
-				int b = abs(((i+j+XOffset+YOffset)%2));
-				if(b) { glColor3f(1.0, 1.0, 1.0); glMaterialfv(GL_FRONT, GL_DIFFUSE, mat_white); }
-				else { glColor3f(0.0, 0.0, 0.0); glMaterialfv(GL_FRONT, GL_DIFFUSE, mat_black); }
-				drawUnitSquare(i-XOffset, j-YOffset, 0);
-			}
-		}
-	}
-// if odd number
-	else{
+	int evenOdd = (numSquares%2);
+	if(evenOdd) 
 		numSquares--;
-		for(int i = -numSquares*.5; i <= numSquares*.5; i++){
-			for(int j = -numSquares*.5; j <= numSquares*.5; j++){
-				int b = abs(((i+j+XOffset+YOffset)%2));
-				if(b) { glColor3f(1.0, 1.0, 1.0); glMaterialfv(GL_FRONT, GL_DIFFUSE, mat_white); }
-				else { glColor3f(0.0, 0.0, 0.0); glMaterialfv(GL_FRONT, GL_DIFFUSE, mat_black); }
-				drawUnitSquare(i-XOffset - .5, j-YOffset - .5, 0);
-			}
+	for(int i = -numSquares*.5; i <= numSquares*.5; i++){
+		for(int j = -numSquares*.5; j <= numSquares*.5; j++){
+			int b = abs(((i+j+XOffset+YOffset)%2));
+			if(b) { glColor3f(1.0, 1.0, 1.0); glMaterialfv(GL_FRONT, GL_DIFFUSE, mat_white); }
+			else { glColor3f(0.0, 0.0, 0.0); glMaterialfv(GL_FRONT, GL_DIFFUSE, mat_black); }
+			drawUnitSquare(i-XOffset - evenOdd, j-YOffset - evenOdd, 0);
 		}
 	}
 }
@@ -795,6 +784,12 @@ void drawAxesGrid(float walkX, float walkY, float walkZ, int span, int repeats){
 	}
 }
 /////////////////////////        MATH         //////////////////////////
+// ALGEBRA
+float modulusContext(float complete, int modulus){
+	double wholePart;
+	double fracPart = modf(complete, &wholePart);
+	return ( ((int)wholePart) % modulus ) + fracPart;
+}
 // MATRICES
 unsigned char mat4Inverse(const float m[16], float inverse[16]){
 	float inv[16], det;
