@@ -41,14 +41,14 @@ void setupLighting(){
 	glLightfv(GL_LIGHT0, GL_SPOT_DIRECTION, spot_direction);
 	glLightf(GL_LIGHT0, GL_SPOT_EXPONENT, 40.0);
 	glLightf(GL_LIGHT0, GL_CONSTANT_ATTENUATION, 1.0);
-	// glShadeModel(GL_FLAT);
-	glShadeModel(GL_SMOOTH);
 	glEnable(GL_LIGHTING);
 }
 
 void setup() {
+	// glShadeModel(GL_FLAT);
+	glShadeModel(GL_SMOOTH);
 	texture = loadTexture("example/texture.raw", 32, 32);
-	spectrum = loadTexture("example/spectrum.raw", 128, 64);
+	spectrum = loadTextureSmooth("example/spectrum.raw", 128, 64);
 	setMat4Identity(matrix);
 	// setupLighting();
 	polarPerspective(0, 0, 0);
@@ -88,6 +88,7 @@ void draw3D() {
 		glColor4f(1.0, 1.0, 1.0, brightness);
 		glTranslatef(0, 0, 1);
 		glBindTexture(GL_TEXTURE_2D, spectrum);
+		glScalef(-1.0, 1.0, -1.0);
 		drawSphere(0, 0, 0, 0.5);
 		glBindTexture (GL_TEXTURE_2D, 0);
 		glDisable(GL_CULL_FACE);

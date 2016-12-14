@@ -693,7 +693,7 @@ const unsigned short _dodecahedron_lines[60] = {19,18,18,17,17,14,14,10,10,19,14
 const unsigned short _dodecahedron_triangle_faces[108] = {5,2,1,15,0,5,2,5,0,9,2,13,2,0,13,3,2,9,10,17,19,18,19,17,14,17,10,19,1,4,6,9,8,1,18,5,11,14,8,18,1,19,8,9,11,10,8,14,8,10,6,6,7,9,9,7,3,13,12,9,12,11,9,18,15,5,17,15,18,15,17,16,11,12,14,14,12,17,17,12,16,12,13,16,13,0,16,0,15,16,7,2,3,2,7,1,1,7,4,4,7,19,19,7,10,6,10,7};
 const unsigned int _platonic_num_vertices[6] = {4,6,8,12,20,4};
 const unsigned int _platonic_num_lines[6] = {6,12,12,30,30,6};
-const unsigned int _platonic_num_faces[6] = {4,8,6,20,12,4};
+const unsigned int _platonic_num_faces[6] = {4,8,12,20,36,4};//{4,8,6,20,12,4};
 const float* _platonic_point_arrays[6] = {_tetrahedron_points,_octahedron_points,_hexahedron_points,_icosahedron_points,_dodecahedron_points,_tetrahedron_dual_points};
 const unsigned short* _platonic_line_array[6] = {_tetrahedron_lines,_octahedron_lines,_hexahedron_lines,_icosahedron_lines,_dodecahedron_lines,_tetrahedron_dual_lines};
 const unsigned short* _platonic_face_array[6] = {_tetrahedron_faces,_octahedron_faces,_hexahedron_triangle_faces,_icosahedron_faces,_dodecahedron_triangle_faces,_tetrahedron_dual_faces};
@@ -725,13 +725,11 @@ void drawPlatonicSolidPoints(char solidType){
 	glDisableClientState(GL_NORMAL_ARRAY);
 	glDisableClientState(GL_VERTEX_ARRAY);
 }
-GLuint loadTexture(const char * filename, int width, int height){
-	GLuint texture;
-	unsigned char * data;
+unsigned char * getTextureData(const char * filename, int width, int height){
 	FILE * file;
 	file = fopen(filename, "rb");
 	if (file == NULL) return 0;
-	data = (unsigned char *)malloc(width * height * 3);
+	unsigned char *data = (unsigned char *)malloc(width * height * 3);
 	fread(data, width * height * 3, 1, file);
 	fclose(file);
 	for(int i = 0; i < width * height; i++){
@@ -742,12 +740,33 @@ GLuint loadTexture(const char * filename, int width, int height){
 		data[index] = R;
 		data[index+2] = B;
 	}
+	return data;
+}
+GLuint loadTexture(const char * filename, int width, int height){
+	GLuint texture;
+	unsigned char *data = getTextureData(filename, width, height);
 	glGenTextures(1, &texture);
 	glBindTexture(GL_TEXTURE_2D, texture);
 	// glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
 	// glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_NEAREST);
 	// glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	gluBuild2DMipmaps(GL_TEXTURE_2D, 3, width, height, GL_RGB, GL_UNSIGNED_BYTE, data);
+	free(data);
+	glBindTexture(GL_TEXTURE_2D, 0);
+	return texture;
+}
+GLuint loadTextureSmooth(const char * filename, int width, int height){
+	GLuint texture;
+	unsigned char * data = getTextureData(filename, width, height);
+	glGenTextures(1, &texture);
+	glBindTexture(GL_TEXTURE_2D, texture);
+	glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
+	// glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_NEAREST);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	// glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 	gluBuild2DMipmaps(GL_TEXTURE_2D, 3, width, height, GL_RGB, GL_UNSIGNED_BYTE, data);
