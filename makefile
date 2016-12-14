@@ -18,14 +18,16 @@ ifeq ($(OSTYPE),darwin)
 	LDFLAGS = -framework Carbon -framework OpenGL -framework GLUT  -Wno-deprecated
 endif
 
-$(EXE): example.c
-	gcc -o $@ $< $(CFLAGS) $(LDFLAGS)
+$(EXE): example_simple.c
+	@mkdir -p bin
+	gcc -o bin/$@ $< $(CFLAGS) $(LDFLAGS)
 
 shaders: example_shaders.c
-	gcc -o world_shaders $< $(CFLAGS) $(LDFLAGS)
+	@mkdir -p bin
+	gcc -o bin/world_shaders $< $(CFLAGS) $(LDFLAGS)
 
 run:
-	./$(EXE) $(ARGS)
+	./bin/$(EXE) $(ARGS)
 
 run_shaders:
-	./world_shaders $(ARGS)
+	./bin/world_shaders $(ARGS)

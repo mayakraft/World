@@ -88,7 +88,7 @@ void draw3D() {
 		glColor4f(1.0, 1.0, 1.0, brightness);
 		glTranslatef(0, 0, 1);
 		glBindTexture(GL_TEXTURE_2D, spectrum);
-		drawUnitSphere(0, 0, 0, 0.5);
+		drawSphere(0, 0, 0, 0.5);
 		glBindTexture (GL_TEXTURE_2D, 0);
 		glDisable(GL_CULL_FACE);
 	glPopMatrix();

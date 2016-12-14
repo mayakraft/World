@@ -103,12 +103,24 @@ void keyboardUp(unsigned char key,int x,int y);
 void specialDown(int key, int x, int y);
 void specialUp(int key, int x, int y);
 void keyboardSetIdleFunc();
-// WORLD SHAPES
-// all 2D shapes are in the X Y plane, normal along the Z
+// TINY OPENGL TOOLBOX: all 2D shapes are in the X Y plane, normal along the Z
+void text(const char *text, float x, float y, float z);
+void drawPoint(float x, float y, float z);
+void drawLine(float x1, float y1, float z1, float x2, float y2, float z2);
+void drawUnitOriginSquare();
 void drawRect(float x, float y, float z, float width, float height);
 void drawUnitSquare(float x, float y, float z);
+void drawUnitOriginSphere();
+void drawUnitSphere(float x, float y, float z);
+void drawSphere(float x, float y, float z, float radius);
+void drawUnitOriginCircle();
+void drawUnitCircle(float x, float y, float z);
+void drawCircle(float x, float y, float z, float radius);
 void draw3DAxesLines(float x, float y, float z, float scale);
-void drawUnitSphere(float x, float y, float z, float radius);
+void drawUVSphereLines();
+void drawPlatonicSolidFaces(char solidType);
+void drawPlatonicSolidLines(char solidType);
+void drawPlatonicSolidPoints(char solidType);
 // combinations of shapes
 void drawCheckerboard(float walkX, float walkY, int numSquares);
 void drawAxesGrid(float walkX, float walkY, float walkZ, int span, int repeats);
@@ -117,13 +129,14 @@ float modulusContext(float complete, int modulus);
 time_t elapsedSeconds();
 GLuint loadTexture(const char * filename, int width, int height);
 void text(const char *text, float x, float y, float z);
-
+// preload for geometry primitives
 void initPrimitives();
-static float _circle_vertices[192];
+GLint _sphere_stacks = 20; //7;
+GLint _sphere_slices = 30; //13;
+static float _unit_circle_vertices[192];
+static float _unit_circle_normals[192];
+static float _unit_circle_texCoord[192];
 float *_unit_sphere_vertices, *_unit_sphere_normals, *_unit_sphere_texture;
-
-void drawUnitCircle(float x, float y, float z);
-void drawUVSphereLines();
 
 #define ESCAPE_KEY 27
 #define SPACE_BAR 32
@@ -498,7 +511,6 @@ void keyboardSetIdleFunc(){
 		glutIdleFunc(NULL);
 	}
 }
-
 ///////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////        TINY OPENGL TOOLBOX         //////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////
@@ -519,36 +531,6 @@ void text(const char *text, float x, float y, float z){
 		glutBitmapCharacter(GLUT_BITMAP_8_BY_13, *c);
 	}
 } 
-GLuint loadTexture(const char * filename, int width, int height){
-	GLuint texture;
-	unsigned char * data;
-	FILE * file;
-	file = fopen(filename, "rb");
-	if (file == NULL) return 0;
-	data = (unsigned char *)malloc(width * height * 3);
-	fread(data, width * height * 3, 1, file);
-	fclose(file);
-	for(int i = 0; i < width * height; i++){
-		int index = i*3;
-		unsigned char B,R;
-		B = data[index];
-		R = data[index+2];
-		data[index] = R;
-		data[index+2] = B;
-	}
-	glGenTextures(1, &texture);
-	glBindTexture(GL_TEXTURE_2D, texture);
-	// glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
-	// glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_NEAREST);
-	// glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-	gluBuild2DMipmaps(GL_TEXTURE_2D, 3, width, height, GL_RGB, GL_UNSIGNED_BYTE, data);
-	free(data);
-	glBindTexture(GL_TEXTURE_2D, 0);
-	return texture;
-}
 void drawPoint(float x, float y, float z){
 	GLfloat _point_vertex[] = { x, y, z };
 	glEnableClientState(GL_VERTEX_ARRAY);
@@ -591,6 +573,51 @@ void drawUnitSquare(float x, float y, float z){
 	glPushMatrix();
 		glTranslatef(x, y, z);
 		drawUnitOriginSquare();
+	glPopMatrix();
+}
+void drawUnitOriginSphere(){
+	glEnableClientState(GL_VERTEX_ARRAY);
+	glEnableClientState(GL_NORMAL_ARRAY);
+	glEnableClientState(GL_TEXTURE_COORD_ARRAY);  
+	glVertexPointer(3, GL_FLOAT, 0, _unit_sphere_vertices);
+	glNormalPointer(GL_FLOAT, 0, _unit_sphere_normals);
+	glTexCoordPointer(2, GL_FLOAT, 0, _unit_sphere_texture);
+	// glDrawArrays(GL_LINE_LOOP, 0, _sphere_slices * _sphere_stacks * 2 );//(_sphere_slices+1) * 2 * (_sphere_stacks-1)+2  );
+	glDrawArrays(GL_TRIANGLE_STRIP, 0,  _sphere_slices * _sphere_stacks * 2 );// (_sphere_slices+1) * 2 * (_sphere_stacks-1)+2  );
+	glDisableClientState(GL_TEXTURE_COORD_ARRAY);
+	glDisableClientState(GL_NORMAL_ARRAY);
+	glDisableClientState(GL_VERTEX_ARRAY);
+}
+void drawUnitSphere(float x, float y, float z){
+	glPushMatrix();
+		glTranslatef(x, y, z);
+		drawUnitOriginSphere();
+	glPopMatrix();
+}
+void drawSphere(float x, float y, float z, float radius){
+	glPushMatrix();
+		glTranslatef(x, y, z);
+		glScalef(radius, radius, radius);
+		drawUnitOriginSphere();
+	glPopMatrix();
+}
+void drawUnitOriginCircle(){
+	glEnableClientState(GL_VERTEX_ARRAY);
+	glVertexPointer(3, GL_FLOAT, 0, _unit_circle_vertices);
+	glDrawArrays(GL_LINE_LOOP, 0, 64);
+	glDisableClientState(GL_VERTEX_ARRAY);	
+}
+void drawUnitCircle(float x, float y, float z){
+	glPushMatrix();
+		glTranslatef(x, y, z);
+		drawUnitOriginCircle();
+	glPopMatrix();
+}
+void drawCircle(float x, float y, float z, float radius){
+	glPushMatrix();
+		glTranslatef(x, y, z);
+		glScalef(radius, radius, 1.0);
+		drawUnitOriginCircle();
 	glPopMatrix();
 }
 void draw3DAxesLines(float x, float y, float z, float scale){
@@ -645,89 +672,6 @@ void drawUVSphereLines(){
 	glPopMatrix();
 	glColor4f(1.0, 1.0, 1.0, 1.0);
 }
-// GLint _sphere_stacks = 7; 
-// GLint _sphere_slices = 13;
-GLint _sphere_stacks = 20; 
-GLint _sphere_slices = 30;
-void initPrimitives(){
-	static unsigned char _geometry_initialized = 0;
-	if (!_geometry_initialized) {
-		// CIRCLE
-		for(int i = 0; i < 64; i++){
-			_circle_vertices[i*3+0] = -sinf(M_PI*2/64.0f*i);
-			_circle_vertices[i*3+1] = cosf(M_PI*2/64.0f*i);
-			_circle_vertices[i*3+2] = 0.0f;
-		}
-		// SPHERE
-		GLfloat m_Scale = 1;
-		GLfloat *vPtr = _unit_sphere_vertices = (GLfloat*)malloc(sizeof(GLfloat) * 3 * ((_sphere_slices*2+2) * (_sphere_stacks)));
-		GLfloat *nPtr = _unit_sphere_normals = (GLfloat*)malloc(sizeof(GLfloat) * 3 * ((_sphere_slices*2+2) * (_sphere_stacks)));
-		GLfloat *tPtr = _unit_sphere_texture = (GLfloat*)malloc(sizeof(GLfloat) * 2 * ((_sphere_slices*2+2) * (_sphere_stacks)));
-		for(unsigned int phiIdx = 0; phiIdx < _sphere_stacks; phiIdx++){
-			// Latitude
-			//starts at -pi/2 goes to pi/2
-			float phi0 = M_PI * ((float)(phiIdx+0) * (1.0/(float)(_sphere_stacks)) - 0.5);  // the first circle
-			float phi1 = M_PI * ((float)(phiIdx+1) * (1.0/(float)(_sphere_stacks)) - 0.5);  // second one
-			float cosPhi0 = cos(phi0);
-			float sinPhi0 = sin(phi0);
-			float cosPhi1 = cos(phi1);
-			float sinPhi1 = sin(phi1);
-			for(unsigned int thetaIdx = 0; thetaIdx < _sphere_slices; thetaIdx++){
-				//longitude
-				float theta = 2.0*M_PI * ((float)thetaIdx) * (1.0/(float)(_sphere_slices - 1));
-				float cosTheta = cos(theta+M_PI*.5);
-				float sinTheta = sin(theta+M_PI*.5);
-				vPtr[0] = m_Scale*cosPhi0 * cosTheta;
-				vPtr[1] = m_Scale*(cosPhi0 * sinTheta);
-				vPtr[2] = -m_Scale*sinPhi0;
-				vPtr[3] = m_Scale*cosPhi1 * cosTheta;
-				vPtr[4] = m_Scale*(cosPhi1 * sinTheta);
-				vPtr[5] = -m_Scale*sinPhi1;
-				nPtr[0] = cosPhi0 * cosTheta;
-				nPtr[1] = cosPhi0 * sinTheta;
-				nPtr[2] = -sinPhi0;
-				nPtr[3] = cosPhi1 * cosTheta;
-				nPtr[4] = cosPhi1 * sinTheta;
-				nPtr[5] = -sinPhi1;
-				GLfloat texX = (float)thetaIdx * (1.0f/(float)(_sphere_slices-1));
-				tPtr[0] = texX;
-				tPtr[1] = (float)(phiIdx + 0) * (1.0f/(float)(_sphere_stacks));
-				tPtr[2] = texX;
-				tPtr[3] = (float)(phiIdx + 1) * (1.0f/(float)(_sphere_stacks));
-				vPtr += 2*3;
-				nPtr += 2*3;
-				tPtr += 2*2;
-			}
-		}
-		_geometry_initialized = 1;
-	}
-}
-void drawUnitSphere(float x, float y, float z, float radius){
-	glPushMatrix();
-		glTranslatef(x, y, z);
-		glScalef(radius, radius, radius);
-		glEnableClientState(GL_VERTEX_ARRAY);
-		glEnableClientState(GL_NORMAL_ARRAY);
-		glEnableClientState(GL_TEXTURE_COORD_ARRAY);  
-		glVertexPointer(3, GL_FLOAT, 0, _unit_sphere_vertices);
-		glNormalPointer(GL_FLOAT, 0, _unit_sphere_normals);
-		glTexCoordPointer(2, GL_FLOAT, 0, _unit_sphere_texture);
-		// glDrawArrays(GL_LINE_LOOP, 0, _sphere_slices * _sphere_stacks * 2 );//(_sphere_slices+1) * 2 * (_sphere_stacks-1)+2  );
-		glDrawArrays(GL_TRIANGLE_STRIP, 0,  _sphere_slices * _sphere_stacks * 2 );// (_sphere_slices+1) * 2 * (_sphere_stacks-1)+2  );
-		glDisableClientState(GL_TEXTURE_COORD_ARRAY);
-		glDisableClientState(GL_NORMAL_ARRAY);
-		glDisableClientState(GL_VERTEX_ARRAY);
-	glPopMatrix();
-}
-void drawUnitCircle(float x, float y, float z){
-	glPushMatrix();
-	glTranslatef(x, y, z);
-	glEnableClientState(GL_VERTEX_ARRAY);
-	glVertexPointer(3, GL_FLOAT, 0, _circle_vertices);
-	glDrawArrays(GL_LINE_LOOP, 0, 64);
-	glDisableClientState(GL_VERTEX_ARRAY);
-	glPopMatrix();
-}
 const float _tetrahedron_points[12] = {1.0,0.0,0.0,-0.3333,-0.9428,0.0,-0.3333,0.4714,0.81649,-0.3333,0.4714,-0.8164};
 const unsigned short _tetrahedron_lines[12] = {2,3,2,0,2,1,3,0,3,1,0,1};
 const unsigned short _tetrahedron_faces[12] = {2,1,3,2,3,0,2,0,1,3,1,0};
@@ -781,22 +725,103 @@ void drawPlatonicSolidPoints(char solidType){
 	glDisableClientState(GL_NORMAL_ARRAY);
 	glDisableClientState(GL_VERTEX_ARRAY);
 }
+GLuint loadTexture(const char * filename, int width, int height){
+	GLuint texture;
+	unsigned char * data;
+	FILE * file;
+	file = fopen(filename, "rb");
+	if (file == NULL) return 0;
+	data = (unsigned char *)malloc(width * height * 3);
+	fread(data, width * height * 3, 1, file);
+	fclose(file);
+	for(int i = 0; i < width * height; i++){
+		int index = i*3;
+		unsigned char B,R;
+		B = data[index];
+		R = data[index+2];
+		data[index] = R;
+		data[index+2] = B;
+	}
+	glGenTextures(1, &texture);
+	glBindTexture(GL_TEXTURE_2D, texture);
+	// glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
+	// glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_NEAREST);
+	// glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	gluBuild2DMipmaps(GL_TEXTURE_2D, 3, width, height, GL_RGB, GL_UNSIGNED_BYTE, data);
+	free(data);
+	glBindTexture(GL_TEXTURE_2D, 0);
+	return texture;
+}
+void initPrimitives(){
+	static unsigned char _geometry_initialized = 0;
+	if (!_geometry_initialized) {
+		// CIRCLE
+		for(int i = 0; i < 64; i++){
+			_unit_circle_vertices[i*3+0] = -sinf(M_PI*2/64.0f*i);
+			_unit_circle_vertices[i*3+1] = cosf(M_PI*2/64.0f*i);
+			_unit_circle_vertices[i*3+2] = 0.0f;
+			_unit_circle_normals[i*3+0] = _unit_circle_normals[i*3+1] = 0.0;
+			_unit_circle_normals[i*3+2] = 1.0;
+			_unit_circle_texCoord[i*3+0] = -sinf(M_PI*2/64.0f*i)*0.5 + 0.5;
+			_unit_circle_texCoord[i*3+1] = cosf(M_PI*2/64.0f*i)*0.5 + 0.5;
+		}
+		// SPHERE
+		GLfloat m_Scale = 1;
+		GLfloat *vPtr = _unit_sphere_vertices = (GLfloat*)malloc(sizeof(GLfloat) * 3 * ((_sphere_slices*2+2) * (_sphere_stacks)));
+		GLfloat *nPtr = _unit_sphere_normals = (GLfloat*)malloc(sizeof(GLfloat) * 3 * ((_sphere_slices*2+2) * (_sphere_stacks)));
+		GLfloat *tPtr = _unit_sphere_texture = (GLfloat*)malloc(sizeof(GLfloat) * 2 * ((_sphere_slices*2+2) * (_sphere_stacks)));
+		for(unsigned int phiIdx = 0; phiIdx < _sphere_stacks; phiIdx++){
+			// Latitude
+			//starts at -pi/2 goes to pi/2
+			float phi0 = M_PI * ((float)(phiIdx+0) * (1.0/(float)(_sphere_stacks)) - 0.5);  // the first circle
+			float phi1 = M_PI * ((float)(phiIdx+1) * (1.0/(float)(_sphere_stacks)) - 0.5);  // second one
+			float cosPhi0 = cos(phi0);
+			float sinPhi0 = sin(phi0);
+			float cosPhi1 = cos(phi1);
+			float sinPhi1 = sin(phi1);
+			for(unsigned int thetaIdx = 0; thetaIdx < _sphere_slices; thetaIdx++){
+				//longitude
+				float theta = 2.0*M_PI * ((float)thetaIdx) * (1.0/(float)(_sphere_slices - 1));
+				float cosTheta = cos(theta+M_PI*.5);
+				float sinTheta = sin(theta+M_PI*.5);
+				vPtr[0] = m_Scale*cosPhi0 * cosTheta;
+				vPtr[1] = m_Scale*(cosPhi0 * sinTheta);
+				vPtr[2] = -m_Scale*sinPhi0;
+				vPtr[3] = m_Scale*cosPhi1 * cosTheta;
+				vPtr[4] = m_Scale*(cosPhi1 * sinTheta);
+				vPtr[5] = -m_Scale*sinPhi1;
+				nPtr[0] = cosPhi0 * cosTheta;
+				nPtr[1] = cosPhi0 * sinTheta;
+				nPtr[2] = -sinPhi0;
+				nPtr[3] = cosPhi1 * cosTheta;
+				nPtr[4] = cosPhi1 * sinTheta;
+				nPtr[5] = -sinPhi1;
+				GLfloat texX = (float)thetaIdx * (1.0f/(float)(_sphere_slices-1));
+				tPtr[0] = texX;
+				tPtr[1] = (float)(phiIdx + 0) * (1.0f/(float)(_sphere_stacks));
+				tPtr[2] = texX;
+				tPtr[3] = (float)(phiIdx + 1) * (1.0f/(float)(_sphere_stacks));
+				vPtr += 2*3;
+				nPtr += 2*3;
+				tPtr += 2*2;
+			}
+		}
+		_geometry_initialized = 1;
+	}
+}
 /////////////////////////        HELPFUL ORIENTATION         //////////////////////////
 void label3DAxes(float scale){
 	int scaleInt = scale;
 	char string[50];
-	sprintf(string, "(%d, 0, 0)", scaleInt);
-	text(string, scale, 0, 0);
-	sprintf(string, "(0, %d, 0)", scaleInt);
-	text(string, 0, scale, 0);
-	sprintf(string, "(0, 0, %d)", scaleInt);
-	text(string, 0, 0, scale);
-	sprintf(string, "(%d, 0, 0)", -scaleInt);
-	text(string, -scale, 0, 0);
-	sprintf(string, "(0, %d, 0)", -scaleInt);
-	text(string, 0, -scale, 0);
-	sprintf(string, "(0, 0, %d)", -scaleInt);
-	text(string, 0, 0, -scale);
+	sprintf(string, "(%d, 0, 0)", scaleInt);   text(string, scale, 0, 0);
+	sprintf(string, "(0, %d, 0)", scaleInt);   text(string, 0, scale, 0);
+	sprintf(string, "(0, 0, %d)", scaleInt);   text(string, 0, 0, scale);
+	sprintf(string, "(%d, 0, 0)", -scaleInt);  text(string, -scale, 0, 0);
+	sprintf(string, "(0, %d, 0)", -scaleInt);  text(string, 0, -scale, 0);
+	sprintf(string, "(0, 0, %d)", -scaleInt);  text(string, 0, 0, -scale);
 }
 void drawCheckerboard(float walkX, float walkY, int numSquares){
 	static GLfloat mat_white[] = { 1.0, 1.0, 1.0, 1.0 };

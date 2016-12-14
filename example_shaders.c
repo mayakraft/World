@@ -8,9 +8,9 @@
 
 #include "world.h"
 
-GLhandleARB program = 0;
-GLint vertexShaderObject, fragmentShaderObject;
-
+///////////////////////////////////////
+//////////      SHADERS      //////////
+///////////////////////////////////////
 char *loadFile(char *filename){
 	char *buffer = 0;
 	long length;
@@ -25,8 +25,8 @@ char *loadFile(char *filename){
 	}
 	return buffer;
 }
-
-void initShaders(){
+GLhandleARB loadShaders(char *vertexFilePath, char *fragmentFilePath){
+	GLhandleARB program = 0;
 	GLuint shader_num_v, shader_num_f;
 	GLenum err = glewInit();
 	if (GLEW_OK != err){
@@ -46,10 +46,11 @@ void initShaders(){
 	}
 	else{  printf("ERROR loading fragment shader\n");	}
 	GLint vlength, flength;
-	const char *VertexShaderSource = loadFile("example/shader.vert");
-	const char *FragmentShaderSource = loadFile("example/shader.frag");
-	if((int)(VertexShaderSource == NULL)){ printf("ERROR loading vertex shader file\n"); return; }
-	if((int)(VertexShaderSource == NULL)){ printf("ERROR loading fragment shader file\n"); return; }
+	GLint vertexShaderObject, fragmentShaderObject;
+	const char *VertexShaderSource = loadFile( vertexFilePath );
+	const char *FragmentShaderSource = loadFile( fragmentFilePath );
+	if((int)(VertexShaderSource == NULL)){ printf("ERROR loading vertex shader file\n"); return 0; }
+	if((int)(FragmentShaderSource == NULL)){ printf("ERROR loading fragment shader file\n"); return 0; }
 	vlength = strlen(VertexShaderSource);
 	flength = strlen(FragmentShaderSource);
 	vertexShaderObject = glCreateShaderObjectARB(GL_VERTEX_SHADER);
@@ -68,7 +69,21 @@ void initShaders(){
 	glAttachObjectARB(program, vertexShaderObject);
 	glLinkProgramARB(program);
 	glUseProgramObjectARB(program);
+	return program;
 }
+void setShaderUniform1f(GLhandleARB shader, char *uniform, float value){
+	if(shader){
+		glUseProgramObjectARB(shader);
+		GLint loc = glGetUniformLocation(shader, uniform);
+		if(loc != -1) glUniform1f(loc, value);
+		glUseProgramObjectARB(0);
+	}
+}
+///////////////////////////////////////
+////////      END SHADERS      ////////
+///////////////////////////////////////
+
+GLhandleARB shader = 0;
 
 void setupLighting(){
 	GLfloat light_position1[] = { 0.0, 0.0, 10.0, 1.0 };
@@ -95,26 +110,19 @@ void setupLighting(){
 }
 
 void setup() {
-	// setupLighting();
-	initShaders();
-	GROUND = 0;
+	setupLighting();
+	shader = loadShaders( "example/shader.vert", "example/shader.frag" );
+	// GROUND = 0;
 	PERSPECTIVE = POLAR;
 }
-void update() { 
-	if(program){
-		glUseProgramObjectARB(program);
-		GLint loc = glGetUniformLocation(program, "time");
-		if(loc != -1){
-			glUniform1f(loc, frameNum / 60.0);
-		}
-		glUseProgramObjectARB(0);
-	}
+void update() {
+	setShaderUniform1f(shader, "time", frameNum/60.0);
 }
 void draw3D() {
-	glUseProgramObjectARB(program);
+	glUseProgramObjectARB(shader);
 	glEnable(GL_FRAGMENT_PROGRAM_ARB);
 	glEnable(GL_VERTEX_PROGRAM_ARB);
-	drawUnitSphere(0, 0, 0, 1);
+	drawSphere(0, 0, 1, 0.5);
 	glUseProgramObjectARB(0);
 	glDisable(GL_FRAGMENT_PROGRAM_ARB);
 	glDisable(GL_VERTEX_PROGRAM_ARB);
