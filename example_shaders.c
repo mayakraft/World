@@ -11,79 +11,97 @@
 ///////////////////////////////////////
 //////////      SHADERS      //////////
 ///////////////////////////////////////
-char *loadFile(char *filename){
+char *readFile(char *filename){
 	char *buffer = 0;
 	long length;
 	FILE *f = fopen(filename, "rb");
 	if(f){
 		fseek(f, 0, SEEK_END);
-		length = ftell (f);
+		length = ftell(f);
 		fseek(f, 0, SEEK_SET);
 		buffer = malloc(length);
 		if(buffer) fread(buffer, 1, length, f);
 		fclose(f);
+		buffer[length] = 0; // fixes occasional extra characters at end of buffer
 	}
 	return buffer;
 }
-GLhandleARB loadShaders(char *vertexFilePath, char *fragmentFilePath){
-	GLhandleARB program = 0;
-	GLuint shader_num_v, shader_num_f;
+GLuint loadShader(char *vertex_path, char *fragment_path) {
+	//  http://www.nexcius.net/2012/11/20/how-to-load-a-glsl-shader-in-opengl-using-c/
 	GLenum err = glewInit();
-	if (GLEW_OK != err){
-		printf("ERROR %s\n", glewGetErrorString(err));
-		exit(1);
+	GLuint vertShader = glCreateShader(GL_VERTEX_SHADER);
+	GLuint fragShader = glCreateShader(GL_FRAGMENT_SHADER);
+	// Read shaders
+	char *vertShaderSrc = readFile(vertex_path);
+	char *fragShaderSrc = readFile(fragment_path);
+	GLint result = GL_FALSE;
+	int logLength;
+	// Compile vertex shader
+	glShaderSource(vertShader, 1, (const char *const *)&vertShaderSrc, NULL);
+	glCompileShader(vertShader);
+	// Check vertex shader
+	glGetShaderiv(vertShader, GL_COMPILE_STATUS, &result);
+	glGetShaderiv(vertShader, GL_INFO_LOG_LENGTH, &logLength);
+	if(logLength){
+		char vertShaderError[logLength]; vertShaderError[0] = 0;
+		glGetShaderInfoLog(vertShader, logLength, NULL, &vertShaderError[0]);
+		printf("VERTEX SHADER COMPILE %s", &vertShaderError[0]);
 	}
-	if (GLEW_ARB_vertex_program){
-		glEnable(GL_VERTEX_PROGRAM_ARB);
-		glGenProgramsARB(1, &shader_num_v);
-		glBindProgramARB(GL_FRAGMENT_PROGRAM_ARB, shader_num_v);
+	// Compile fragment shader
+	glShaderSource(fragShader, 1, (const char *const *)&fragShaderSrc, NULL);
+	glCompileShader(fragShader);
+	// Check fragment shader
+	glGetShaderiv(fragShader, GL_COMPILE_STATUS, &result);
+	glGetShaderiv(fragShader, GL_INFO_LOG_LENGTH, &logLength);
+	if(logLength){
+		char fragShaderError[logLength]; fragShaderError[0] = 0;
+		glGetShaderInfoLog(fragShader, logLength, NULL, &fragShaderError[0]);
+		printf("FRAGMENT SHADER COMPILE %s", &fragShaderError[0]);
 	}
-	else{  printf("ERROR loading vertex shader\n");	}
-	if (GLEW_ARB_fragment_program){
-		glEnable(GL_FRAGMENT_PROGRAM_ARB);
-		glGenProgramsARB(1, &shader_num_f);
-		glBindProgramARB(GL_FRAGMENT_PROGRAM_ARB, shader_num_f);
+	GLuint program = glCreateProgram();
+	glAttachShader(program, vertShader);
+	glAttachShader(program, fragShader);
+	glLinkProgram(program);
+	glGetProgramiv(program, GL_LINK_STATUS, &result);
+	glGetProgramiv(program, GL_INFO_LOG_LENGTH, &logLength);
+	if(logLength){
+		char programError[logLength]; programError[0] = 0;
+		glGetProgramInfoLog(program, logLength, NULL, &programError[0]);
+		printf("LINKER %s", &programError[0]);
 	}
-	else{  printf("ERROR loading fragment shader\n");	}
-	GLint vlength, flength;
-	GLint vertexShaderObject, fragmentShaderObject;
-	const char *VertexShaderSource = loadFile( vertexFilePath );
-	const char *FragmentShaderSource = loadFile( fragmentFilePath );
-	if((int)(VertexShaderSource == NULL)){ printf("ERROR loading vertex shader file\n"); return 0; }
-	if((int)(FragmentShaderSource == NULL)){ printf("ERROR loading fragment shader file\n"); return 0; }
-	vlength = strlen(VertexShaderSource);
-	flength = strlen(FragmentShaderSource);
-	vertexShaderObject = glCreateShaderObjectARB(GL_VERTEX_SHADER);
-	fragmentShaderObject = glCreateShaderObjectARB(GL_FRAGMENT_SHADER);
-	glShaderSourceARB(vertexShaderObject, 1, &VertexShaderSource, &vlength);
-	glShaderSourceARB(fragmentShaderObject, 1, &FragmentShaderSource, &flength);
-	glCompileShaderARB(vertexShaderObject);
-	glCompileShaderARB(fragmentShaderObject);
-	GLint compiled;
-	glGetObjectParameterivARB(vertexShaderObject, GL_COMPILE_STATUS, &compiled);
-	if(!compiled){  printf("ERROR compiling vertex shader\n");  }
-	glGetObjectParameterivARB(fragmentShaderObject, GL_COMPILE_STATUS, &compiled);
-	if(!compiled){  printf("ERROR compiling fragment shader\n");  }	
-	program = glCreateProgramObjectARB();
-	glAttachObjectARB(program, fragmentShaderObject);
-	glAttachObjectARB(program, vertexShaderObject);
-	glLinkProgramARB(program);
-	glUseProgramObjectARB(program);
+	glDeleteShader(vertShader);
+	glDeleteShader(fragShader);
 	return program;
 }
-void setShaderUniform1f(GLhandleARB shader, char *uniform, float value){
+void setShaderUniform1f(GLuint shader, char *uniform, float value){
 	if(shader){
-		glUseProgramObjectARB(shader);
+		glUseProgram(shader);
 		GLint loc = glGetUniformLocation(shader, uniform);
 		if(loc != -1) glUniform1f(loc, value);
-		glUseProgramObjectARB(0);
+		glUseProgram(0);
+	}
+}
+void setShaderUniformVec3f(GLuint shader, char *uniform, float *array){
+	if(shader){
+		glUseProgram(shader);
+		GLint loc = glGetUniformLocation(shader, uniform);
+		if(loc != -1) glUniform3fv(loc, 1, &array[0]);
+		glUseProgram(0);
+	}
+}
+void setShaderUniformVec4f(GLuint shader, char *uniform, float *array){
+	if(shader){
+		glUseProgram(shader);
+		GLint loc = glGetUniformLocation(shader, uniform);
+		if(loc != -1) glUniform4fv(loc, 1, &array[0]);
+		glUseProgram(0);
 	}
 }
 ///////////////////////////////////////
 ////////      END SHADERS      ////////
 ///////////////////////////////////////
 
-GLhandleARB shader = 0;
+GLuint shader = 0;
 
 void setupLighting(){
 	GLfloat light_position1[] = { 0.0, 0.0, 10.0, 1.0 };
@@ -111,21 +129,18 @@ void setupLighting(){
 
 void setup() {
 	setupLighting();
-	shader = loadShaders( "example/shader.vert", "example/shader.frag" );
-	// GROUND = 0;
+	shader = loadShader( "example/fog.vert", "example/fog.frag" );
+	GROUND = 0;
+	GRID = 0;
 	PERSPECTIVE = POLAR;
 }
 void update() {
-	setShaderUniform1f(shader, "time", frameNum/60.0);
+	setShaderUniform1f(shader, "u_time", frameNum/60.0);
 }
 void draw3D() {
-	glUseProgramObjectARB(shader);
-	glEnable(GL_FRAGMENT_PROGRAM_ARB);
-	glEnable(GL_VERTEX_PROGRAM_ARB);
-	drawSphere(0, 0, 1, 0.5);
-	glUseProgramObjectARB(0);
-	glDisable(GL_FRAGMENT_PROGRAM_ARB);
-	glDisable(GL_VERTEX_PROGRAM_ARB);
+	glUseProgram(shader);
+	drawRect(-5,-5, 0, 10, 10);
+	glUseProgram(0);
 }
 void draw2D() { }
 void keyDown(unsigned int key) { }
