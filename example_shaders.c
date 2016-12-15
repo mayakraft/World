@@ -122,6 +122,7 @@ void setShaderUniformVec4f(GLuint shader, char *uniform, float *array){
 ///////////////////////////////////////
 
 GLuint shader = 0;
+GLuint shader2 = 0;
 GLuint spectrum;
 
 void setupLighting(){
@@ -150,8 +151,9 @@ void setup() {
 	// glShadeModel(GL_FLAT);
 	glShadeModel(GL_SMOOTH);
 	// setupLighting();
-	shader = loadShader( "example/fog.vert", "example/fog.frag" );
-	// GROUND = 0;
+	shader = loadShader( "example/shaders/simple.vert", "example/shaders/fog.frag" );
+	shader2 = loadShader( "example/shaders/simple.vert", "example/shaders/metaballs.frag" );
+	GROUND = 0;
 	// GRID = 0;
 	polarPerspective(0, 0, 0);
 	lookOrientation[1] = 78;
@@ -159,6 +161,7 @@ void setup() {
 }
 void update() {
 	setShaderUniform1f(shader, "u_time", frameNum/60.0);
+	setShaderUniform1f(shader2, "u_time", frameNum/60.0);
 	if(PERSPECTIVE == POLAR)
 		lookOrientation[0] = frameNum * 0.1;
 }
@@ -193,7 +196,15 @@ void draw3D() {
 	glPopMatrix();
 	}
 
+	glUseProgram(shader2);
+
+	glPushMatrix();
+		drawRect(-4, -4, -0.01, 8, 8);
+	glPopMatrix();
+
+
 	glUseProgram(shader);
+
 	glPushMatrix();
 		glScalef(10, 10, 10);
 		renderStars();
