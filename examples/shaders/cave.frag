@@ -30,8 +30,7 @@
 */
 
 uniform float u_time;
-vec2 resolution = vec2(800, 600);
-
+uniform vec2 u_resolution;
 
 #define RMITERATIONS 56
 #define PRECISION 0.004
@@ -161,7 +160,7 @@ float curve(in vec3 p, in float w){
 void main(){
 	
 	// Screen coordinates.
-	vec2 uv = vec2( (gl_FragCoord.xy - resolution.xy*0.5)/resolution.y );
+	vec2 uv = vec2( (gl_FragCoord.xy - u_resolution.xy*0.5)/u_resolution.y );
 	
 	// Camera Setup.
 	vec3 lookAt = vec3(u_time*4.+1., 0.0, u_time*2.+ 1.);  // "Look At" position.

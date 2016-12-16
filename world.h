@@ -336,6 +336,105 @@ void updateWorld(){
 	glutPostRedisplay();
 }
 ///////////////////////////////////////
+//////////      SHADERS      //////////
+///////////////////////////////////////
+char *readFile(char *filename){
+	char *buffer = 0;
+	long length;
+	FILE *f = fopen(filename, "rb");
+	if(f){
+		fseek(f, 0, SEEK_END);
+		length = ftell(f);
+		fseek(f, 0, SEEK_SET);
+		buffer = malloc(length + 1);
+		if(buffer) fread(buffer, 1, length, f);
+		fclose(f);
+		buffer[length] = 0; // fixes occasional extra characters at end of buffer
+	}
+	return buffer;
+}
+#ifdef __glew_h__
+GLuint loadShader(char *vertex_path, char *fragment_path) {
+	GLenum err = glewInit();
+	GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
+	GLuint fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
+	char *vSource = readFile(vertex_path);
+	char *fSource = readFile(fragment_path);
+	GLint result = GL_FALSE;
+	int logLength;
+	// vertex
+	glShaderSource(vertexShader, 1, (const char *const *)&vSource, NULL);
+	glCompileShader(vertexShader);
+	// Check vertex shader
+	glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &result);
+	glGetShaderiv(vertexShader, GL_INFO_LOG_LENGTH, &logLength);
+	if(logLength){
+		char errorLog[logLength];
+		glGetShaderInfoLog(vertexShader, logLength, NULL, &errorLog[0]);
+		printf("VERTEX SHADER COMPILE %s", &errorLog[0]);
+	}
+	// fragment
+	glShaderSource(fragmentShader, 1, (const char *const *)&fSource, NULL);
+	glCompileShader(fragmentShader);
+	// Check fragment shader
+	glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &result);
+	glGetShaderiv(fragmentShader, GL_INFO_LOG_LENGTH, &logLength);
+	if(logLength){
+		char errorLog[logLength];
+		glGetShaderInfoLog(fragmentShader, logLength, NULL, &errorLog[0]);
+		printf("FRAGMENT SHADER COMPILE %s", &errorLog[0]);
+	}
+	free(vSource);
+	free(fSource);
+	GLuint program = glCreateProgram();
+	glAttachShader(program, vertexShader);
+	glAttachShader(program, fragmentShader);
+	glLinkProgram(program);
+	glGetProgramiv(program, GL_LINK_STATUS, &result);
+	glGetProgramiv(program, GL_INFO_LOG_LENGTH, &logLength);
+	if(logLength){
+		char programError[logLength]; programError[0] = 0;
+		glGetProgramInfoLog(program, logLength, NULL, &programError[0]);
+		printf("LINKER %s", &programError[0]);
+	}
+	glDeleteShader(vertexShader);
+	glDeleteShader(fragmentShader);
+	return program;
+}
+void setShaderUniform1f(GLuint shader, char *uniform, float value){
+	if(shader){
+		glUseProgram(shader);
+		GLint loc = glGetUniformLocation(shader, uniform);
+		if(loc != -1) glUniform1f(loc, value);
+		glUseProgram(0);
+	}
+}
+void setShaderUniformVec2f(GLuint shader, char *uniform, float *array){
+	if(shader){
+		glUseProgram(shader);
+		GLint loc = glGetUniformLocation(shader, uniform);
+		if(loc != -1) glUniform2fv(loc, 1, &array[0]);
+		glUseProgram(0);
+	}
+}
+void setShaderUniformVec3f(GLuint shader, char *uniform, float *array){
+	if(shader){
+		glUseProgram(shader);
+		GLint loc = glGetUniformLocation(shader, uniform);
+		if(loc != -1) glUniform3fv(loc, 1, &array[0]);
+		glUseProgram(0);
+	}
+}
+void setShaderUniformVec4f(GLuint shader, char *uniform, float *array){
+	if(shader){
+		glUseProgram(shader);
+		GLint loc = glGetUniformLocation(shader, uniform);
+		if(loc != -1) glUniform4fv(loc, 1, &array[0]);
+		glUseProgram(0);
+	}
+}
+#endif
+///////////////////////////////////////
 //////////       INPUT       //////////
 ///////////////////////////////////////
 void moveOriginWithArrowKeys(){
@@ -832,6 +931,12 @@ void initPrimitives(){
 	}
 }
 /////////////////////////        HELPFUL ORIENTATION         //////////////////////////
+void hideHelpfulOrientation(){
+	GROUND = GRID = 0;
+}
+void showHelpfulOrientation(){
+	GROUND = GRID = 1;
+}
 void label3DAxes(float scale){
 	int scaleInt = scale;
 	char string[50];

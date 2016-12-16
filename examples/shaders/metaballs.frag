@@ -5,8 +5,8 @@
 precision mediump float;
 #endif
 
-vec2 u_resolution = vec2(800, 600);
 uniform float u_time;
+uniform vec2 u_resolution;// = vec2(800,600);
 
 vec2 random2( vec2 p ) {
 	return fract(sin(vec2(dot(p,vec2(127.1,311.7)),dot(p,vec2(269.5,183.3))))*43758.5453);
@@ -17,8 +17,11 @@ void main() {
 	st.x *= u_resolution.x/u_resolution.y;
 	vec3 color = vec3(.0);
 
+	// Thickness of connected matter
+	float thick = 0.10; // 0.03;
+
 	// Scale 
-	st *= 5.;
+	st *= 5.0;
 
 	// Tile the space
 	vec2 i_st = floor(st);
@@ -43,7 +46,7 @@ void main() {
 	}
 
 	// Draw cells
-	color += step(0.060, m_dist);
+	color += step(thick, m_dist);
 
 	gl_FragColor = vec4(color,1.0);
 }

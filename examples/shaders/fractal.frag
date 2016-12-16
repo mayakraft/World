@@ -1,7 +1,7 @@
 //Basic fractal by @paulofalcao
 
 uniform float u_time;
-vec2 u_resolution = vec2(800,600);
+uniform vec2 u_resolution;// = vec2(800,600);
 
 const int maxIterations=6;//a nice value for fullscreen is 8
 float circleSize=1.0/(3.0*pow(2.0,float(maxIterations)));

@@ -6,7 +6,7 @@ precision mediump float;
 #endif
 
 uniform float u_time;
-vec2 u_resolution = vec2(800.0, 600.0);
+uniform vec2 u_resolution;// = vec2(800.0, 600.0);
 
 float random (in vec2 _st) { 
 	return fract(sin(dot(_st.xy,vec2(12.9898,78.233))) * 43758.5453123);

@@ -1,11 +1,13 @@
 # Linux (default)
-EXE = world
+EXE1 = simple
+EXE2 = shaders
 CFLAGS = -std=gnu99
 LDFLAGS = -lGL -lGLU -lglut -lm
 
 # Windows (cygwin)
 ifeq "$(OS)" "Windows_NT"
-	EXE = world.exe
+	EXE1 = simple.exe
+	EXE2 = shaders.exe
 	LDFLAGS = -lopengl32 -lglu32 -lglut32
 endif
 
@@ -18,9 +20,18 @@ ifeq ($(OSTYPE),darwin)
 	LDFLAGS = -framework Carbon -framework OpenGL -framework GLUT  -Wno-deprecated
 endif
 
-$(EXE): $(EXE).c
-	@mkdir -p bin
-	gcc -o bin/$@ $< $(CFLAGS) $(LDFLAGS)
+all: simple shaders
 
-run:
-	./bin/$(EXE) $(ARGS)
+$(EXE1): $(EXE1).c
+	@mkdir -p ../bin
+	gcc -o ../bin/$(EXE1) $< $(CFLAGS) $(LDFLAGS)
+
+$(EXE2): $(EXE2).c
+	@mkdir -p ../bin
+	gcc -o ../bin/$(EXE2) $< $(CFLAGS) $(LDFLAGS)
+
+run1:
+	./../bin/$(EXE1) $(ARGS)
+
+run2:
+	./../bin/$(EXE2) $(ARGS)
