@@ -9,13 +9,17 @@
 #include "../world.h"
 
 GLuint shader = 0;
-GLuint shader2 = 0;
+unsigned char autoReload = 0; // boolean. will auto-reload the shader 1/second
+
+char *vertexPath = "shaders/simple.vert";
+char *fragmentPath = "shaders/cave.frag"; //"shaders/screen.frag";
 
 void setup() {
 	hideHelpfulOrientation();
-	shader = loadShader( "shaders/simple.vert", "shaders/cave.frag" );
+	shader = loadShader( vertexPath, fragmentPath );
 }
 void update() {
+	if(frameNum%60 == 0){ if(autoReload) shader = loadShader( vertexPath, fragmentPath ); }
 	float resolution[2] = {WIDTH, HEIGHT};
 	setShaderUniformVec2f(shader, "u_resolution", resolution);
 	setShaderUniform1f(shader, "u_time", frameNum/60.0);
