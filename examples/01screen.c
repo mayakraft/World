@@ -11,8 +11,8 @@
 GLuint shader = 0;
 unsigned char autoReload = 1; // boolean. will auto-reload the shader 1/second
 
-char *vertexPath = "shaders/simple.vert";
-char *fragmentPath = "shaders/screen.frag";
+char *vertexPath = "../examples/shaders/simple.vert";
+char *fragmentPath = "../examples/shaders/screen.frag";
 
 void setup() {
 	// glutReshapeWindow(400, 400);

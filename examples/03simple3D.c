@@ -4,8 +4,8 @@ GLuint texture, spectrum;
 float matrix[16];
 unsigned char showOverlay = 0;
 
-#include "data/518stars.c"
-#include "data/1619stars.c"
+#include "../examples/data/518stars.c"
+#include "../examples/data/1619stars.c"
 
 void renderStars(){
 	glPushMatrix();
@@ -47,8 +47,8 @@ void setupLighting(){
 void setup() {
 	// glShadeModel(GL_FLAT);
 	glShadeModel(GL_SMOOTH);
-	texture = loadTexture("data/texture.raw", 32, 32);
-	spectrum = loadTextureSmooth("data/spectrum.raw", 128, 64);
+	texture = loadTexture("../examples/data/texture.raw", 32, 32);
+	spectrum = loadTextureSmooth("../examples/data/spectrum.raw", 128, 64);
 	setMat4Identity(matrix);
 	// setupLighting();
 	polarPerspective(0, 0, 0);

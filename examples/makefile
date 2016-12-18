@@ -1,16 +1,16 @@
 # Linux (default)
-EXE1 = 01simple
+EXE1 = 01screen
 EXE2 = 02shaders
-EXE3 = 03screen
+EXE3 = 03simple3D
 EXE4 = 04shaders3D
 CFLAGS = -std=gnu99
 LDFLAGS = -lGL -lGLU -lglut -lm
 
 # Windows (cygwin)
 ifeq "$(OS)" "Windows_NT"
-	EXE1 = simple.exe
+	EXE1 = screen.exe
 	EXE2 = shaders.exe
-	EXE3 = screen.exe
+	EXE3 = simple3D.exe
 	EXE4 = shaders3D.exe
 	LDFLAGS = -lopengl32 -lglu32 -lglut32
 endif

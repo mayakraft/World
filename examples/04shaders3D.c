@@ -8,8 +8,8 @@
 
 #include "../world.h"
 
-#include "data/518stars.c"
-#include "data/1619stars.c"
+#include "../examples/data/518stars.c"
+#include "../examples/data/1619stars.c"
 
 unsigned char showSphere = 1;
 
@@ -35,10 +35,10 @@ GLuint shader = 0;
 GLuint shader2 = 0;
 GLuint spectrum;
 
-char *vertexPath1 = "shaders/simple.vert";
-char *fragmentPath1 = "shaders/fog.frag";
-char *vertexPath2 = "shaders/wobble.vert";
-char *fragmentPath2 = "shaders/water.frag";
+char *vertexPath1 = "../examples/shaders/simple.vert";
+char *fragmentPath1 = "../examples/shaders/fog.frag";
+char *vertexPath2 = "../examples/shaders/wobble.vert";
+char *fragmentPath2 = "../examples/shaders/water.frag";
 
 void setupLighting(){
 	GLfloat light_position1[] = { 0.0, 0.0, 10.0, 1.0 };
@@ -73,7 +73,7 @@ void setup() {
 	polarPerspective(0, 0, 0);
 	lookOrientation[1] = 78;
 	lookOrientation[2] = 5*1.414;
-	spectrum = loadTexture("data/spectrum.raw", 128, 64);
+	spectrum = loadTexture("../examples/data/spectrum.raw", 128, 64);
 
 	int range = 10;
 	for(int i = 0; i < numPoly; i++){
