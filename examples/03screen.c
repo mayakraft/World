@@ -9,13 +9,13 @@
 #include "../world.h"
 
 GLuint shader = 0;
-unsigned char autoReload = 0; // boolean. will auto-reload the shader 1/second
+unsigned char autoReload = 1; // boolean. will auto-reload the shader 1/second
 
 char *vertexPath = "shaders/simple.vert";
 char *fragmentPath = "shaders/screen.frag";
 
 void setup() {
-	hideHelpfulOrientation();
+	// hideHelpfulOrientation();
 	shader = loadShader( vertexPath, fragmentPath );
 }
 void update() {

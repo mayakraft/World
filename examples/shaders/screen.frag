@@ -46,19 +46,19 @@ float frameHole(float thickness){
 }
 
 void main(){
-	float xLine = X(3.0);
-	float xAspectLine = aspectX(3.0);
-	float circle = circle(0.5, 0.01);
-	float f = frame(0.25-0.004);
-	float s = frameHole(0.25+0.004);
+	float xLine = X(1.0);
+	float xAspectLine = aspectX(1.0);
+	float circle = circle(0.5, 0.001);
+	float f = frame(0.25-0.0015);
+	float s = frameHole(0.25+0.0015);
 	float frameLine = float(!bool(f) && !bool(s));
-	float padding = frame(0.01);
+	float padding = frame(0.033);
 
-	float brightness = 0.333;
+	float brightness = 0.5;
 
 	vec4 color = vec4(0.0, 0.0, 0.0, 0.0);
 	// color += vec4(vec3(0.0, 0.0, 0.0), 0.0);
-	color += vec4(brightness * vec3(xLine + xAspectLine + circle + frameLine + padding),1.0);
+	color += vec4(vec3(1.0), clamp( brightness*(xLine + xAspectLine + circle + frameLine + padding), 0.0, 1.0));
 
 	gl_FragColor = color;
 }

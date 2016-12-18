@@ -206,7 +206,7 @@ void typicalOpenGLSettings(){
 	glEnable(GL_DEPTH_TEST);
 	glDepthMask(GL_TRUE);
 	glDepthFunc(GL_LESS);
-	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	// glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	glLineWidth(1);
 }
 void reshapeWindow(int windowWidth, int windowHeight){
@@ -301,8 +301,6 @@ void display(){
 		}
 	glPopMatrix();
 	
-	glDisable(GL_BLEND);
-
 	// TO ORTHOGRAPHIC
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
@@ -313,6 +311,8 @@ void display(){
 		draw2D();
 	glPopMatrix();
 	rebuildProjection();
+
+	glDisable(GL_BLEND);
 
 	// bring back buffer to the front on vertical refresh, auto-calls glFlush
 	glutSwapBuffers();
@@ -955,8 +955,8 @@ void drawCheckerboard(float walkX, float walkY, int numSquares){
 	int evenOdd = (numSquares%2);
 	if(evenOdd) 
 		numSquares--;
-	for(int i = -numSquares*.5; i <= numSquares*.5; i++){
-		for(int j = -numSquares*.5; j <= numSquares*.5; j++){
+	for(int i = -numSquares*.5; i < numSquares*.5; i++){
+		for(int j = -numSquares*.5; j < numSquares*.5; j++){
 			int b = abs(((i+j+XOffset+YOffset)%2));
 			if(b) { glColor3f(1.0, 1.0, 1.0); glMaterialfv(GL_FRONT, GL_DIFFUSE, mat_white); }
 			else { glColor3f(0.0, 0.0, 0.0); glMaterialfv(GL_FRONT, GL_DIFFUSE, mat_black); }

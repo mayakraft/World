@@ -1,16 +1,33 @@
-// A simple, if a little square, water caustic effect.
-// David Hoskins.
-// License Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License.
+// Found this on GLSL sandbox. I really liked it, changed a few things and made it tileable.
+// :)
+// by David Hoskins.
 
-// Inspired by akohdr's "Fluid Fields"
-// https://www.shadertoy.com/view/XsVSDm
+// Water turbulence effect by joltz0r 2013-07-04, improved 2013-07-07
+
+#define TAU 6.28318530718
+#define MAX_ITER 5
 
 uniform float u_time;
+uniform vec2 u_resolution;
 
-#define F length(.5-fract(gl_FragColor.xyw*=mat3(-2,-1,2, 3,-2,1, 1,2,2)*
+void main() {
+	float time = u_time * .5+23.0;
+    // uv should be the 0-1 uv of texture...
+	vec2 uv = gl_FragCoord.xy / u_resolution.xy;    
+    vec2 p = mod(uv*TAU, TAU)-250.0;
+	vec2 i = vec2(p);
+	float c = 1.0;
+	float inten = .005;
 
-void main(){
-	gl_FragColor.xy = vec2(1.0);
-    gl_FragColor.xy = gl_FragCoord.xy*(sin(gl_FragColor*.5).w+2.)/2e2;
-    gl_FragColor = pow(min(min(F.5)),F.4))),F.3))), 6.)*25.+vec4(0,.35,.5,1);
+	for (int n = 0; n < MAX_ITER; n++) {
+		float t = time * (1.0 - (3.5 / float(n+1)));
+		i = p + vec2(cos(t - i.x) + sin(t + i.y), sin(t - i.y) + cos(t + i.x));
+		c += 1.0/length(vec2(p.x / (sin(i.x+t)/inten),p.y / (cos(i.y+t)/inten)));
+	}
+	c /= float(MAX_ITER);
+	c = 1.17-pow(c, 1.4);
+	vec3 colour = vec3(pow(abs(c), 8.0));
+    colour = clamp(colour + vec3(0.0, 0.35, 0.5), 0.0, 1.0);
+    
+	gl_FragColor = vec4(colour, 1.0);
 }
