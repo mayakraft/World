@@ -13,6 +13,9 @@
 
 unsigned char showSphere = 1;
 
+const unsigned int numPoly = 50;
+float poly[numPoly * 3];
+
 void renderStars(){
 	glPushMatrix();
 		glEnableClientState(GL_VERTEX_ARRAY);
@@ -35,7 +38,7 @@ GLuint spectrum;
 char *vertexPath1 = "shaders/simple.vert";
 char *fragmentPath1 = "shaders/fog.frag";
 char *vertexPath2 = "shaders/wobble.vert";
-char *fragmentPath2 = "shaders/worley.frag";
+char *fragmentPath2 = "shaders/water.frag";
 
 void setupLighting(){
 	GLfloat light_position1[] = { 0.0, 0.0, 10.0, 1.0 };
@@ -69,7 +72,15 @@ void setup() {
 	// GRID = 0;
 	polarPerspective(0, 0, 0);
 	lookOrientation[1] = 78;
+	lookOrientation[2] = 5*1.414;
 	spectrum = loadTexture("data/spectrum.raw", 128, 64);
+
+	int range = 10;
+	for(int i = 0; i < numPoly; i++){
+		poly[i*3+0] = random()%range - range*0.5;
+		poly[i*3+1] = random()%range - range*0.5;
+		poly[i*3+2] = random()%range - range*0.5;
+	}
 }
 void update() {
 	if(frameNum%60 == 0){ 
@@ -85,11 +96,6 @@ void update() {
 	// if(PERSPECTIVE == POLAR)
 	// 	lookOrientation[0] = frameNum * 0.1;
 }
-// void draw3D() {
-	// glUseProgram(shader);
-	// drawRect(-5,-5, 0, 10, 10);
-	// glUseProgram(0);
-// }
 void draw3D() {
 	GLfloat mat_white[] = { 1.0f, 1.0f, 1.0f, 1.0f };
 	glColor3f(1.0, 1.0, 1.0);
@@ -97,33 +103,32 @@ void draw3D() {
 		label3DAxes(5);
 		glPushMatrix();
 			glScalef(5, 5, 5);
+			glColor4f(1.0, 1.0, 1.0, 0.33);
 			drawUVSphereLines();
 		glPopMatrix();
 	}
 
 	if(showSphere){
-	glPushMatrix();
-		glCullFace(GL_BACK);
-		glEnable(GL_CULL_FACE);
-		float brightness = 1.0;
-		glColor4f(1.0, 1.0, 1.0, brightness);
-		glTranslatef(0, 0, 1);
-		glBindTexture(GL_TEXTURE_2D, spectrum);
-		glScalef(-1.0, 1.0, -1.0);
-		drawSphere(0, 0, 0, 0.5);
-		glBindTexture (GL_TEXTURE_2D, 0);
-		glDisable(GL_CULL_FACE);
-	glPopMatrix();
+		glPushMatrix();
+			glCullFace(GL_BACK);
+			glEnable(GL_CULL_FACE);
+			float brightness = 1.0;
+			glColor4f(1.0, 1.0, 1.0, brightness);
+			glBindTexture(GL_TEXTURE_2D, spectrum);
+			glScalef(-1.0, 1.0, -1.0);
+			drawSphere(0, 0, 0, 0.5);
+			glBindTexture (GL_TEXTURE_2D, 0);
+			glDisable(GL_CULL_FACE);
+		glPopMatrix();
 	}
 
 	glUseProgram(shader2);
 
 	glPushMatrix();
 		glRotatef(frameNum*0.5, 0,1,0);
-		float sqW = 6;
+		float sqW = 16;
 		drawRect(-sqW*0.5, -sqW*0.5, -0.01, sqW, sqW);
 	glPopMatrix();
-
 
 	glUseProgram(shader);
 
@@ -132,47 +137,23 @@ void draw3D() {
 		renderStars();
 	glPopMatrix();
 
-	glPushMatrix();
-		glTranslatef(4,4,1);
-		drawPlatonicSolidFaces(0);
-	glPopMatrix();
-	glPushMatrix();
-		glTranslatef(-4,4,1);
-		drawPlatonicSolidFaces(1);
-	glPopMatrix();
-	glPushMatrix();
-		glTranslatef(-4,-4,1);
-		drawPlatonicSolidFaces(3);
-	glPopMatrix();
-	glPushMatrix();
-		glTranslatef(4,-4,1);
-		drawPlatonicSolidFaces(4);
-	glPopMatrix();
+	for(int i = 0; i < numPoly; i++){
+		glPushMatrix();
+			glTranslatef(poly[i*3+0], poly[i*3+1], poly[i*3+2] );
+			drawPlatonicSolidFaces(3);
+		glPopMatrix();
+	}
 	glUseProgram(0);
 
-glLineWidth(2);
-	glPushMatrix();
-		glTranslatef(4,4,1);
-		glScalef(1.001, 1.001, 1.001);
-		drawPlatonicSolidLines(0);
-	glPopMatrix();
-	glPushMatrix();
-		glTranslatef(-4,4,1);
-		glScalef(1.001, 1.001, 1.001);
-		drawPlatonicSolidLines(1);
-	glPopMatrix();
-	glPushMatrix();
-		glTranslatef(-4,-4,1);
-		glScalef(1.001, 1.001, 1.001);
-		drawPlatonicSolidLines(3);
-	glPopMatrix();
-	glPushMatrix();
-		glTranslatef(4,-4,1);
-		glScalef(1.001, 1.001, 1.001);
-		drawPlatonicSolidLines(4);
-	glPopMatrix();
-glLineWidth(1);
-
+	glLineWidth(2);
+	for(int i = 0; i < numPoly; i++){
+		glPushMatrix();
+			glTranslatef(poly[i*3+0], poly[i*3+1], poly[i*3+2] );
+			glScalef(1.001, 1.001, 1.001);
+			drawPlatonicSolidLines(3);
+		glPopMatrix();
+	}
+	glLineWidth(1);
 }
 void draw2D() { }
 void keyDown(unsigned int key) { 

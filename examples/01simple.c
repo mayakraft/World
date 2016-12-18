@@ -53,6 +53,7 @@ void setup() {
 	// setupLighting();
 	polarPerspective(0, 0, 0);
 	lookOrientation[1] = 78;
+	lookOrientation[2] = 5*1.414;
 }
 void update() { 
 	static float ROT_SPEED = 0.001;
@@ -61,8 +62,8 @@ void update() {
 	makeMat4XRot(rot1, originY * ROT_SPEED);
 	makeMat4YRot(rot2, originX * ROT_SPEED);
 	mat4x4Mult(rot1, rot2, matrix);
-	if(PERSPECTIVE == POLAR)
-		lookOrientation[0] = frameNum * 0.1;
+	// if(PERSPECTIVE == POLAR)
+	// 	lookOrientation[0] = frameNum * 0.1;
 }
 void draw3D() {
 	GLfloat mat_white[] = { 1.0f, 1.0f, 1.0f, 1.0f };
@@ -71,6 +72,7 @@ void draw3D() {
 		label3DAxes(5);
 		glPushMatrix();
 			glScalef(5, 5, 5);
+			glColor4f(1.0, 1.0, 1.0, 0.33);
 			drawUVSphereLines();
 		glPopMatrix();
 	}

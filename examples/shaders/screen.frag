@@ -55,11 +55,18 @@ void main(){
 	float padding = 0.0;//frame(0.125) * 0.15;
 
 
-	float brightness = 0.5;
+	float brightness = 0.66;
 
 	vec4 color = vec4(0.0, 0.0, 0.0, 0.0);
 	// color += vec4(vec3(0.0, 0.0, 0.0), 0.0);
-	color += vec4(vec3(1.0), clamp( brightness*(xLine + xAspectLine + circle + frameLine + padding), 0.0, 1.0));
+	float redO = clamp( brightness*( circle ), 0.0, 1.0);
+	float greenO = brightness*( xLine + xAspectLine );//clamp( brightness*( xLine + xAspectLine ), 0.0, 1.0);
+	// color += vec4(1.0, 0.0, 0.0, redO);
+	// color += vec4(0.0, 1.0, 0.0, greenO);
+	// color += vec4(0.0, 0.0, 1.0, blueO);
+
+	color += vec4(redO, 0.0, 0.0, redO);
+	color += vec4(0.0, greenO, 0.0, greenO);
 
 	gl_FragColor = color;
 }

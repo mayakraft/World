@@ -15,11 +15,12 @@ char *vertexPath = "shaders/simple.vert";
 char *fragmentPath = "shaders/screen.frag";
 
 void setup() {
-	glutReshapeWindow(400, 400);
+	// glutReshapeWindow(400, 400);
 	// hideHelpfulOrientation();
 	shader = loadShader( vertexPath, fragmentPath );
 	polarPerspective(0, 0, 0);
 	GROUND = 0;
+	GRID = 0;
 	lookOrientation[0] = 90;
 	lookOrientation[1] = 90;
 	lookOrientation[2] = 1.414;
@@ -32,9 +33,10 @@ void update() {
 }
 void draw3D() {
 	glColor3f(1.0, 1.0, 1.0);
-	label3DAxes(5);
+	label3DAxes(1);
 
-	glColor4f(1.0, 0.16, 0.16, 1.0);
+	// glColor4f(1.0, 0.16, 0.16, 1.0);
+	glColor4f(1.0, 1.0, 1.0, 1.0);
 	draw3DAxesLines(0,0,0,1);
 
 	glColor4f(0.33, 0.66, 1.0, 0.5);

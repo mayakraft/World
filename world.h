@@ -300,7 +300,7 @@ void display(){
 			float newX = modulusContext(-originX, 2);
 			float newY = modulusContext(-originY, 2);
 			glTranslatef(newX, newY, -originZ);
-			drawCheckerboard(newX, newY, 2);
+			drawCheckerboard(newX, newY, 6);
 			glPopMatrix();
 		}
 	glPopMatrix();
