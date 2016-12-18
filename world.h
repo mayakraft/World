@@ -229,7 +229,7 @@ void rebuildProjection(){
 }
 void firstPersonPerspective(){
 	PERSPECTIVE = FPP;
-	float a = (float)WIDTH / HEIGHT;
+	float a = (float)max(WIDTH, HEIGHT) / min(WIDTH, HEIGHT);
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
 	glFrustum (-FOV, FOV, -FOV/a, FOV/a, NEAR_CLIP, FAR_CLIP);
