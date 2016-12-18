@@ -124,6 +124,8 @@ void drawPlatonicSolidPoints(char solidType);
 void drawCheckerboard(float walkX, float walkY, int numSquares);
 void drawAxesGrid(float walkX, float walkY, float walkZ, int span, int repeats);
 float modulusContext(float complete, int modulus);
+float min(float one, float two);
+float max(float one, float two);
 // more
 time_t elapsedSeconds();
 GLuint loadTexture(const char * filename, int width, int height);
@@ -216,6 +218,7 @@ void reshapeWindow(int windowWidth, int windowHeight){
 	// orthoFrame[2] = WIDTH;
 	// orthoFrame[3] = HEIGHT;
 	rebuildProjection();
+	updateWorld();
 }
 void rebuildProjection(){
 	switch(PERSPECTIVE){
@@ -229,10 +232,11 @@ void rebuildProjection(){
 }
 void firstPersonPerspective(){
 	PERSPECTIVE = FPP;
-	float a = (float)max(WIDTH, HEIGHT) / min(WIDTH, HEIGHT);
+	float a = (float)min(WIDTH, HEIGHT) / max(WIDTH, HEIGHT);
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
-	glFrustum (-FOV, FOV, -FOV/a, FOV/a, NEAR_CLIP, FAR_CLIP);
+	if(WIDTH < HEIGHT) glFrustum (-FOV, FOV, -FOV/a, FOV/a, NEAR_CLIP, FAR_CLIP);
+	else               glFrustum (-FOV/a, FOV/a, -FOV, FOV, NEAR_CLIP, FAR_CLIP);
 	// change POV
 	glRotatef(-lookOrientation[1], 1, 0, 0);
 	glRotatef(-lookOrientation[0], 0, 0, 1);
@@ -245,10 +249,11 @@ void polarPerspective(float x, float y, float z){
 	polarLookAt[0] = x;
 	polarLookAt[1] = y;
 	polarLookAt[2] = z;
-	float a = (float)WIDTH / HEIGHT;
+	float a = (float)min(WIDTH, HEIGHT) / max(WIDTH, HEIGHT);
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
-	glFrustum (-FOV, FOV, -FOV/a, FOV/a, NEAR_CLIP, FAR_CLIP);
+	if(WIDTH < HEIGHT) glFrustum (-FOV, FOV, -FOV/a, FOV/a, NEAR_CLIP, FAR_CLIP);
+	else               glFrustum (-FOV/a, FOV/a, -FOV, FOV, NEAR_CLIP, FAR_CLIP);
 	// change POV
 	glTranslatef(0, 0, -lookOrientation[2]);
 	glRotatef(-lookOrientation[1], 1, 0, 0);
@@ -295,7 +300,7 @@ void display(){
 			float newX = modulusContext(-originX, 2);
 			float newY = modulusContext(-originY, 2);
 			glTranslatef(newX, newY, -originZ);
-			drawCheckerboard(newX, newY, 6);
+			drawCheckerboard(newX, newY, 2);
 			glPopMatrix();
 		}
 	glPopMatrix();
@@ -737,10 +742,10 @@ void drawUVSphereLines(){
 	float a2 = 0.166;
 	glPushMatrix();
 		// equator
-		glColor4f(1.0, 1.0, 1.0, a1);
+		// glColor4f(1.0, 1.0, 1.0, a1);
 			drawUnitCircle(0, 0, 0);
 		// latitude
-		glColor4f(1.0, 1.0, 1.0, a2);
+		// glColor4f(1.0, 1.0, 1.0, a2);
 		for(float pos = 1.0/3; pos < 1.0; pos += 1.0/3){
 			glPushMatrix();
 				float r = cosf(pos*M_PI*0.5);
@@ -751,24 +756,24 @@ void drawUVSphereLines(){
 			glPopMatrix();
 		}
 		// longitude
-		glColor4f(1.0, 1.0, 1.0, a1);
+		// glColor4f(1.0, 1.0, 1.0, a1);
 			glRotatef(90, 0, 1, 0);
 			drawUnitCircle(0, 0, 0);
-		glColor4f(1.0, 1.0, 1.0, a2);
+		// glColor4f(1.0, 1.0, 1.0, a2);
 			glRotatef(30, 1, 0, 0);
 			drawUnitCircle(0, 0, 0);
 			glRotatef(30, 1, 0, 0);
 			drawUnitCircle(0, 0, 0);
-		glColor4f(1.0, 1.0, 1.0, a1);
+		// glColor4f(1.0, 1.0, 1.0, a1);
 			glRotatef(30, 1, 0, 0);
 			drawUnitCircle(0, 0, 0);
-		glColor4f(1.0, 1.0, 1.0, a2);
+		// glColor4f(1.0, 1.0, 1.0, a2);
 			glRotatef(30, 1, 0, 0);
 			drawUnitCircle(0, 0, 0);
 			glRotatef(30, 1, 0, 0);
 			drawUnitCircle(0, 0, 0);
 	glPopMatrix();
-	glColor4f(1.0, 1.0, 1.0, 1.0);
+	// glColor4f(1.0, 1.0, 1.0, 1.0);
 }
 const float _tetrahedron_points[12] = {1.0,0.0,0.0,-0.3333,-0.9428,0.0,-0.3333,0.4714,0.81649,-0.3333,0.4714,-0.8164};
 const unsigned short _tetrahedron_lines[12] = {2,3,2,0,2,1,3,0,3,1,0,1};
@@ -1002,6 +1007,14 @@ float modulusContext(float complete, int modulus){
 	double wholePart;
 	double fracPart = modf(complete, &wholePart);
 	return ( ((int)wholePart) % modulus ) + fracPart;
+}
+float min(float one, float two){
+	if(one > two) return two;
+	return one;
+}
+float max(float one, float two){
+	if(one < two) return two;
+	return one;
 }
 // MATRICES
 unsigned char mat4Inverse(const float m[16], float inverse[16]){

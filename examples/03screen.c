@@ -32,11 +32,13 @@ void update() {
 }
 void draw3D() {
 	glColor3f(1.0, 1.0, 1.0);
-	// drawPlatonicSolidLines(3);
 	label3DAxes(5);
-	glColor4f(1.0, 1.0, 1.0, 0.5);
-	drawUVSphereLines();
 
+	glColor4f(1.0, 0.16, 0.16, 1.0);
+	draw3DAxesLines(0,0,0,1);
+
+	glColor4f(0.33, 0.66, 1.0, 0.5);
+	drawUVSphereLines();
 }
 void draw2D() {
 	glColor4f(1.0, 1.0, 1.0, 1.0);
