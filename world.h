@@ -66,7 +66,6 @@ static float originZ = 0.0f;
 static float originDX = 0.0f;
 static float originDY = 0.0f;
 static float originDZ = 0.0f;
-static float ZOOM = 7.0f;  // POLAR PERSPECTIVE    // zoom scale, converted to logarithmic
 static float ZOOM_RADIX = 3;
 static unsigned char GROUND = 1;  // a 2D grid
 static unsigned char GRID = 1;    // a 3D grid
@@ -75,7 +74,7 @@ enum{  FPP,  POLAR,  ORTHO  } ; // first persion, polar, orthographic
 static unsigned char PERSPECTIVE = FPP;  // initialize point of view in this state
 // details of each perspective
 float polarLookAt[3] = {0.0f, 0.0f, 0.0f}; // x, y, z  // location of the eye
-float lookOrientation[3] = {0.0f, 0.0f, 0.0f}; // azimuth, altitude, zoom/FOV
+float lookOrientation[3] = {0.0f, 0.0f, 7.0f}; // azimuth, altitude, zoom/FOV (log)
 float orthoFrame[4] = {0.0f, 0.0f, 4.0f, 3.0f}; // x, y, width, height
 // time
 static time_t startTime;
@@ -251,7 +250,7 @@ void polarPerspective(float x, float y, float z){
 	glLoadIdentity();
 	glFrustum (-FOV, FOV, -FOV/a, FOV/a, NEAR_CLIP, FAR_CLIP);
 	// change POV
-	glTranslatef(0, 0, -ZOOM);
+	glTranslatef(0, 0, -lookOrientation[2]);
 	glRotatef(-lookOrientation[1], 1, 0, 0);
 	glRotatef(-lookOrientation[0], 0, 0, 1);
 	glTranslatef(x, y, z);
@@ -323,13 +322,13 @@ void updateWorld(){
 	// keyboard input
 	moveOriginWithArrowKeys();
 	if(keyboard[MINUS_KEY]){
-		ZOOM += ZOOM_SPEED;
+		lookOrientation[2] += ZOOM_SPEED;
 		rebuildProjection();
 	}
 	if(keyboard[PLUS_KEY]){
-		ZOOM -= ZOOM_SPEED;
-		if(ZOOM < 0)
-			ZOOM = 0;
+		lookOrientation[2] -= ZOOM_SPEED;
+		if(lookOrientation[2] < 0)
+			lookOrientation[2] = 0;
 		rebuildProjection();
 	}
 	update();
@@ -931,6 +930,16 @@ void initPrimitives(){
 	}
 }
 /////////////////////////        HELPFUL ORIENTATION         //////////////////////////
+void worldInfo(){
+	switch(PERSPECTIVE){
+		case FPP:   text("First Person Perspective", 0, 10, 0); break;
+		case POLAR: text("Polar Perspective", 0, 10, 0); break;
+		case ORTHO: text("Orthographic Perspective", 0, 10, 0); break;
+	}
+	char string[50];
+	sprintf(string, "(%.2f, %.2f, %.2f)", lookOrientation[0], lookOrientation[1], lookOrientation[2]);   
+	text(string, 0, 10+13*1, 0);
+}
 void hideHelpfulOrientation(){
 	GROUND = GRID = 0;
 }

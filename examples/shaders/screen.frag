@@ -49,10 +49,11 @@ void main(){
 	float xLine = X(1.0);
 	float xAspectLine = aspectX(1.0);
 	float circle = circle(0.5, 0.001);
-	float f = frame(0.25-0.0015);
-	float s = frameHole(0.25+0.0015);
+	float f = frame(0.125-0.0015);
+	float s = frameHole(0.125+0.0015);
 	float frameLine = float(!bool(f) && !bool(s));
-	float padding = frame(0.033);
+	float padding = 0.0;//frame(0.125) * 0.15;
+
 
 	float brightness = 0.5;
 
