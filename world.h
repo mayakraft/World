@@ -45,7 +45,7 @@ void mouseMoved(int x, int y);
 #define CONTINUOUS_REFRESH 1  // (0) = maximum efficiency, screen can redraw only upon receiving input
 static float MOUSE_SENSITIVITY = 0.333f;
 static float WALK_INTERVAL = 0.077f;  // WALKING SPEED. @ 60 UPS (updates/sec), walk speed (units/sec) = INTERVAL * UPS
-static float ZOOM_SPEED = 0.4f;
+static float ZOOM_SPEED = 0.05f;
 // WINDOW size upon boot
 static int WIDTH = 800;  // (readonly) set these values here
 static int HEIGHT = 600; // (readonly) setting during runtime will not re-size window
@@ -300,7 +300,7 @@ void display(){
 			float newX = modulusContext(-originX, 2);
 			float newY = modulusContext(-originY, 2);
 			glTranslatef(newX, newY, -originZ);
-			drawCheckerboard(newX, newY, 6);
+			drawCheckerboard(newX, newY, 8);
 			glPopMatrix();
 		}
 	glPopMatrix();
@@ -935,15 +935,20 @@ void initPrimitives(){
 	}
 }
 /////////////////////////        HELPFUL ORIENTATION         //////////////////////////
-void worldInfo(){
+void worldInfoText(int x, int y, int z){
 	switch(PERSPECTIVE){
-		case FPP:   text("First Person Perspective", 0, 10, 0); break;
-		case POLAR: text("Polar Perspective", 0, 10, 0); break;
-		case ORTHO: text("Orthographic Perspective", 0, 10, 0); break;
+		case FPP:   text("First Person Perspective", x, y, z); break;
+		case POLAR: text("Polar Perspective", x, y, z); break;
+		case ORTHO: text("Orthographic Perspective", x, y, z); break;
 	}
-	char string[50];
+	char string[35];
 	sprintf(string, "(%.2f, %.2f, %.2f)", lookOrientation[0], lookOrientation[1], lookOrientation[2]);   
-	text(string, 0, 10+13*1, 0);
+	text(string, x, y+13*1, z);
+	if(PERSPECTIVE == ORTHO){
+		char frameString[50];
+		sprintf(frameString, "%d, %d, %d, %d", (int)orthoFrame[0], (int)orthoFrame[1], (int)orthoFrame[2], (int)orthoFrame[3] );
+		text(frameString, x, y+13*2, z);
+	}
 }
 void hideHelpfulOrientation(){
 	GROUND = GRID = 0;
@@ -1044,26 +1049,32 @@ unsigned char mat4Inverse(const float m[16], float inverse[16]){
 		inverse[i] = inv[i]*det;
 	return 1;
 }
-void mat4x4Mult(const float *a, const float *b, float *c){
-	c[0] = a[0] * b[0] + a[1] * b[4] + a[2] * b[8] + a[3] * b[12]; 
-	c[1] = a[0] * b[1] + a[1] * b[5] + a[2] * b[9] + a[3] * b[13]; 
-	c[2] = a[0] * b[2] + a[1] * b[6] + a[2] * b[10] + a[3] * b[14]; 
-	c[3] = a[0] * b[3] + a[1] * b[7] + a[2] * b[11] + a[3] * b[15]; 
-	c[4] = a[4] * b[0] + a[5] * b[4] + a[6] * b[8] + a[7] * b[12]; 
-	c[5] = a[4] * b[1] + a[5] * b[5] + a[6] * b[9] + a[7] * b[13]; 
-	c[6] = a[4] * b[2] + a[5] * b[6] + a[6] * b[10] + a[7] * b[14]; 
-	c[7] = a[4] * b[3] + a[5] * b[7] + a[6] * b[11] + a[7] * b[15]; 
-	c[8] = a[8] * b[0] + a[9] * b[4] + a[10] * b[8] + a[11] * b[12]; 
-	c[9] = a[8] * b[1] + a[9] * b[5] + a[10] * b[9] + a[11] * b[13]; 
-	c[10] = a[8] * b[2] + a[9] * b[6] + a[10] * b[10] + a[11] * b[14]; 
-	c[11] = a[8] * b[3] + a[9] * b[7] + a[10] * b[11] + a[11] * b[15]; 
-	c[12] = a[12] * b[0] + a[13] * b[4] + a[14] * b[8] + a[15] * b[12]; 
-	c[13] = a[12] * b[1] + a[13] * b[5] + a[14] * b[9] + a[15] * b[13]; 
-	c[14] = a[12] * b[2] + a[13] * b[6] + a[14] * b[10] + a[15] * b[14]; 
-	c[15] = a[12] * b[3] + a[13] * b[7] + a[14] * b[11] + a[15] * b[15]; 
+void mat4x4MultUnique(const float *a, const float *b, float *result){
+	// this is counting on a or b != result   eg: cannot do mat4x4MultUnique(a, b, a);
+	result[0] = a[0] * b[0] + a[1] * b[4] + a[2] * b[8] + a[3] * b[12];
+	result[1] = a[0] * b[1] + a[1] * b[5] + a[2] * b[9] + a[3] * b[13];
+	result[2] = a[0] * b[2] + a[1] * b[6] + a[2] * b[10] + a[3] * b[14];
+	result[3] = a[0] * b[3] + a[1] * b[7] + a[2] * b[11] + a[3] * b[15];
+	result[4] = a[4] * b[0] + a[5] * b[4] + a[6] * b[8] + a[7] * b[12];
+	result[5] = a[4] * b[1] + a[5] * b[5] + a[6] * b[9] + a[7] * b[13];
+	result[6] = a[4] * b[2] + a[5] * b[6] + a[6] * b[10] + a[7] * b[14];
+	result[7] = a[4] * b[3] + a[5] * b[7] + a[6] * b[11] + a[7] * b[15];
+	result[8] = a[8] * b[0] + a[9] * b[4] + a[10] * b[8] + a[11] * b[12];
+	result[9] = a[8] * b[1] + a[9] * b[5] + a[10] * b[9] + a[11] * b[13];
+	result[10] = a[8] * b[2] + a[9] * b[6] + a[10] * b[10] + a[11] * b[14];
+	result[11] = a[8] * b[3] + a[9] * b[7] + a[10] * b[11] + a[11] * b[15];
+	result[12] = a[12] * b[0] + a[13] * b[4] + a[14] * b[8] + a[15] * b[12];
+	result[13] = a[12] * b[1] + a[13] * b[5] + a[14] * b[9] + a[15] * b[13];
+	result[14] = a[12] * b[2] + a[13] * b[6] + a[14] * b[10] + a[15] * b[14];
+	result[15] = a[12] * b[3] + a[13] * b[7] + a[14] * b[11] + a[15] * b[15];
 }
-void mat4x4MultFast(const float *a, const float *b, float *result){
-	// this is counting on a != b != c   eg: cannot do mat4x4MultFast(a, b, a);
+void mat4x4Mult(const float *a, const float *b, float *result) {
+	float c[16];
+	mat4x4MultUnique(a, b, c);
+	memcpy(result, c, sizeof(float)*16);
+}
+void mat3x3MultUnique(const float *a, const float *b, float *result){
+	// this is counting on a or b != result   eg: cannot do mat3x3MultUnique(a, b, a);
 	result[0] = a[0] * b[0] + a[1] * b[3] + a[2] * b[6];
 	result[1] = a[0] * b[1] + a[1] * b[4] + a[2] * b[7];
 	result[2] = a[0] * b[2] + a[1] * b[5] + a[2] * b[8];
@@ -1075,9 +1086,9 @@ void mat4x4MultFast(const float *a, const float *b, float *result){
 	result[8] = a[6] * b[2] + a[7] * b[5] + a[8] * b[8];
 }
 void mat3x3Mult(const float *a, const float *b, float *result) {
-	float c[16];
-	mat4x4MultFast(a, b, c);
-	memcpy(result, c, sizeof(float)*16);
+	float c[9];
+	mat3x3MultUnique(a, b, c);
+	memcpy(result, c, sizeof(float)*9);
 }
 void makeMat3XRot(float *m, float angle){
 	m[0] = 1;	m[1] = 0;			m[2] = 0;

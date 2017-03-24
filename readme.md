@@ -29,7 +29,7 @@ void mouseUp(unsigned int button){ }
 void mouseMoved(int x, int y){ }
 ```
 
-# features
+# usage
 
 ```c
 setup(){
@@ -45,12 +45,16 @@ update(){
 
 ```c
 draw3D(){
-	// runs every frame, after update()
+	// runs every frame, called just after update()
 }
 draw2D(){
 	// a 2D overlay, the last thing to be drawn
 }
 ```
+
+* `keyboard[256]` an array of boolean values (unsigned char) that map directly to ascii values. Query an item to find whether a keyboard key is pressed (1) or unpressed (0).
+
+`keyboard[' ']` will contain `1` if space bar is pressed
 
 * `P` switch perspectives (first person, polar, and orthographic perspectives)
 * `G` 2D ground (2D infinitely-repeating scenery)

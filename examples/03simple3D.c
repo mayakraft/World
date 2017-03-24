@@ -50,7 +50,7 @@ void setup() {
 	texture = loadTexture("../examples/data/texture.raw", 32, 32);
 	spectrum = loadTextureSmooth("../examples/data/spectrum.raw", 128, 64);
 	setMat4Identity(matrix);
-	// setupLighting();
+	setupLighting();
 	polarPerspective(0, 0, 0);
 	lookOrientation[1] = 78;
 	lookOrientation[2] = 5*1.414;
@@ -66,12 +66,15 @@ void update() {
 	// 	lookOrientation[0] = frameNum * 0.1;
 }
 void draw3D() {
+	glDisable(GL_LIGHTING);
+
 	GLfloat mat_white[] = { 1.0f, 1.0f, 1.0f, 1.0f };
 	glColor3f(1.0, 1.0, 1.0);
 	if(GRID){
+		glColor4f(1.0, 1.0, 1.0, 1.0);
 		label3DAxes(5);
 		glPushMatrix();
-			glScalef(5, 5, 5);
+			glScalef(100, 100, 100);
 			glColor4f(1.0, 1.0, 1.0, 0.33);
 			drawUVSphereLines();
 		glPopMatrix();
@@ -88,7 +91,7 @@ void draw3D() {
 		glEnable(GL_CULL_FACE);
 		float brightness = 1.0;
 		glColor4f(1.0, 1.0, 1.0, brightness);
-		glTranslatef(0, 0, 1);
+		glTranslatef(0, 0, 1.5 + 1.0 * sinf(frameNum*0.01) );
 		glBindTexture(GL_TEXTURE_2D, spectrum);
 		glScalef(-1.0, 1.0, -1.0);
 		drawSphere(0, 0, 0, 0.5);
@@ -96,22 +99,24 @@ void draw3D() {
 		glDisable(GL_CULL_FACE);
 	glPopMatrix();
 
-	glPushMatrix();
-		glTranslatef(4,4,1);
-		drawPlatonicSolidLines(0);
-	glPopMatrix();
-	glPushMatrix();
-		glTranslatef(-4,4,1);
-		drawPlatonicSolidLines(1);
-	glPopMatrix();
-	glPushMatrix();
-		glTranslatef(-4,-4,1);
-		drawPlatonicSolidLines(3);
-	glPopMatrix();
-	glPushMatrix();
-		glTranslatef(4,-4,1);
-		drawPlatonicSolidLines(4);
-	glPopMatrix();
+	// glPushMatrix();
+	// 	glTranslatef(4,4,1);
+	// 	drawPlatonicSolidLines(0);
+	// glPopMatrix();
+	// glPushMatrix();
+	// 	glTranslatef(-4,4,1);
+	// 	drawPlatonicSolidLines(1);
+	// glPopMatrix();
+	// glPushMatrix();
+	// 	glTranslatef(-4,-4,1);
+	// 	drawPlatonicSolidLines(3);
+	// glPopMatrix();
+	// glPushMatrix();
+	// 	glTranslatef(4,-4,1);
+	// 	drawPlatonicSolidLines(4);
+	// glPopMatrix();
+		glEnable(GL_LIGHTING);
+
 }
 void draw2D() {
 	if(showOverlay){
@@ -125,26 +130,8 @@ void draw2D() {
 		glPopMatrix();
 		glDisable(GL_BLEND);
 	}
-	switch(PERSPECTIVE){
-		case FPP: {
-			char locationString[50];
-			sprintf(locationString, "%d, %d, %d", (int)originX, (int)originY, (int)originZ );
-			text(locationString, 4, 18, 0);
-		}
-		break;
-		case POLAR:{
-			char orientationString[50];
-			sprintf(orientationString, "%d, %d, %d", (int)lookOrientation[0], (int)lookOrientation[1], (int)lookOrientation[2] );
-			text(orientationString, 4, 18, 0);
-		}
-		break;
-		case ORTHO:{
-			char frameString[50];
-			sprintf(frameString, "%d, %d, %d, %d", (int)orthoFrame[0], (int)orthoFrame[1], (int)orthoFrame[2], (int)orthoFrame[3] );
-			text(frameString, 4, 18, 0);
-		}
-		break;
-	}
+	worldInfoText(0, 10, 0);
+
 }
 void keyDown(unsigned int key) { 
 	if(key == ' '){
