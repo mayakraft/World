@@ -29,10 +29,10 @@ void setup() {
 	shader = loadShader( vertexPath, fragmentList[selection] );
 }
 void update() {
-	if(frameNum%60 == 0){ if(autoReload) shader = loadShader( vertexPath, fragmentList[selection] ); }
+	if(frame%60 == 0){ if(autoReload) shader = loadShader( vertexPath, fragmentList[selection] ); }
 	float resolution[2] = {WIDTH, HEIGHT};
 	setShaderUniformVec2f(shader, "u_resolution", resolution);
-	setShaderUniform1f(shader, "u_time", frameNum/60.0);
+	setShaderUniform1f(shader, "u_time", frame/60.0);
 }
 void draw3D() { }
 void draw2D() {

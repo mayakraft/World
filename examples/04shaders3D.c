@@ -83,18 +83,18 @@ void setup() {
 	}
 }
 void update() {
-	if(frameNum%60 == 0){ 
+	if(frame%60 == 0){ 
 		shader = loadShader(  vertexPath1, fragmentPath1 );
 		shader2 = loadShader( vertexPath2, fragmentPath2 );
 	}
 
-	float frame[2] = {WIDTH, HEIGHT};
-	setShaderUniform1f(shader, "u_time", frameNum/60.0);
-	setShaderUniform1f(shader2, "u_time", frameNum/60.0);
-	setShaderUniformVec2f(shader, "u_resolution", frame);
-	setShaderUniformVec2f(shader2, "u_resolution", frame);
+	float rect[2] = {WIDTH, HEIGHT};
+	setShaderUniform1f(shader, "u_time", frame/60.0);
+	setShaderUniform1f(shader2, "u_time", frame/60.0);
+	setShaderUniformVec2f(shader, "u_resolution", rect);
+	setShaderUniformVec2f(shader2, "u_resolution", rect);
 	// if(PERSPECTIVE == POLAR)
-	// 	lookOrientation[0] = frameNum * 0.1;
+	// 	lookOrientation[0] = frame * 0.1;
 }
 void draw3D() {
 	GLfloat mat_white[] = { 1.0f, 1.0f, 1.0f, 1.0f };
@@ -125,7 +125,7 @@ void draw3D() {
 	glUseProgram(shader2);
 
 	glPushMatrix();
-		glRotatef(frameNum*0.5, 0,1,0);
+		glRotatef(frame*0.5, 0,1,0);
 		float sqW = 16;
 		drawRect(-sqW*0.5, -sqW*0.5, -0.01, sqW, sqW);
 	glPopMatrix();

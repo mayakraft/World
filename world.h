@@ -77,8 +77,9 @@ float polarLookAt[3] = {0.0f, 0.0f, 0.0f}; // x, y, z  // location of the eye
 float lookOrientation[3] = {0.0f, 0.0f, 7.0f}; // azimuth, altitude, zoom/FOV (log)
 float orthoFrame[4] = {0.0f, 0.0f, 4.0f, 3.0f}; // x, y, width, height
 // time
-static time_t startTime;
-static unsigned long frameNum;
+static unsigned long frame;
+struct timespec startTime, currentTime;
+static float elapsed;
 
 // TABLE OF CONTENTS:
 int main(int argc, char **argv);  // initialize Open GL context
@@ -127,7 +128,6 @@ float modulusContext(float complete, int modulus);
 float min(float one, float two);
 float max(float one, float two);
 // more
-time_t elapsedSeconds();
 GLuint loadTexture(const char * filename, int width, int height);
 void text(const char *text, float x, float y, float z);
 // preload for geometry primitives
@@ -182,8 +182,8 @@ int main(int argc, char **argv){
 	orthoFrame[3] = HEIGHT;
 
 	memset(keyboard,0,256);
-	startTime = time(NULL);
-	frameNum = 0;
+	clock_gettime(CLOCK_MONOTONIC, &startTime);
+	frame = 0;
 	initPrimitives();
 	time_t t;
 	srand((unsigned) time(&t));
@@ -194,9 +194,6 @@ int main(int argc, char **argv){
 	// begin main loop
 	glutMainLoop();
 	return 0;
-}
-time_t elapsedSeconds(){
-	return time(NULL) - startTime;
 }
 void typicalOpenGLSettings(){
 	firstPersonPerspective();
@@ -323,7 +320,10 @@ void display(){
 	// glFlush();
 }
 void updateWorld(){
-	frameNum += 1;
+	frame += 1;
+	clock_gettime(CLOCK_MONOTONIC, &currentTime);
+	elapsed = (currentTime.tv_sec - startTime.tv_sec);
+	elapsed += (currentTime.tv_nsec - startTime.tv_nsec) / 1000000000.0;
 	// keyboard input
 	moveOriginWithArrowKeys();
 	if(keyboard[MINUS_KEY]){
@@ -1021,6 +1021,8 @@ float max(float one, float two){
 	if(one < two) return two;
 	return one;
 }
+#ifndef LINEAR_ALGEBRA
+#define LINEAR_ALGEBRA
 // MATRICES
 unsigned char mat4Inverse(const float m[16], float inverse[16]){
 	float inv[16], det;
@@ -1090,6 +1092,27 @@ void mat3x3Mult(const float *a, const float *b, float *result) {
 	mat3x3MultUnique(a, b, c);
 	memcpy(result, c, sizeof(float)*9);
 }
+void mat3ToMat4(float *i, float *result){
+	result[0] = i[0];   result[1] = i[1];   result[2] = i[2];   result[3] = 0.0f;
+	result[4] = i[3];   result[5] = i[4];   result[6] = i[5];   result[7] = 0.0f;
+	result[8] = i[6];   result[9] = i[7];   result[10] = i[8];  result[11] = 0.0f;
+	result[12] = 0.0f;  result[13] = 0.0f;  result[14] = 0.0f;  result[15] = 1.0f;
+}
+void mat4Transpose(float *m) {
+	float t[16];
+	t[0] = m[0];   t[1] = m[4];   t[2] = m[8];   t[3] = m[12];
+	t[4] = m[1];   t[5] = m[5];   t[6] = m[9];   t[7] = m[13];
+	t[8] = m[2];   t[9] = m[6];   t[10] = m[10]; t[11] = m[14];
+	t[12] = m[3];  t[13] = m[7];  t[14] = m[11]; t[15] = m[15];
+	memcpy(m, t, sizeof(float)*16);
+}
+void mat3Transpose(float *m) {
+	float t[9];
+	t[0] = m[0];  t[1] = m[3];  t[2] = m[6];
+	t[3] = m[1];  t[4] = m[4];  t[5] = m[7];
+	t[6] = m[2];  t[7] = m[5];  t[8] = m[8];
+	memcpy(m, t, sizeof(float)*9);
+}
 void makeMat3XRot(float *m, float angle){
 	m[0] = 1;	m[1] = 0;			m[2] = 0;
 	m[3] = 0;	m[4] = cos(angle);	m[5] = -sin(angle);
@@ -1152,4 +1175,5 @@ void mat3Vec3Mult(const float m[9], const float v[3], float result[3]){
 	result[1] = m[3] * v[0] + m[4] * v[1] + m[5] * v[2];
 	result[2] = m[6] * v[0] + m[7] * v[1] + m[8] * v[2];
 }
+#endif /* LINEAR_ALGEBRA */
 #endif /* WORLD_FRAMEWORK */
