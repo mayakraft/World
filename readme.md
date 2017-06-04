@@ -1,19 +1,10 @@
 # OpenGL basic world + interface
 
-![example](https://66.media.tumblr.com/a54164176d27d4c5d888c5ee58f52318/tumblr_odgrd3iDGu1vfq168o1_500.gif)
+this is a hyper minimalist (1 file) framework to bring the Processing coding design paradigm to ANSI C (Mac, Linux, Windows-Cygwin) including 3D graphics, textures, shaders, and user input.
 
-this is a hyper minimalist (1 file) framework for graphics and user input (keyboard, mouse) following the OpenFrameworks / Processing design paradigm
+# introduction
 
-### Cross platform: Mac, Linux, Windows (cygwin)
-
-Mac / Linux tested. Windows machines might need to install GLUT.
-
-# try it out
-type `make` then `make run`
-
-# setup
-
-create an empty .c file containing:
+create a .c file with the following:
 
 ```c
 #include "world.h"
@@ -29,32 +20,53 @@ void mouseUp(unsigned int button){ }
 void mouseMoved(int x, int y){ }
 ```
 
-# usage
+compile your sketch in terminal
+
+```
+gcc -o world world.c -std=gnu99 -framework Carbon -framework OpenGL -framework GLUT
+```
+*MacOS above. See makefile for other operating systems*
+
+Done! You have a compiled application.
 
 ```c
-setup(){
-	// runs once at the beginning
-}
+setup() // runs once at the beginning
+update() // runs every frame, first thing to run
+draw3D() // runs every frame, called just after update()
+draw2D() // 2D in pixel coordinate space, run after draw3D()
 ```
 
-```c
-update(){
-	// runs every frame, at the beginning
-}
-```
+# documentation
 
-```c
-draw3D(){
-	// runs every frame, called just after update()
-}
-draw2D(){
-	// a 2D overlay, the last thing to be drawn
-}
-```
+## variables
 
-* `keyboard[256]` an array of boolean values (unsigned char) that map directly to ascii values. Query an item to find whether a keyboard key is pressed (1) or unpressed (0).
+* `keyboard[256]` array of keyboard ASCII state: T/F pressed
+* `mouseX` `mouseY` mouse location in pixels
+* `mouseDragX` `mouseDragY` mouse drag between click and release
 
-`keyboard[' ']` will contain `1` if space bar is pressed
+## perspective
+
+### variables
+
+* `origin[3]` (x, y, z): the center of the world
+* `horizon[3]` (az, alt, zoom): the point on the celestial sphere
+
+### change perspective
+
+* `firstPersonPerspective();`
+ * look at: horizon
+ * eye at: origin
+* `polarPerspective();`
+ * look at: origin
+ * eye at: horizon
+* `orthoPerspective(float x, float y, float width, float height);`
+
+**In Both cases:**
+
+* arrows move origin
+* mouse moves horizon
+
+# Easy / Advanced Mode
 
 * `P` switch perspectives (first person, polar, and orthographic perspectives)
 * `G` 2D ground (2D infinitely-repeating scenery)
@@ -64,7 +76,10 @@ draw2D(){
 * `+` `-` zoom
 * `,` `.` change field of view
 
-![example](https://67.media.tumblr.com/62fe5fd43d7390d15ff228595090e6dd/tumblr_odgrd3iDGu1vfq168o2_500.gif)
+![example](https://68.media.tumblr.com/62fe5fd43d7390d15ff228595090e6dd/tumblr_odgrd3iDGu1vfq168o2_500.gif)
+
+
+![example](https://66.media.tumblr.com/a54164176d27d4c5d888c5ee58f52318/tumblr_odgrd3iDGu1vfq168o1_500.gif)
 
 # license
 MIT
