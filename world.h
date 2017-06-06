@@ -170,8 +170,8 @@ int main(int argc, char **argv){
 	glutKeyboardFunc(keyboardDown);
 	glutSpecialFunc(specialDown);
 	glutSpecialUpFunc(specialUp);
-	if(CONTINUOUS_REFRESH)
-		glutIdleFunc(updateWorld);
+	if(CONTINUOUS_REFRESH){
+		glutIdleFunc(updateWorld); }
 	// setup this program
 	orthoFrame[0] = -WIDTH*0.5;
 	orthoFrame[1] = -HEIGHT*0.5;
@@ -232,8 +232,8 @@ void firstPersonPerspective(){
 	if(WIDTH < HEIGHT) glFrustum (-FOV, FOV, -FOV/a, FOV/a, NEAR_CLIP, FAR_CLIP);
 	else               glFrustum (-FOV/a, FOV/a, -FOV, FOV, NEAR_CLIP, FAR_CLIP);
 	// change POV
-	glRotatef(-horizon[1], 1, 0, 0);
-	glRotatef(-horizon[0], 0, 0, 1);
+	glRotatef(-90-horizon[1], 1, 0, 0);
+	glRotatef(horizon[0], 0, 0, 1);
 	// raise POV 1.0 above the floor, 1.0 is an arbitrary value
 	glTranslatef(0.0f, 0.0f, -FPP_BODY_HEIGHT);
 	glMatrixMode(GL_MODELVIEW);
@@ -247,8 +247,8 @@ void polarPerspective(){
 	else               glFrustum (-FOV/a, FOV/a, -FOV, FOV, NEAR_CLIP, FAR_CLIP);
 	// change POV
 	glTranslatef(0, 0, -horizon[2]);
-	glRotatef(-horizon[1], 1, 0, 0);
-	glRotatef(-horizon[0], 0, 0, 1);
+	glRotatef(-90+horizon[1], 1, 0, 0);
+	glRotatef(180+horizon[0], 0, 0, 1);
 	// glTranslatef(x, y, z);
 	glMatrixMode(GL_MODELVIEW);
 }
@@ -443,40 +443,40 @@ void moveOriginWithArrowKeys(){
 	float dOrigin[3] = {0.0f, 0.0f, 0.0f};
 	if(keyboard[UP_KEY] || keyboard['W'] || keyboard['w']){
 		dOrigin[0] += WALK_INTERVAL * sinf(lookAzimuth);
-		dOrigin[1] += WALK_INTERVAL * -cosf(lookAzimuth);
+		dOrigin[1] += WALK_INTERVAL * cosf(lookAzimuth);
 	}
 	if(keyboard[DOWN_KEY] || keyboard['S'] || keyboard['s']){
 		dOrigin[0] -= WALK_INTERVAL * sinf(lookAzimuth);
-		dOrigin[1] -= WALK_INTERVAL * -cosf(lookAzimuth);
+		dOrigin[1] -= WALK_INTERVAL * cosf(lookAzimuth);
 	}
 	if(keyboard[LEFT_KEY] || keyboard['A'] || keyboard['a']){
-		dOrigin[0] += WALK_INTERVAL * sinf(lookAzimuth+M_PI_2);
-		dOrigin[1] += WALK_INTERVAL * -cosf(lookAzimuth+M_PI_2);
+		dOrigin[0] -= WALK_INTERVAL * sinf(lookAzimuth+M_PI_2);
+		dOrigin[1] -= WALK_INTERVAL * cosf(lookAzimuth+M_PI_2);
 	}
 	if(keyboard[RIGHT_KEY] || keyboard['D'] || keyboard['d']){
-		dOrigin[0] -= WALK_INTERVAL * sinf(lookAzimuth+M_PI_2);
-		dOrigin[1] -= WALK_INTERVAL * -cosf(lookAzimuth+M_PI_2);
+		dOrigin[0] += WALK_INTERVAL * sinf(lookAzimuth+M_PI_2);
+		dOrigin[1] += WALK_INTERVAL * cosf(lookAzimuth+M_PI_2);
 	}
 	if(keyboard['Q'] || keyboard['q'])
-		dOrigin[2] -= WALK_INTERVAL;
-	if(keyboard['Z'] || keyboard['z'])
 		dOrigin[2] += WALK_INTERVAL;
-	origin[0] -= dOrigin[0];
-	origin[1] -= dOrigin[1];
-	origin[2] -= dOrigin[2];	
+	if(keyboard['Z'] || keyboard['z'])
+		dOrigin[2] -= WALK_INTERVAL;
+	origin[0] += dOrigin[0];
+	origin[1] += dOrigin[1];
+	origin[2] += dOrigin[2];	
 }
 static int mouseDragStartX, mouseDragStartY;
 void mouseUpdatePerspective(int dx, int dy){
 	switch(PERSPECTIVE){
 		case FPP:
-			horizon[0] += (dx * MOUSE_SENSITIVITY);
+			horizon[0] -= (dx * MOUSE_SENSITIVITY);
 			horizon[1] += (dy * MOUSE_SENSITIVITY);
 			// horizon[2] = 0.0;
 			firstPersonPerspective();
 		break;
 		case POLAR:
-			horizon[0] += (dx * MOUSE_SENSITIVITY);
-			horizon[1] += (dy * MOUSE_SENSITIVITY);
+			horizon[0] -= (dx * MOUSE_SENSITIVITY);
+			horizon[1] -= (dy * MOUSE_SENSITIVITY);
 			// horizon[2] = 0.0;
 			polarPerspective();
 			break;

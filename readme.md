@@ -1,8 +1,8 @@
 # OpenGL basic world + interface
 
-this is a hyper minimalist (1 file) framework to bring the Processing coding design paradigm to ANSI C (Mac, Linux, Windows-Cygwin) including 3D graphics, textures, shaders, and user input.
+this is a hyper-minimalist (1 file) framework to bring the Processing coding design paradigm to ANSI C (Mac, Linux, Windows-Cygwin) including 3D graphics, textures, shaders, and user input.
 
-# introduction
+# Introduction
 
 create a .c file with the following:
 
@@ -20,14 +20,15 @@ void mouseUp(unsigned int button){ }
 void mouseMoved(int x, int y){ }
 ```
 
-compile your sketch in terminal
+compile your sketch in terminal. or use the makefile
 
 ```
 gcc -o world world.c -std=gnu99 -framework Carbon -framework OpenGL -framework GLUT
 ```
-*MacOS above. See makefile for other operating systems*
 
 Done! You have a compiled application.
+
+## Processing-style design
 
 ```c
 setup() // runs once at the beginning
@@ -36,35 +37,39 @@ draw3D() // runs every frame, called just after update()
 draw2D() // 2D in pixel coordinate space, run after draw3D()
 ```
 
-# documentation
+# Documentation
 
-## variables
+## Variables
 
 * `keyboard[256]` array of keyboard ASCII state: T/F pressed
 * `mouseX` `mouseY` mouse location in pixels
 * `mouseDragX` `mouseDragY` mouse drag between click and release
 
-## perspective
+## Perspective
 
-### variables
+### Variables
 
-* `origin[3]` (x, y, z): the center of the world
-* `horizon[3]` (az, alt, zoom): the point on the celestial sphere
+* `origin[3]` (x, y, z) the center of the world
+* `horizon[3]` (az, alt, zoom) the point on the celestial sphere
 
-### change perspective
+### 3D Perspectives
 
-* `firstPersonPerspective();`
- * look at: horizon
- * eye at: origin
-* `polarPerspective();`
- * look at: origin
- * eye at: horizon
-* `orthoPerspective(float x, float y, float width, float height);`
+* `firstPersonPerspective()`
+    * look at: horizon
+    * eye at: origin
+* `polarPerspective()`
+    * look at: origin
+    * eye at: horizon
+
 
 **In Both cases:**
 
 * arrows move origin
 * mouse moves horizon
+
+### 2D Perspective
+
+* `orthoPerspective(x, y, width, height)`
 
 # Easy / Advanced Mode
 
