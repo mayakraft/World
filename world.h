@@ -16,17 +16,17 @@
 #include <string.h>
 #include <time.h>
 
-////////////////////////////////////////////////////////////////////////////////////////
-//     WORLD is a hyper minimalist (1 file) framework for graphics (OpenGL) and user
-//   input (keyboard, mouse) following the OpenFrameworks / Processing design paradigm
-////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////
+//      WORLD is a hyper minimalist framework for graphics (OpenGL) 
+//   and user input (keyboard, mouse) in the Processing design paradigm
+///////////////////////////////////////////////////////////////////////////////////////
 //
 //   HOW TO USE
 //
 //   1) make an empty .c file
 //   2) #include "world.h"
 //   3) implement the following functions:
-//      done! type 'make', then 'make run'
+//      done! build with makefile: 'make', 'make run'
 //
 void setup();
 void update();
@@ -37,10 +37,9 @@ void keyUp(unsigned int key);
 void mouseDown(unsigned int button);
 void mouseUp(unsigned int button);
 void mouseMoved(int x, int y);
-////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////
 
-
-////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////
 // CUSTOMIZE SETTINGS
 enum{  EASY, ADVANCED  }; // EASY hooks helpful keyboard and visual feedback
 static unsigned char ENVIRONMENT = EASY;
@@ -83,6 +82,7 @@ int main(int argc, char **argv);  // initialize Open GL context
 void typicalOpenGLSettings();  // colors, line width, glEnable
 void reshapeWindow(int windowWidth, int windowHeight);  // contains viewport and frustum calls
 void rebuildProjection();  // calls one of the three functions below
+void toggleFullscreen();
 // CHANGE PERSPECTIVE
 void firstPersonPerspective();
 void polarPerspective();
@@ -124,9 +124,13 @@ void drawAxesGrid(float walkX, float walkY, float walkZ, int span, int repeats);
 float modulusContext(float complete, int modulus);
 float min(float one, float two);
 float max(float one, float two);
-// more
+// TEXTURES, SHADERS
 GLuint loadTexture(const char * filename, int width, int height);
-void text(const char *text, float x, float y, float z);
+GLuint loadShader(char *vertex_path, char *fragment_path);
+void setShaderUniform1f(GLuint shader, char *uniform, float value);
+void setShaderUniformVec2f(GLuint shader, char *uniform, float *array);
+void setShaderUniformVec3f(GLuint shader, char *uniform, float *array);
+void setShaderUniformVec4f(GLuint shader, char *uniform, float *array);
 // preload for geometry primitives
 void initPrimitives();
 GLint _sphere_stacks = 20; //7;
@@ -198,6 +202,7 @@ void typicalOpenGLSettings(){
 	glShadeModel(GL_FLAT);
 	glEnable(GL_TEXTURE_2D);
 	glEnable(GL_POLYGON_SMOOTH);
+	glEnable(GL_POINT_SMOOTH);
 	glEnable(GL_DEPTH_TEST);
 	glDepthMask(GL_TRUE);
 	glDepthFunc(GL_LESS);
@@ -223,6 +228,15 @@ void rebuildProjection(){
 		case ORTHO:
 			orthoPerspective(orthoFrame[0], orthoFrame[1], orthoFrame[2], orthoFrame[3]); break;
 	}
+}
+void toggleFullscreen(){
+	if(!FULLSCREEN)
+		glutFullScreen();
+	else{
+		reshapeWindow(WIDTH, HEIGHT);
+		glutPositionWindow(0,0);
+	}
+	FULLSCREEN = !FULLSCREEN;
 }
 void firstPersonPerspective(){
 	PERSPECTIVE = FPP;
@@ -536,13 +550,7 @@ void keyboardDown(unsigned char key, int x, int y){
 	if(key == ESCAPE_KEY)  // ESCAPE key
 		exit (0);
 	else if(key == 'F' || key == 'f'){
-		if(!FULLSCREEN)
-			glutFullScreen();
-		else{
-			reshapeWindow(WIDTH, HEIGHT);
-			glutPositionWindow(0,0);
-		}
-		FULLSCREEN = !FULLSCREEN;
+		toggleFullscreen();
 	}
 	else if(key == 'P' || key == 'p'){
 		PERSPECTIVE = (PERSPECTIVE+1)%3;

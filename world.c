@@ -1,21 +1,8 @@
 #include "world.h"
 
-void setup(){
-	// points large and circular
-	glPointSize(75.0);
-	glEnable(GL_POINT_SMOOTH);
-	glEnable(GL_BLEND);
-}
+void setup(){ }
 void update(){ }
-void draw3D(){ 
-	// sun circle
-	glColor3f(1.0, 1.0, 0.8);
-	drawPoint(50, 50, 3);
-	// moon circle
-	glColor3f(0.3, 0.3, 0.3);
-	drawPoint(-50, -50, 1);
-	glColor3f(1.0, 1.0, 1.0);
-}
+void draw3D(){ }
 void draw2D(){ }
 void keyDown(unsigned int key){ }
 void keyUp(unsigned int key){ }
