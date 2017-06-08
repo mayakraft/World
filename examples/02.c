@@ -1,3 +1,7 @@
+// example 2
+//
+// full-screen fragment shaders
+
 #ifdef OS_WINDOWS
 #  include "../lib/glew-2.0.0/include/GL/glew.h"
 #  include "../lib/glew-2.0.0/src/wglew.c"
@@ -22,7 +26,7 @@ int selection = 0;
 
 char *vertexPath = "../examples/shaders/simple.vert";
 GLuint shader = 0;
-unsigned char autoReload = 1; // if true, program will auto-reload the shader every second
+unsigned char autoReload = 1; // reload shader 1/second (live code the shader)
 
 void setup() {
 	hideHelpfulOrientation();

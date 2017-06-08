@@ -247,7 +247,7 @@ void firstPersonPerspective(){
 	else               glFrustum (-FOV/a, FOV/a, -FOV, FOV, NEAR_CLIP, FAR_CLIP);
 	// change POV
 	glRotatef(-90-horizon[1], 1, 0, 0);
-	glRotatef(horizon[0], 0, 0, 1);
+	glRotatef(90+horizon[0], 0, 0, 1);
 	// raise POV 1.0 above the floor, 1.0 is an arbitrary value
 	glTranslatef(0.0f, 0.0f, -FPP_BODY_HEIGHT);
 	glMatrixMode(GL_MODELVIEW);
@@ -262,7 +262,7 @@ void polarPerspective(){
 	// change POV
 	glTranslatef(0, 0, -horizon[2]);
 	glRotatef(-90+horizon[1], 1, 0, 0);
-	glRotatef(180+horizon[0], 0, 0, 1);
+	glRotatef(90+180+horizon[0], 0, 0, 1);
 	// glTranslatef(x, y, z);
 	glMatrixMode(GL_MODELVIEW);
 }
@@ -456,20 +456,20 @@ void moveOriginWithArrowKeys(){
 	float lookAzimuth = horizon[0]/180.0*M_PI;
 	float dOrigin[3] = {0.0f, 0.0f, 0.0f};
 	if(keyboard[UP_KEY] || keyboard['W'] || keyboard['w']){
-		dOrigin[0] += WALK_INTERVAL * sinf(lookAzimuth);
-		dOrigin[1] += WALK_INTERVAL * cosf(lookAzimuth);
+		dOrigin[0] += WALK_INTERVAL * cosf(lookAzimuth);
+		dOrigin[1] -= WALK_INTERVAL * sinf(lookAzimuth);
 	}
 	if(keyboard[DOWN_KEY] || keyboard['S'] || keyboard['s']){
-		dOrigin[0] -= WALK_INTERVAL * sinf(lookAzimuth);
-		dOrigin[1] -= WALK_INTERVAL * cosf(lookAzimuth);
+		dOrigin[0] -= WALK_INTERVAL * cosf(lookAzimuth);
+		dOrigin[1] += WALK_INTERVAL * sinf(lookAzimuth);
 	}
 	if(keyboard[LEFT_KEY] || keyboard['A'] || keyboard['a']){
-		dOrigin[0] -= WALK_INTERVAL * sinf(lookAzimuth+M_PI_2);
-		dOrigin[1] -= WALK_INTERVAL * cosf(lookAzimuth+M_PI_2);
+		dOrigin[0] -= WALK_INTERVAL * cosf(lookAzimuth+M_PI_2);
+		dOrigin[1] += WALK_INTERVAL * sinf(lookAzimuth+M_PI_2);
 	}
 	if(keyboard[RIGHT_KEY] || keyboard['D'] || keyboard['d']){
-		dOrigin[0] += WALK_INTERVAL * sinf(lookAzimuth+M_PI_2);
-		dOrigin[1] += WALK_INTERVAL * cosf(lookAzimuth+M_PI_2);
+		dOrigin[0] += WALK_INTERVAL * cosf(lookAzimuth+M_PI_2);
+		dOrigin[1] -= WALK_INTERVAL * sinf(lookAzimuth+M_PI_2);
 	}
 	if(keyboard['Q'] || keyboard['q'])
 		dOrigin[2] += WALK_INTERVAL;
@@ -477,7 +477,7 @@ void moveOriginWithArrowKeys(){
 		dOrigin[2] -= WALK_INTERVAL;
 	origin[0] += dOrigin[0];
 	origin[1] += dOrigin[1];
-	origin[2] += dOrigin[2];	
+	origin[2] += dOrigin[2];
 }
 static int mouseDragStartX, mouseDragStartY;
 void mouseUpdatePerspective(int dx, int dy){
@@ -959,7 +959,12 @@ void hideHelpfulOrientation(){
 void showHelpfulOrientation(){
 	GROUND = GRID = 1;
 }
-void label3DAxes(float scale){
+void drawAxesLabels(float scale){
+	text("+X", scale, 0, 0);  text("-X", -scale, 0, 0);
+	text("+Y", 0, scale, 0);  text("-Y", 0, -scale, 0);
+	text("+Z", 0, 0, scale);  text("-Z", 0, 0, -scale);
+}
+void drawAxesCoordinates(float scale){
 	int scaleInt = scale;
 	char string[50];
 	sprintf(string, "(%d, 0, 0)", scaleInt);   text(string, scale, 0, 0);
@@ -1011,11 +1016,8 @@ void drawAxesGrid(float walkX, float walkY, float walkZ, int span, int repeats){
 }
 /////////////////////////        MATH         //////////////////////////
 // ALGEBRA
-float modulusContext(float complete, int modulus){
-	double wholePart;
-	double fracPart = modf(complete, &wholePart);
-	return ( ((int)wholePart) % modulus ) + fracPart;
-}
+#define D2R 0.01745329251994    // degrees to radians
+#define R2D 57.295779513082321  // radians to degrees
 float min(float one, float two){
 	if(one > two) return two;
 	return one;
@@ -1024,8 +1026,11 @@ float max(float one, float two){
 	if(one < two) return two;
 	return one;
 }
-#ifndef LINEAR_ALGEBRA
-#define LINEAR_ALGEBRA
+float modulusContext(float complete, int modulus){
+	double wholePart;
+	double fracPart = modf(complete, &wholePart);
+	return ( ((int)wholePart) % modulus ) + fracPart;
+}
 // MATRICES
 unsigned char mat4Inverse(const float m[16], float inverse[16]){
 	float inv[16], det;
@@ -1178,5 +1183,4 @@ void mat3Vec3Mult(const float m[9], const float v[3], float result[3]){
 	result[1] = m[3] * v[0] + m[4] * v[1] + m[5] * v[2];
 	result[2] = m[6] * v[0] + m[7] * v[1] + m[8] * v[2];
 }
-#endif /* LINEAR_ALGEBRA */
 #endif /* WORLD_FRAMEWORK */

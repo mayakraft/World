@@ -1,3 +1,7 @@
+// example 2
+//
+// textures and shaders
+
 #ifdef OS_WINDOWS
 #  include "../lib/glew-2.0.0/include/GL/glew.h"
 #  include "../lib/glew-2.0.0/src/wglew.c"
@@ -8,28 +12,8 @@
 
 #include "../world.h"
 
-#include "../examples/data/518stars.c"
-#include "../examples/data/1619stars.c"
-
-unsigned char showSphere = 1;
-
 const unsigned int numPoly = 50;
 float poly[numPoly * 3];
-
-void renderStars(){
-	glPushMatrix();
-		glEnableClientState(GL_VERTEX_ARRAY);
-		// bright stars
-		glVertexPointer(3, GL_FLOAT, 0, _518_stars);
-		glColor3f(1.0, 1.0, 1.0);
-		glDrawArrays(GL_POINTS, 0, 518);
-		// dim stars
-		glVertexPointer(3, GL_FLOAT, 0, _1619_stars);
-		glColor3f(0.5, 0.5, 0.5);
-		glDrawArrays(GL_POINTS, 0, 1619);
-		glDisableClientState(GL_VERTEX_ARRAY);
-	glPopMatrix();
-}
 
 GLuint shader = 0;
 GLuint shader2 = 0;
@@ -69,10 +53,10 @@ void setup() {
 	shader = loadShader(  vertexPath1, fragmentPath1 );
 	shader2 = loadShader( vertexPath2, fragmentPath2 );
 	GROUND = 0;
-	// GRID = 0;
-	polarPerspective(0, 0, 0);
-	lookOrientation[1] = 78;
-	lookOrientation[2] = 5*1.414;
+	GRID = 0;
+	polarPerspective();
+	horizon[1] = 12;
+	horizon[2] = 10;
 	spectrum = loadTexture("../examples/data/spectrum.raw", 128, 64);
 
 	int range = 10;
@@ -87,40 +71,26 @@ void update() {
 		shader = loadShader(  vertexPath1, fragmentPath1 );
 		shader2 = loadShader( vertexPath2, fragmentPath2 );
 	}
-
 	float rect[2] = {WIDTH, HEIGHT};
-	setShaderUniform1f(shader, "u_time", frame/60.0);
-	setShaderUniform1f(shader2, "u_time", frame/60.0);
+	setShaderUniform1f(shader, "u_time", elapsed);
+	setShaderUniform1f(shader2, "u_time", elapsed);
 	setShaderUniformVec2f(shader, "u_resolution", rect);
 	setShaderUniformVec2f(shader2, "u_resolution", rect);
-	// if(PERSPECTIVE == POLAR)
-	// 	lookOrientation[0] = frame * 0.1;
 }
 void draw3D() {
 	GLfloat mat_white[] = { 1.0f, 1.0f, 1.0f, 1.0f };
-	glColor3f(1.0, 1.0, 1.0);
-	if(GRID){
-		label3DAxes(5);
-		glPushMatrix();
-			glScalef(5, 5, 5);
-			glColor4f(1.0, 1.0, 1.0, 0.33);
-			drawUVSphereLines();
-		glPopMatrix();
-	}
-
-	if(showSphere){
-		glPushMatrix();
-			glCullFace(GL_BACK);
-			glEnable(GL_CULL_FACE);
-			float brightness = 1.0;
-			glColor4f(1.0, 1.0, 1.0, brightness);
-			glBindTexture(GL_TEXTURE_2D, spectrum);
-			glScalef(-1.0, 1.0, -1.0);
-			drawSphere(0, 0, 0, 0.5);
-			glBindTexture (GL_TEXTURE_2D, 0);
-			glDisable(GL_CULL_FACE);
-		glPopMatrix();
-	}
+	glPushMatrix();
+		glCullFace(GL_FRONT);
+		glEnable(GL_CULL_FACE);
+		float brightness = -cos(elapsed*0.5)*0.5+0.5;
+		glColor4f(1.0, 1.0, 1.0, brightness);
+		glBindTexture(GL_TEXTURE_2D, spectrum);
+		// glScalef(-1.0, 1.0, -1.0);
+		glScalef(100, 100, 100);
+		drawSphere(0, 0, 0, 0.5);
+		glBindTexture (GL_TEXTURE_2D, 0);
+		glDisable(GL_CULL_FACE);
+	glPopMatrix();
 
 	glUseProgram(shader2);
 
@@ -131,12 +101,6 @@ void draw3D() {
 	glPopMatrix();
 
 	glUseProgram(shader);
-
-	glPushMatrix();
-		glScalef(10, 10, 10);
-		renderStars();
-	glPopMatrix();
-
 	for(int i = 0; i < numPoly; i++){
 		glPushMatrix();
 			glTranslatef(poly[i*3+0], poly[i*3+1], poly[i*3+2] );
@@ -145,7 +109,8 @@ void draw3D() {
 	}
 	glUseProgram(0);
 
-	glLineWidth(2);
+	glColor4f(0.7, 0.7, 0.7, (-cos(elapsed)*0.5+0.5) );
+	glLineWidth(1 + 6*(cos(elapsed)*0.5+0.5) );
 	for(int i = 0; i < numPoly; i++){
 		glPushMatrix();
 			glTranslatef(poly[i*3+0], poly[i*3+1], poly[i*3+2] );
@@ -156,10 +121,7 @@ void draw3D() {
 	glLineWidth(1);
 }
 void draw2D() { }
-void keyDown(unsigned int key) { 
-	if(key == 'o' || key == 'O') 
-		showSphere = !showSphere;
-}
+void keyDown(unsigned int key) { }
 void keyUp(unsigned int key) { }
 void mouseDown(unsigned int button) { }
 void mouseUp(unsigned int button) { }

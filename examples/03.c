@@ -1,8 +1,10 @@
+// example 3
+//
+// GL_LIGHTING
+
 #include "../world.h"
 
-GLuint texture, spectrum;
 float matrix[16];
-unsigned char showOverlay = 0;
 
 #include "../examples/data/518stars.c"
 #include "../examples/data/1619stars.c"
@@ -47,38 +49,31 @@ void setupLighting(){
 void setup() {
 	// glShadeModel(GL_FLAT);
 	glShadeModel(GL_SMOOTH);
-	texture = loadTexture("../examples/data/texture.raw", 32, 32);
-	spectrum = loadTextureSmooth("../examples/data/spectrum.raw", 128, 64);
 	setMat4Identity(matrix);
 	setupLighting();
-	polarPerspective(0, 0, 0);
-	lookOrientation[1] = 78;
-	lookOrientation[2] = 5*1.414;
+	firstPersonPerspective();
+	horizon[1] = 12;
+	horizon[2] = 5*1.414;
+	GRID = 0;
 }
 void update() { 
 	static float ROT_SPEED = 0.001;
 	float rot1[16];
 	float rot2[16];
-	makeMat4XRot(rot1, originY * ROT_SPEED);
-	makeMat4YRot(rot2, originX * ROT_SPEED);
+	makeMat4XRot(rot1, origin[1] * ROT_SPEED);
+	makeMat4YRot(rot2, origin[0] * ROT_SPEED);
 	mat4x4Mult(rot1, rot2, matrix);
-	// if(PERSPECTIVE == POLAR)
-	// 	lookOrientation[0] = frame * 0.1;
 }
 void draw3D() {
 	glDisable(GL_LIGHTING);
 
 	GLfloat mat_white[] = { 1.0f, 1.0f, 1.0f, 1.0f };
-	glColor3f(1.0, 1.0, 1.0);
-	if(GRID){
-		glColor4f(1.0, 1.0, 1.0, 1.0);
-		label3DAxes(5);
-		glPushMatrix();
-			glScalef(100, 100, 100);
-			glColor4f(1.0, 1.0, 1.0, 0.33);
-			drawUVSphereLines();
-		glPopMatrix();
-	}
+
+	glPushMatrix();
+		glScalef(100, 100, 100);
+		glColor4f(1.0, 1.0, 1.0, 0.1);
+		drawUVSphereLines();
+	glPopMatrix();
 
 	glPushMatrix();
 		glMultMatrixf(matrix);
@@ -86,58 +81,13 @@ void draw3D() {
 		renderStars();
 	glPopMatrix();
 
-	glPushMatrix();
-		glCullFace(GL_BACK);
-		glEnable(GL_CULL_FACE);
-		float brightness = 1.0;
-		glColor4f(1.0, 1.0, 1.0, brightness);
-		glTranslatef(0, 0, 1.5 + 1.0 * sinf(frame*0.01) );
-		glBindTexture(GL_TEXTURE_2D, spectrum);
-		glScalef(-1.0, 1.0, -1.0);
-		drawSphere(0, 0, 0, 0.5);
-		glBindTexture (GL_TEXTURE_2D, 0);
-		glDisable(GL_CULL_FACE);
-	glPopMatrix();
-
-	// glPushMatrix();
-	// 	glTranslatef(4,4,1);
-	// 	drawPlatonicSolidLines(0);
-	// glPopMatrix();
-	// glPushMatrix();
-	// 	glTranslatef(-4,4,1);
-	// 	drawPlatonicSolidLines(1);
-	// glPopMatrix();
-	// glPushMatrix();
-	// 	glTranslatef(-4,-4,1);
-	// 	drawPlatonicSolidLines(3);
-	// glPopMatrix();
-	// glPushMatrix();
-	// 	glTranslatef(4,-4,1);
-	// 	drawPlatonicSolidLines(4);
-	// glPopMatrix();
-		glEnable(GL_LIGHTING);
+	glEnable(GL_LIGHTING);
 
 }
 void draw2D() {
-	if(showOverlay){
-		glBlendFunc(GL_SRC_COLOR, GL_ONE_MINUS_SRC_COLOR);
-		glEnable(GL_BLEND);
-		glPushMatrix();
-			glBindTexture(GL_TEXTURE_2D, texture);
-			glScalef(HEIGHT, HEIGHT, HEIGHT);
-			drawUnitSquare((WIDTH*0.5 - HEIGHT*0.5)/((float)HEIGHT), 0, 0);
-			glBindTexture (GL_TEXTURE_2D, 0);
-		glPopMatrix();
-		glDisable(GL_BLEND);
-	}
 	worldInfoText(0, 10, 0);
-
 }
-void keyDown(unsigned int key) { 
-	if(key == ' '){
-		showOverlay = !showOverlay;
-	}
-}
+void keyDown(unsigned int key) { }
 void keyUp(unsigned int key) { }
 void mouseDown(unsigned int button) { }
 void mouseUp(unsigned int button) { }

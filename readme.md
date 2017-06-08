@@ -59,14 +59,14 @@ draw2D(); // 2D in pixel coordinates, called after draw3D
 
 ### General
 
-```
+```c
 toggleFullscreen();
 loadTexture(filename, width, height);
 ```
 
 ### Drawing
 
-```
+```c
 text("text", x, y, z);
 drawPoint(x, y, z);
 drawLine(x1, y1, z1, x2, y2, z2);
@@ -89,7 +89,7 @@ drawPlatonicSolidPoints(solid);
 
 ### Shaders
 
-```
+```c
 loadShader(vertex_path, fragment_path);
 setShaderUniform1f(shader, uniform, value);
 setShaderUniformVec2f(shader, uniform, array);
@@ -99,29 +99,16 @@ setShaderUniformVec4f(shader, uniform, array);
 
 ## Perspective
 
-### Variables
+### Change Perspective
+
+* `firstPersonPerspective()`: 3D look at horizon
+* `polarPerspective()`: 3D look at origin
+* `orthoPerspective(x, y, width, height)`: 2D x,y
+
+### 3D Properties
 
 * `origin[3]` (x, y, z) the center of the world
-* `horizon[3]` (az, alt, zoom) the point on the celestial sphere
-
-### 3D Perspectives
-
-* `firstPersonPerspective()`
-    * look at: horizon
-    * eye at: origin
-* `polarPerspective()`
-    * look at: origin
-    * eye at: horizon
-
-
-**In Both cases:**
-
-* arrows move origin
-* mouse moves horizon
-
-### 2D Perspective
-
-* `orthoPerspective(x, y, width, height)`
+* `horizon[3]` (azimuth, altitude, zoom) point on celestial sphere
 
 # Easy / Advanced Mode
 
