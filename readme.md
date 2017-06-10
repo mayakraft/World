@@ -5,10 +5,34 @@ a hyper-minimalist (1 file) framework to bring the Processing coding design para
 * 2D and 3D graphics, drawing primitives
 * user input (mouse, keyboard)
 * textures, shaders
-* simple 3D perspectives setup
+* quick and easy 3D perspectives setup
     * horizontal coordinates: altitude + azimuth
 
+## Try it out
+
+1. clone this repostory
+2. in terminal type `make` then `make run`
+
+or try any one of the examples
+
+1. navigate to the /examples folder `cd examples`
+2. type `make` then `make run1` or `make run2` ...
+
+---
+
 # Introduction
+
+## Processing-style design
+
+```c
+setup(); // runs once at the beginning
+update(); // runs every frame, first thing to run
+// draw() is split out into 2 functions
+draw3D(); // runs every frame, called first
+draw2D(); // 2D in pixel coordinates, called after draw3D
+```
+
+## Make your own sketch
 
 create a .c file with the following:
 
@@ -26,23 +50,15 @@ void mouseUp(unsigned int button){ }
 void mouseMoved(int x, int y){ }
 ```
 
-compile your sketch in terminal by typing `make`, which runs the following build command:
+Compile your sketch with the following build command (MacOS), or use the makefile `make`. This will build a file named **world.c**
 
 ```
 gcc -o world world.c -std=gnu99 -framework Carbon -framework OpenGL -framework GLUT
 ```
 
-Done! Run with `make run`
+Done! To run: `./world` or `make run`
 
-## Processing-style design
-
-```c
-setup(); // runs once at the beginning
-update(); // runs every frame, first thing to run
-// draw() is split out into 2 functions
-draw3D(); // runs every frame, called first
-draw2D(); // 2D in pixel coordinates, called after draw3D
-```
+---
 
 # Documentation
 
@@ -109,7 +125,7 @@ setShaderUniformVec4f(shader, uniform, array);
 * `origin[3]` (x, y, z) the center of the world
 * `horizon[3]` (azimuth, altitude, zoom) point on celestial sphere
 
-# Beginner / Advanced Mode
+## Beginner / Advanced Mode
 
 *TO MAKE 3D EASY* the framework comes with keyboard and mouse handling and coordinate space visualizations. You must opt-out if you don't want these features. 
 
@@ -144,7 +160,10 @@ OPTIONS = SET_MOUSE_LOOK | SET_KEYBOARD_FUNCTIONS | SET_SHOW_GRID
 * `F` toggle fullscreen
 * `+` `-` zoom
 * `,` `.` change field of view
-* `P` switch perspectives (first person, polar, and orthographic perspectives)
+* `P` switch between perspectives
+    * first person
+    * polar
+    * orthographic
 * `G` show/hide 2D ground (2D infinitely-repeating scenery)
 * `X` show/hide 3D axes (3D infinitely-repeating scenery)
 

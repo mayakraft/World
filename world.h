@@ -77,7 +77,7 @@ static unsigned char PERSPECTIVE = FPP;  // initialize point of view in this sta
 // details of each perspective
 float origin[3] = {0.0f, 0.0f, 0.0f};  // x, y, z, location of the eye
 float horizon[3] = {0.0f, 0.0f, 7.0f};   // azimuth, altitude, zoom (log)
-float orthoFrame[4] = {0.0f, 0.0f, 4.0f, 3.0f}; // x, y, width, height
+float orthoFrame[4]; // x, y, width, height
 static float FPP_BODY_HEIGHT = 1.0;  // height of the person off of the ground
 // TIME
 static unsigned long frame;  // # times the screen has drawn 
@@ -184,11 +184,10 @@ int main(int argc, char **argv){
 	if(CONTINUOUS_REFRESH){
 		glutIdleFunc(updateWorld); }
 	// setup this program
-	orthoFrame[0] = -WIDTH*0.5;
-	orthoFrame[1] = -HEIGHT*0.5;
-	orthoFrame[2] = WIDTH;
-	orthoFrame[3] = HEIGHT;
-
+	orthoFrame[0] = 0.02 * -WIDTH*0.5;
+	orthoFrame[1] = 0.02 * -HEIGHT*0.5;
+	orthoFrame[2] = 0.02 * WIDTH;
+	orthoFrame[3] = 0.02 * HEIGHT;
 	memset(keyboard,0,256);
 	clock_gettime(CLOCK_MONOTONIC, &startTime);
 	frame = 0;
@@ -221,9 +220,8 @@ void reshapeWindow(int windowWidth, int windowHeight){
 	WIDTH = windowWidth;
 	HEIGHT = windowHeight;
 	glViewport(0, 0, (GLsizei) WIDTH, (GLsizei) HEIGHT);
-	// this overwrites the user's settings
-	// orthoFrame[2] = WIDTH;
-	// orthoFrame[3] = HEIGHT;
+	// update orthographic frame with new aspect ratio
+	orthoFrame[2] = orthoFrame[3] * ((float)WIDTH / (float)HEIGHT);
 	rebuildProjection();
 	updateWorld();
 }
