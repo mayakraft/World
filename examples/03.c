@@ -29,7 +29,7 @@ GLuint shader = 0;
 unsigned char autoReload = 1; // reload shader 1/second (live code the shader)
 
 void setup() {
-	hideHelpfulOrientation();
+	OPTIONS = SET_MOUSE_LOOK | SET_KEYBOARD_MOVE | SET_KEYBOARD_FUNCTIONS;
 	shader = loadShader( vertexPath, fragmentList[selection] );
 }
 void update() {

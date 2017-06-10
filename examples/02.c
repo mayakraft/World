@@ -56,7 +56,8 @@ void setup() {
 	setupLighting();
 	// glShadeModel(GL_FLAT);
 	glShadeModel(GL_SMOOTH);
-	GRID = 0;
+	OPTIONS = SET_MOUSE_LOOK | SET_KEYBOARD_MOVE | SET_KEYBOARD_FUNCTIONS | SET_SHOW_GROUND;
+
 	for (int i = 0; i < numPolyhedra; i++){
 		poly[i].type = random() % 5;
 		for(int j = 0; j < 3; j++){

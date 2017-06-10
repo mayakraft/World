@@ -41,9 +41,18 @@ void mouseMoved(int x, int y);
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // CUSTOMIZE SETTINGS
-enum{  EASY, ADVANCED  }; // EASY hooks helpful keyboard and visual feedback
-static unsigned char ENVIRONMENT = EASY;
-#define CONTINUOUS_REFRESH 1  // (0) = maximum efficiency, screen can redraw only upon receiving input
+enum{
+	SET_MOUSE_LOOK = 1 << 0,
+	SET_KEYBOARD_MOVE = 1 << 1,
+	SET_KEYBOARD_FUNCTIONS = 1 << 2,
+	SET_SHOW_GROUND = 1 << 3,  // a 2D grid
+	SET_SHOW_GRID = 1 << 4    // a 3D grid
+};
+enum { BIT_MOUSE_LOOK, BIT_KEYBOARD_MOVE, BIT_KEYBOARD_FUNCTIONS, BIT_SHOW_GROUND, BIT_SHOW_GRID };
+static unsigned char ADVANCED = 0;
+static unsigned char BEGINNER = 255; // BEGINNER (default) hooks helpful keyboard and visual feedback
+static unsigned char OPTIONS = 255;
+#define CONTINUOUS_REFRESH 1  // (0) = maximum efficiency, only redraws screen if received input
 static float MOUSE_SENSITIVITY = 0.333f;
 static float WALK_INTERVAL = 0.077f;  // WALKING SPEED. @ 60 UPS (updates/sec), walk speed (units/sec) = INTERVAL * UPS
 static float ZOOM_SPEED = 0.05f;
@@ -62,8 +71,6 @@ static float NEAR_CLIP = 0.1;
 static float FAR_CLIP = 10000.0;
 static float FOV = 0.1;
 static float ZOOM_RADIX = 3;
-static unsigned char GROUND = 1;  // a 2D grid
-static unsigned char GRID = 1;    // a 3D grid
 // PERSPECTIVE
 enum{  FPP,  POLAR,  ORTHO  }; // first persion, polar, orthographic
 static unsigned char PERSPECTIVE = FPP;  // initialize point of view in this state
@@ -206,7 +213,8 @@ void typicalOpenGLSettings(){
 	glEnable(GL_DEPTH_TEST);
 	glDepthMask(GL_TRUE);
 	glDepthFunc(GL_LESS);
-	// glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	glLineWidth(1);
 }
 void reshapeWindow(int windowWidth, int windowHeight){
@@ -280,17 +288,14 @@ void orthoPerspective(float x, float y, float width, float height){
 void display(){
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-	glEnable(GL_BLEND);
-	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	glPushMatrix();
 		glPushMatrix();
 			glColor4f(1.0, 1.0, 1.0, 1.0);
-			// unclear if world should move with
-			// glTranslatef(originX, originY, originZ);
+			if(OPTIONS & (1 << BIT_KEYBOARD_MOVE)){ glTranslatef(-origin[0], -origin[1], -origin[2]); }
 			draw3D();
 		glPopMatrix();
 		// 3D REPEATED STRUCTURE
-		if(GRID){
+		if(OPTIONS & (1 << BIT_SHOW_GRID)){
 			float newX = modulusContext(-origin[0], 5);
 			float newY = modulusContext(-origin[1], 5);
 			float newZ = modulusContext(-origin[2], 5);
@@ -300,12 +305,12 @@ void display(){
 			glPopMatrix();
 		}
 		// 2D REPEATED STRUCTURE
-		if(GROUND){
-			glPushMatrix();
+		if(OPTIONS & (1 << BIT_SHOW_GROUND)){
 			float newX = modulusContext(-origin[0], 2);
 			float newY = modulusContext(-origin[1], 2);
-			glTranslatef(newX, newY, -origin[2]);
-			drawCheckerboard(newX, newY, 8);
+			glPushMatrix();
+				glTranslatef(newX, newY, -origin[2]);
+				drawCheckerboard(newX, newY, 8);
 			glPopMatrix();
 		}
 	glPopMatrix();
@@ -315,13 +320,11 @@ void display(){
 	glLoadIdentity();
 	glOrtho(0, WIDTH, HEIGHT, 0, -100.0, 100.0);
 	glMatrixMode(GL_MODELVIEW);
-	glColor4f(1.0, 1.0, 1.0, 1.0);
 	glPushMatrix();
+		glColor4f(1.0, 1.0, 1.0, 1.0);
 		draw2D();
 	glPopMatrix();
 	rebuildProjection();
-
-	glDisable(GL_BLEND);
 
 	// bring back buffer to the front on vertical refresh, auto-calls glFlush
 	glutSwapBuffers();
@@ -333,16 +336,18 @@ void updateWorld(){
 	elapsed = (currentTime.tv_sec - startTime.tv_sec);
 	elapsed += (currentTime.tv_nsec - startTime.tv_nsec) / 1000000000.0;
 	// keyboard input
-	moveOriginWithArrowKeys();
-	if(keyboard[MINUS_KEY]){
-		horizon[2] += ZOOM_SPEED;
-		rebuildProjection();
-	}
-	if(keyboard[PLUS_KEY]){
-		horizon[2] -= ZOOM_SPEED;
-		if(horizon[2] < 0)
-			horizon[2] = 0;
-		rebuildProjection();
+	if(OPTIONS & (1 << BIT_KEYBOARD_MOVE)){
+		moveOriginWithArrowKeys();
+		if(keyboard[MINUS_KEY]){
+			horizon[2] += ZOOM_SPEED;
+			rebuildProjection();
+		}
+		if(keyboard[PLUS_KEY]){
+			horizon[2] -= ZOOM_SPEED;
+			if(horizon[2] < 0)
+				horizon[2] = 0;
+			rebuildProjection();
+		}		
 	}
 	update();
 	glutPostRedisplay();
@@ -454,6 +459,7 @@ void moveOriginWithArrowKeys(){
 	// map movement direction to the direction the person is facing
 	// float lookAzimuth = lookOrientation[0]/180.0*M_PI;
 	float lookAzimuth = horizon[0]/180.0*M_PI;
+	if(PERSPECTIVE == POLAR){ lookAzimuth += M_PI; }
 	float dOrigin[3] = {0.0f, 0.0f, 0.0f};
 	if(keyboard[UP_KEY] || keyboard['W'] || keyboard['w']){
 		dOrigin[0] += WALK_INTERVAL * cosf(lookAzimuth);
@@ -527,7 +533,9 @@ void mouseButtons(int button, int state, int x, int y){
 // when mouse is dragging screen
 void mouseMotion(int x, int y){
 	// change since last mouse event
-	mouseUpdatePerspective(mouseX - x, mouseY - y);
+	if(OPTIONS & (1 << BIT_MOUSE_LOOK)){
+		mouseUpdatePerspective(mouseX - x, mouseY - y);
+	}
 	// update new state
 	mouseX = x;
 	mouseY = y;
@@ -547,30 +555,32 @@ void keyboardDown(unsigned char key, int x, int y){
 		return;   // prevent repeated keyboard calls
 	keyboard[key] = 1;
 
-	if(key == ESCAPE_KEY)  // ESCAPE key
-		exit (0);
-	else if(key == 'F' || key == 'f'){
-		toggleFullscreen();
-	}
-	else if(key == 'P' || key == 'p'){
-		PERSPECTIVE = (PERSPECTIVE+1)%3;
-		rebuildProjection();
-	}
-	else if(key == '.'){
-		FOV += 0.01;
-		rebuildProjection();
-	}
-	else if(key == ','){
-		FOV -= 0.01;
-		rebuildProjection();
-	}
-	else if(key == 'G' || key == 'g'){
-		GROUND = !GROUND;
-		glutPostRedisplay();
-	}
-	else if (key == 'X' || key == 'x'){
-		GRID = !GRID;
-		glutPostRedisplay();
+	if(OPTIONS & (1 << BIT_KEYBOARD_FUNCTIONS)){
+		if(key == ESCAPE_KEY)  // ESCAPE key
+			exit (0);
+		else if(key == 'F' || key == 'f'){
+			toggleFullscreen();
+		}
+		else if(key == 'P' || key == 'p'){
+			PERSPECTIVE = (PERSPECTIVE+1)%3;
+			rebuildProjection();
+		}
+		else if(key == '.'){
+			FOV += 0.01;
+			rebuildProjection();
+		}
+		else if(key == ','){
+			FOV -= 0.01;
+			rebuildProjection();
+		}
+		else if(key == 'G' || key == 'g'){
+			OPTIONS ^= SET_SHOW_GROUND;
+			glutPostRedisplay();
+		}
+		else if (key == 'X' || key == 'x'){
+			OPTIONS ^= SET_SHOW_GRID;
+			glutPostRedisplay();
+		}
 	}
 	keyDown(key);
 	if(!CONTINUOUS_REFRESH)
@@ -937,7 +947,7 @@ void initPrimitives(){
 		_geometry_initialized = 1;
 	}
 }
-/////////////////////////        HELPFUL ORIENTATION         //////////////////////////
+/////////////////////////    HELPFUL ORIENTATION    //////////////////////////
 void worldInfoText(int x, int y, int z){
 	switch(PERSPECTIVE){
 		case FPP:   text("First Person Perspective", x, y, z); break;
@@ -952,12 +962,6 @@ void worldInfoText(int x, int y, int z){
 		sprintf(frameString, "%d, %d, %d, %d", (int)orthoFrame[0], (int)orthoFrame[1], (int)orthoFrame[2], (int)orthoFrame[3] );
 		text(frameString, x, y+13*2, z);
 	}
-}
-void hideHelpfulOrientation(){
-	GROUND = GRID = 0;
-}
-void showHelpfulOrientation(){
-	GROUND = GRID = 1;
 }
 void drawAxesLabels(float scale){
 	text("+X", scale, 0, 0);  text("-X", -scale, 0, 0);

@@ -23,7 +23,7 @@ void renderStars(){
 float starMatrix[16];
 
 void setup(){
-	GRID = 0;
+	OPTIONS = SET_MOUSE_LOOK | SET_KEYBOARD_MOVE | SET_KEYBOARD_FUNCTIONS | SET_SHOW_GROUND;
 	setMat4Identity(starMatrix);
 }
 void update(){ 

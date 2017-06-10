@@ -2,9 +2,8 @@
 
 a hyper-minimalist (1 file) framework to bring the Processing coding design paradigm to simple, low-dependency C (Mac, Linux, Windows-Cygwin)
 
-* 3D graphics
+* 2D and 3D graphics, drawing primitives
 * user input (mouse, keyboard)
-* 2D and 3D drawing primitives
 * textures, shaders
 * simple 3D perspectives setup
     * horizontal coordinates: altitude + azimuth
@@ -110,17 +109,44 @@ setShaderUniformVec4f(shader, uniform, array);
 * `origin[3]` (x, y, z) the center of the world
 * `horizon[3]` (azimuth, altitude, zoom) point on celestial sphere
 
-# Easy / Advanced Mode
+# Beginner / Advanced Mode
 
-some presets baked into the keyboard and mouse, because setting up 3D perspectives is busywork.
+*TO MAKE 3D EASY* the framework comes with keyboard and mouse handling and coordinate space visualizations. You must opt-out if you don't want these features. 
 
-* `P` switch perspectives (first person, polar, and orthographic perspectives)
-* `G` 2D ground (2D infinitely-repeating scenery)
-* `X` 3D axes (3D infinitely-repeating scenery)
-* mouse to look, move with arrow keys or `W` `A` `S` `D`
-* `F` fullscreen
+default is `BEGINNER`
+
+```c
+OPTIONS = ADVANCED;
+```
+
+* `BEGINNER`
+* `ADVANCED`
+
+Beginner and Advanced turn **all the flags** on or off
+
+### Options Flags
+
+Flip individual flags for a unique combination of built-in features
+
+* `SET_MOUSE_LOOK` *click* mouse move looks around
+* `SET_KEYBOARD_MOVE` arrow keys, `W` `A` `S` `D` move view
+* `SET_KEYBOARD_FUNCTIONS` see below
+* `SET_SHOW_GROUND` checkerboard 2D surface
+* `SET_SHOW_GRID` repeating 3D grid axes lines
+
+```c
+OPTIONS = SET_MOUSE_LOOK | SET_KEYBOARD_FUNCTIONS | SET_SHOW_GRID
+```
+
+### keyboard functions include
+
+* `ESC` close application
+* `F` toggle fullscreen
 * `+` `-` zoom
 * `,` `.` change field of view
+* `P` switch perspectives (first person, polar, and orthographic perspectives)
+* `G` show/hide 2D ground (2D infinitely-repeating scenery)
+* `X` show/hide 3D axes (3D infinitely-repeating scenery)
 
 ### Polar Perspective
 

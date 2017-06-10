@@ -149,8 +149,7 @@ void setup() {
 	// glutReshapeWindow(400, 400);
 	// hideHelpfulOrientation();
 	polarPerspective();
-	GROUND = 0;
-	GRID = 0;
+	OPTIONS = SET_MOUSE_LOOK | SET_KEYBOARD_FUNCTIONS;
 	horizon[0] = 0;
 	horizon[1] = 0;
 	horizon[2] = sqrt( 1 + powf(4,zoom));

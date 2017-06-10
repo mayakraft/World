@@ -52,8 +52,7 @@ void setup() {
 	// setupLighting();
 	shader = loadShader(  vertexPath1, fragmentPath1 );
 	shader2 = loadShader( vertexPath2, fragmentPath2 );
-	GROUND = 0;
-	GRID = 0;
+	OPTIONS = SET_MOUSE_LOOK | SET_KEYBOARD_MOVE | SET_KEYBOARD_FUNCTIONS;
 	polarPerspective();
 	horizon[1] = 12;
 	horizon[2] = 10;
@@ -109,12 +108,13 @@ void draw3D() {
 	}
 	glUseProgram(0);
 
-	glColor4f(0.7, 0.7, 0.7, (-cos(elapsed)*0.5+0.5) );
-	glLineWidth(1 + 6*(cos(elapsed)*0.5+0.5) );
+	// glColor4f(0.7, 0.7, 0.7, (-cos(elapsed)*0.5+0.5) );
+	glColor4f(0.15, 0.15, 0.15, 1.0);
+	glLineWidth(1.5);// + 6*(cos(elapsed)*0.5+0.5) );
 	for(int i = 0; i < numPoly; i++){
 		glPushMatrix();
 			glTranslatef(poly[i*3+0], poly[i*3+1], poly[i*3+2] );
-			glScalef(1.001, 1.001, 1.001);
+			glScalef(1.005, 1.005, 1.005);
 			drawPlatonicSolidLines(3);
 		glPopMatrix();
 	}

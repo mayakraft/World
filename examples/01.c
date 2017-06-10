@@ -12,11 +12,12 @@ char* texts[4] = {"", "1/2 ", "1/4 ", "1/8 "};
 
 void setup() {
 	polarPerspective();
-	GROUND = 0;
+	// GROUND = 0;
 	// GRID = 0;
 	horizon[0] = 180;
 	horizon[1] = 0;
 	horizon[2] = sqrt(2);
+	OPTIONS = SET_MOUSE_LOOK | SET_SHOW_GRID | SET_KEYBOARD_FUNCTIONS;
 }
 void update() { }
 void draw3D() {
