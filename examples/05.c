@@ -79,8 +79,8 @@ void update() {
 void draw3D() {
 	GLfloat mat_white[] = { 1.0f, 1.0f, 1.0f, 1.0f };
 	glPushMatrix();
-		glCullFace(GL_FRONT);
 		glEnable(GL_CULL_FACE);
+		glCullFace(GL_FRONT);
 		float brightness = -cos(elapsed*0.5)*0.5+0.5;
 		glColor4f(1.0, 1.0, 1.0, brightness);
 		glBindTexture(GL_TEXTURE_2D, spectrum);

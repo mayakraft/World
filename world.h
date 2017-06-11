@@ -51,11 +51,11 @@ enum{
 enum { BIT_MOUSE_LOOK, BIT_KEYBOARD_MOVE, BIT_KEYBOARD_FUNCTIONS, BIT_SHOW_GROUND, BIT_SHOW_GRID };
 static unsigned char ADVANCED = 0;
 static unsigned char BEGINNER = 255; // BEGINNER (default) hooks helpful keyboard and visual feedback
-static unsigned char OPTIONS = 255;
+static unsigned char OPTIONS = 255;//0b11111111;
 #define CONTINUOUS_REFRESH 1  // (0) = maximum efficiency, only redraws screen if received input
 static float MOUSE_SENSITIVITY = 0.333f;
 static float WALK_INTERVAL = 0.077f;  // WALKING SPEED. @ 60 UPS (updates/sec), walk speed (units/sec) = INTERVAL * UPS
-static float ZOOM_SPEED = 0.05f;
+static float ZOOM_SPEED = 0.1f;
 // WINDOW size upon boot
 static int WIDTH = 800;  // (readonly) set these values here
 static int HEIGHT = 600; // (readonly) setting during runtime will not re-size window
@@ -221,7 +221,10 @@ void reshapeWindow(int windowWidth, int windowHeight){
 	HEIGHT = windowHeight;
 	glViewport(0, 0, (GLsizei) WIDTH, (GLsizei) HEIGHT);
 	// update orthographic frame with new aspect ratio
-	orthoFrame[2] = orthoFrame[3] * ((float)WIDTH / (float)HEIGHT);
+	float newW = orthoFrame[3] * ((float)WIDTH / (float)HEIGHT);
+	float dW = orthoFrame[2] - newW;
+	orthoFrame[2] = newW;
+	orthoFrame[0] += dW * 0.5;
 	rebuildProjection();
 	updateWorld();
 }
@@ -337,13 +340,35 @@ void updateWorld(){
 	if(OPTIONS & (1 << BIT_KEYBOARD_MOVE)){
 		moveOriginWithArrowKeys();
 		if(keyboard[MINUS_KEY]){
-			horizon[2] += ZOOM_SPEED;
+			switch(PERSPECTIVE){
+				case POLAR:
+					horizon[2] += ZOOM_SPEED; break;
+				case ORTHO: {
+					float dH = -ZOOM_SPEED;
+					orthoFrame[3] -= dH;
+					orthoFrame[1] += dH * 0.5;
+					float newW = orthoFrame[3] * ((float)WIDTH / (float)HEIGHT);
+					float dW = orthoFrame[2] - newW;
+					orthoFrame[2] = newW;
+					orthoFrame[0] += dW * 0.5;
+					} break;
+			}
 			rebuildProjection();
 		}
 		if(keyboard[PLUS_KEY]){
-			horizon[2] -= ZOOM_SPEED;
-			if(horizon[2] < 0)
-				horizon[2] = 0;
+			switch(PERSPECTIVE){
+				case POLAR:
+					horizon[2] -= ZOOM_SPEED; break;
+				case ORTHO:{
+					float dH = ZOOM_SPEED;
+					orthoFrame[3] -= dH;
+					orthoFrame[1] += dH * 0.5;
+					float newW = orthoFrame[3] * ((float)WIDTH / (float)HEIGHT);
+					float dW = orthoFrame[2] - newW;
+					orthoFrame[2] = newW;
+					orthoFrame[0] += dW * 0.5;
+					} break;
+			}
 			rebuildProjection();
 		}		
 	}
