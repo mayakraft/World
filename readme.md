@@ -47,7 +47,7 @@ void mouseUp(unsigned int button){ }
 void mouseMoved(int x, int y){ }
 ```
 
-Compile your sketch with the following build command (MacOS), or use the makefile `make`. This will build a file named **world.c**
+Compile your sketch with the following build command (MacOS), or use the makefile `make`. The following is an example for a file named **world.c**:
 
 ```
 gcc -o world world.c -std=gnu99 -framework Carbon -framework OpenGL -framework GLUT

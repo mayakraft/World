@@ -53,6 +53,7 @@ static unsigned char ADVANCED = 0;
 static unsigned char BEGINNER = 255; // BEGINNER (default) hooks helpful keyboard and visual feedback
 static unsigned char OPTIONS = 255;//0b11111111;
 #define CONTINUOUS_REFRESH 1  // (0) = maximum efficiency, only redraws screen if received input
+#define Y_UP 1
 static float MOUSE_SENSITIVITY = 0.333f;
 static float WALK_INTERVAL = 0.077f;  // WALKING SPEED. @ 60 UPS (updates/sec), walk speed (units/sec) = INTERVAL * UPS
 static float ZOOM_SPEED = 0.1f;
@@ -283,7 +284,10 @@ void orthoPerspective(float x, float y, float width, float height){
 	orthoFrame[3] = height;
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
-	glOrtho(x, width + x, height + y, y, -FAR_CLIP, FAR_CLIP);
+	switch(Y_UP){
+		case 0: glOrtho(x, width + x, height + y, y, -FAR_CLIP, FAR_CLIP); break;
+		case 1: glOrtho(x, width + x, y, height + y, -FAR_CLIP, FAR_CLIP); break;
+	}
 	glMatrixMode(GL_MODELVIEW);
 }
 void display(){
@@ -319,7 +323,10 @@ void display(){
 	// TO ORTHOGRAPHIC
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
-	glOrtho(0, WIDTH, HEIGHT, 0, -100.0, 100.0);
+	switch(Y_UP){
+		case 0: glOrtho(0, WIDTH, HEIGHT, 0, -100.0, 100.0); break;
+		case 1: glOrtho(0, WIDTH, 0, HEIGHT, -100.0, 100.0); break;
+	}
 	glMatrixMode(GL_MODELVIEW);
 	glPushMatrix();
 		glColor4f(1.0, 1.0, 1.0, 1.0);
@@ -525,7 +532,10 @@ void mouseUpdatePerspective(int dx, int dy){
 			break;
 		case ORTHO:
 			orthoFrame[0] += dx / (WIDTH / orthoFrame[2]);
-			orthoFrame[1] += dy / (HEIGHT / orthoFrame[3]);
+			switch(Y_UP){
+				case 0: orthoFrame[1] += dy / (HEIGHT / orthoFrame[3]); break;
+				case 1: orthoFrame[1] -= dy / (HEIGHT / orthoFrame[3]); break;
+			}			
 			orthoPerspective(orthoFrame[0], orthoFrame[1], orthoFrame[2], orthoFrame[3]);
 			break;
 	}
@@ -535,9 +545,12 @@ void mouseButtons(int button, int state, int x, int y){
 	if(button == GLUT_LEFT_BUTTON){
 		if(!state){  // button down
 			mouseX = x;
-			mouseY = y;
-			mouseDragStartX = x;
-			mouseDragStartY = y;
+			switch(Y_UP){
+				case 0: mouseY = y; break;
+				case 1: mouseY = HEIGHT - y; break;
+			}
+			mouseDragStartX = mouseX;
+			mouseDragStartY = mouseY;
 			mouseDown(button);
 		}
 		else {  // button up
@@ -555,23 +568,34 @@ void mouseButtons(int button, int state, int x, int y){
 }
 // when mouse is dragging screen
 void mouseMotion(int x, int y){
+	int y_correct = y;
+	switch(Y_UP){
+		case 0: y_correct = y; break;
+		case 1: y_correct = HEIGHT - y; break;
+	}
 	// change since last mouse event
 	if(OPTIONS & (1 << BIT_MOUSE_LOOK)){
-		mouseUpdatePerspective(mouseX - x, mouseY - y);
+		switch(Y_UP){
+			case 0: mouseUpdatePerspective(mouseX - x, mouseY - y_correct); break;
+			case 1: mouseUpdatePerspective(mouseX - x, y_correct - mouseY); break;
+		}
 	}
 	// update new state
 	mouseX = x;
-	mouseY = y;
+	mouseY = y_correct;
 	mouseDragX = mouseDragStartX - x;
-	mouseDragY = mouseDragStartY - y;
-	mouseMoved(x, y);
+	mouseDragY = mouseDragStartY - y_correct;
+	mouseMoved(mouseX, mouseY);
 	glutPostRedisplay();
 }
 // when mouse is moving but no buttons are pressed
 void mousePassiveMotion(int x, int y){
 	mouseX = x;
-	mouseY = y;
-	mouseMoved(x, y);
+	switch(Y_UP){
+		case 0: mouseY = y; break;
+		case 1: mouseY = HEIGHT - y; break;
+	}
+	mouseMoved(mouseX, mouseY);
 }
 void keyboardDown(unsigned char key, int x, int y){
 	if(keyboard[key] == 1)
@@ -977,14 +1001,19 @@ void worldInfoText(int x, int y, int z){
 		case POLAR: text("Polar Perspective", x, y, z); break;
 		case ORTHO: text("Orthographic Perspective", x, y, z); break;
 	}
-	char string[35];
-	sprintf(string, "(%.2f, %.2f, %.2f)", horizon[0], horizon[1], horizon[2]);   
-	text(string, x, y+13*1, z);
-	if(PERSPECTIVE == ORTHO){
-		char frameString[50];
-		sprintf(frameString, "%d, %d, %d, %d", (int)orthoFrame[0], (int)orthoFrame[1], (int)orthoFrame[2], (int)orthoFrame[3] );
-		text(frameString, x, y+13*2, z);
+	char orientationString[50];
+	switch(PERSPECTIVE){
+		case ORTHO:
+		sprintf(orientationString, "x:%.1f, y:%.1f, w:%.1f, h:%.1f", orthoFrame[0], orthoFrame[1], orthoFrame[2], orthoFrame[3] );
+		break;
+		case FPP: case POLAR:
+		sprintf(orientationString, "az:%.2f, alt:%.2f, zoom:%.2f", horizon[0], horizon[1], horizon[2]);   
+		break;
 	}
+	text(orientationString, x, y+13*1, z);
+	char string2[50];
+	sprintf(string2, "x:%d, y:%d", mouseX, mouseY );
+	text(string2, x, y+13*2, z);
 }
 void drawAxesLabels(float scale){
 	text("+X", scale, 0, 0);  text("-X", -scale, 0, 0);
