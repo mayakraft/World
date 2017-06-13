@@ -53,7 +53,7 @@ static unsigned char ADVANCED = 0;
 static unsigned char BEGINNER = 255; // BEGINNER (default) hooks helpful keyboard and visual feedback
 static unsigned char OPTIONS = 255;//0b11111111;
 #define CONTINUOUS_REFRESH 1  // (0) = maximum efficiency, only redraws screen if received input
-#define Y_UP 1
+#define Y_UP 0
 static float MOUSE_SENSITIVITY = 0.333f;
 static float WALK_INTERVAL = 0.077f;  // WALKING SPEED. @ 60 UPS (updates/sec), walk speed (units/sec) = INTERVAL * UPS
 static float ZOOM_SPEED = 0.1f;
@@ -284,10 +284,11 @@ void orthoPerspective(float x, float y, float width, float height){
 	orthoFrame[3] = height;
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
-	switch(Y_UP){
-		case 0: glOrtho(x, width + x, height + y, y, -FAR_CLIP, FAR_CLIP); break;
-		case 1: glOrtho(x, width + x, y, height + y, -FAR_CLIP, FAR_CLIP); break;
-	}
+	glOrtho(x, width + x, y, height + y, -FAR_CLIP, FAR_CLIP); 
+	// switch(Y_UP){
+	// 	case 0: glOrtho(x, width + x, height + y, y, -FAR_CLIP, FAR_CLIP); break;
+	// 	case 1: glOrtho(x, width + x, y, height + y, -FAR_CLIP, FAR_CLIP); break;
+	// }
 	glMatrixMode(GL_MODELVIEW);
 }
 void display(){
@@ -532,10 +533,11 @@ void mouseUpdatePerspective(int dx, int dy){
 			break;
 		case ORTHO:
 			orthoFrame[0] += dx / (WIDTH / orthoFrame[2]);
-			switch(Y_UP){
-				case 0: orthoFrame[1] += dy / (HEIGHT / orthoFrame[3]); break;
-				case 1: orthoFrame[1] -= dy / (HEIGHT / orthoFrame[3]); break;
-			}			
+			orthoFrame[1] -= dy / (HEIGHT / orthoFrame[3]);
+			// switch(Y_UP){
+			// 	case 0: orthoFrame[1] += dy / (HEIGHT / orthoFrame[3]); break;
+			// 	case 1: orthoFrame[1] -= dy / (HEIGHT / orthoFrame[3]); break;
+			// }
 			orthoPerspective(orthoFrame[0], orthoFrame[1], orthoFrame[2], orthoFrame[3]);
 			break;
 	}
@@ -995,7 +997,7 @@ void initPrimitives(){
 	}
 }
 /////////////////////////    HELPFUL ORIENTATION    //////////////////////////
-void worldInfoText(int x, int y, int z){
+void orientationText(int x, int y, int z){
 	switch(PERSPECTIVE){
 		case FPP:   text("First Person Perspective", x, y, z); break;
 		case POLAR: text("Polar Perspective", x, y, z); break;
@@ -1004,16 +1006,19 @@ void worldInfoText(int x, int y, int z){
 	char orientationString[50];
 	switch(PERSPECTIVE){
 		case ORTHO:
-		sprintf(orientationString, "x:%.1f, y:%.1f, w:%.1f, h:%.1f", orthoFrame[0], orthoFrame[1], orthoFrame[2], orthoFrame[3] );
+		sprintf(orientationString, "X:%.1f, Y:%.1f, W:%.1f, H:%.1f", orthoFrame[0], orthoFrame[1], orthoFrame[2], orthoFrame[3] );
 		break;
 		case FPP: case POLAR:
-		sprintf(orientationString, "az:%.2f, alt:%.2f, zoom:%.2f", horizon[0], horizon[1], horizon[2]);   
+		sprintf(orientationString, "LOOK AZ:%.2f, ALT:%.2f, ZOOM:%.2f", horizon[0], horizon[1], horizon[2]);
+		char originString[50];
+		sprintf(originString, "ORIGIN X:%.2f, Y:%.2f, Z:%.2f", origin[0], origin[1], origin[2]);		
+		text(originString, x, y+13*2, z);
 		break;
 	}
 	text(orientationString, x, y+13*1, z);
-	char string2[50];
-	sprintf(string2, "x:%d, y:%d", mouseX, mouseY );
-	text(string2, x, y+13*2, z);
+	char mouseString[50];
+	sprintf(mouseString, "MOUSE (%d, %d)", mouseX, mouseY );
+	text(mouseString, x, y+13*3, z);
 }
 void drawAxesLabels(float scale){
 	text("+X", scale, 0, 0);  text("-X", -scale, 0, 0);
