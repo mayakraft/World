@@ -18,8 +18,9 @@ typedef struct{
 const unsigned int numPolyhedra = 1000;
 Particle poly[numPolyhedra];
 // +/- X,Y,Z boundary for the particles
-static float BOUNDS[3] = {5.0, 5.0, 50.0};
-static float BOUNDS_ORIGIN[3] = {0.0, 0.0, 0.0};
+static float BOUNDS[3] = {5.0, 5.0, 20.0};
+// move the center of the bounding box up in the z
+static float B_OFFSET[3] = {0.0, 0.0, 19.0};  
 
 void setupLighting(){
 	GLfloat white[] = {1.0f, 1.0f, 1.0f, 0.0f};
@@ -62,7 +63,7 @@ void setup() {
 	for (int i = 0; i < numPolyhedra; i++){
 		poly[i].type = random() % 5;
 		for(int j = 0; j < 3; j++){
-			poly[i].pos[j] = ((random()%1000)*0.001-0.5)*2.0 * (BOUNDS[j]);
+			poly[i].pos[j] = ((random()%1000)*0.001-0.5)*2.0 * (BOUNDS[j]) + B_OFFSET[j];
 			poly[i].vel[j] = ((random()%1000)*0.001-0.5)*2.0 * 0.01;
 			poly[i].spin[j] = ((random()%1000)*0.001-0.5)*2.0 * 200.0;
 		}
@@ -75,8 +76,8 @@ void update() {
 	for (int i = 0; i < numPolyhedra; i++){
 		for(int j = 0; j < 3; j++){
 			poly[i].pos[j] += poly[i].vel[j];
-			if(poly[i].pos[j] < origin[j]-BOUNDS[j]){ poly[i].pos[j] = origin[j]+BOUNDS[j]; }
-			if(poly[i].pos[j] > origin[j]+BOUNDS[j]){ poly[i].pos[j] = origin[j]-BOUNDS[j]; }
+			if(poly[i].pos[j] < origin[j]-BOUNDS[j]+B_OFFSET[j]){ poly[i].pos[j] = origin[j]+BOUNDS[j]+B_OFFSET[j]; }
+			if(poly[i].pos[j] > origin[j]+BOUNDS[j]+B_OFFSET[j]){ poly[i].pos[j] = origin[j]-BOUNDS[j]+B_OFFSET[j]; }
 		}
 	}
 }

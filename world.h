@@ -41,7 +41,7 @@ void mouseMoved(int x, int y);
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // CUSTOMIZE SETTINGS
-enum{
+enum{ 
 	SET_MOUSE_LOOK = 1 << 0,
 	SET_KEYBOARD_MOVE = 1 << 1,
 	SET_KEYBOARD_FUNCTIONS = 1 << 2,
@@ -53,7 +53,7 @@ static unsigned char ADVANCED = 0;
 static unsigned char BEGINNER = 255; // BEGINNER (default) hooks helpful keyboard and visual feedback
 static unsigned char OPTIONS = 255;//0b11111111;
 #define CONTINUOUS_REFRESH 1  // (0) = maximum efficiency, only redraws screen if received input
-#define Y_UP 0
+#define HANDEDNESS 1 // 0:left, 1:right
 static float MOUSE_SENSITIVITY = 0.333f;
 static float WALK_INTERVAL = 0.077f;  // WALKING SPEED. @ 60 UPS (updates/sec), walk speed (units/sec) = INTERVAL * UPS
 static float ZOOM_SPEED = 0.1f;
@@ -139,6 +139,7 @@ void setShaderUniform1f(GLuint shader, char *uniform, float value);
 void setShaderUniformVec2f(GLuint shader, char *uniform, float *array);
 void setShaderUniformVec3f(GLuint shader, char *uniform, float *array);
 void setShaderUniformVec4f(GLuint shader, char *uniform, float *array);
+void simpleLights();
 // preload for geometry primitives
 void initPrimitives();
 GLint _sphere_stacks = 20; //7;
@@ -147,6 +148,7 @@ static float _unit_circle_vertices[192];
 static float _unit_circle_normals[192];
 static float _unit_circle_texCoord[192];
 float *_unit_sphere_vertices, *_unit_sphere_normals, *_unit_sphere_texture;
+static float _invert_y_m[16] = {1,0,0,0,0,-1,0,0,0,0,1,0,0,0,0,1};
 
 #define ESCAPE_KEY 27
 #define SPACE_BAR 32
@@ -206,7 +208,7 @@ int main(int argc, char **argv){
 void typicalOpenGLSettings(){
 	firstPersonPerspective();
 	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-	glShadeModel(GL_FLAT);
+	glShadeModel(GL_SMOOTH); // GL_FLAT
 	glEnable(GL_TEXTURE_2D);
 	glEnable(GL_POLYGON_SMOOTH);
 	glEnable(GL_POINT_SMOOTH);
@@ -253,11 +255,13 @@ void firstPersonPerspective(){
 	float a = (float)min(WIDTH, HEIGHT) / max(WIDTH, HEIGHT);
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
-	if(WIDTH < HEIGHT) glFrustum (-FOV, FOV, -FOV/a, FOV/a, NEAR_CLIP, FAR_CLIP);
-	else               glFrustum (-FOV/a, FOV/a, -FOV, FOV, NEAR_CLIP, FAR_CLIP);
+	if(WIDTH < HEIGHT) glFrustum(-FOV, FOV, -FOV/a, FOV/a, NEAR_CLIP, FAR_CLIP);
+	else               glFrustum(-FOV/a, FOV/a, -FOV, FOV, NEAR_CLIP, FAR_CLIP);
 	// change POV
 	glRotatef(-90-horizon[1], 1, 0, 0);
 	glRotatef(90+horizon[0], 0, 0, 1);
+	// for left handed, invert the Y
+	if(!HANDEDNESS){ glMultMatrixf(_invert_y_m); }
 	// raise POV 1.0 above the floor, 1.0 is an arbitrary value
 	glTranslatef(0.0f, 0.0f, -FPP_BODY_HEIGHT);
 	glMatrixMode(GL_MODELVIEW);
@@ -267,13 +271,14 @@ void polarPerspective(){
 	float a = (float)min(WIDTH, HEIGHT) / max(WIDTH, HEIGHT);
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
-	if(WIDTH < HEIGHT) glFrustum (-FOV, FOV, -FOV/a, FOV/a, NEAR_CLIP, FAR_CLIP);
-	else               glFrustum (-FOV/a, FOV/a, -FOV, FOV, NEAR_CLIP, FAR_CLIP);
+	if(WIDTH < HEIGHT) glFrustum(-FOV, FOV, -FOV/a, FOV/a, NEAR_CLIP, FAR_CLIP);
+	else               glFrustum(-FOV/a, FOV/a, -FOV, FOV, NEAR_CLIP, FAR_CLIP);
 	// change POV
 	glTranslatef(0, 0, -horizon[2]);
 	glRotatef(-90+horizon[1], 1, 0, 0);
 	glRotatef(90+180+horizon[0], 0, 0, 1);
-	// glTranslatef(x, y, z);
+	// for left handed, invert the Y
+	if(!HANDEDNESS){ glMultMatrixf(_invert_y_m); }
 	glMatrixMode(GL_MODELVIEW);
 }
 void orthoPerspective(float x, float y, float width, float height){
@@ -284,11 +289,10 @@ void orthoPerspective(float x, float y, float width, float height){
 	orthoFrame[3] = height;
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
-	glOrtho(x, width + x, y, height + y, -FAR_CLIP, FAR_CLIP); 
-	// switch(Y_UP){
-	// 	case 0: glOrtho(x, width + x, height + y, y, -FAR_CLIP, FAR_CLIP); break;
-	// 	case 1: glOrtho(x, width + x, y, height + y, -FAR_CLIP, FAR_CLIP); break;
-	// }
+	switch(HANDEDNESS){
+		case 0: glOrtho(x, width + x, height + y, y, -FAR_CLIP, FAR_CLIP); break;
+		case 1: glOrtho(x, width + x, y, height + y, -FAR_CLIP, FAR_CLIP); break;
+	}
 	glMatrixMode(GL_MODELVIEW);
 }
 void display(){
@@ -324,7 +328,7 @@ void display(){
 	// TO ORTHOGRAPHIC
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
-	switch(Y_UP){
+	switch(HANDEDNESS){
 		case 0: glOrtho(0, WIDTH, HEIGHT, 0, -100.0, 100.0); break;
 		case 1: glOrtho(0, WIDTH, 0, HEIGHT, -100.0, 100.0); break;
 	}
@@ -533,11 +537,11 @@ void mouseUpdatePerspective(int dx, int dy){
 			break;
 		case ORTHO:
 			orthoFrame[0] += dx / (WIDTH / orthoFrame[2]);
-			orthoFrame[1] -= dy / (HEIGHT / orthoFrame[3]);
-			// switch(Y_UP){
-			// 	case 0: orthoFrame[1] += dy / (HEIGHT / orthoFrame[3]); break;
-			// 	case 1: orthoFrame[1] -= dy / (HEIGHT / orthoFrame[3]); break;
-			// }
+			// orthoFrame[1] -= dy / (HEIGHT / orthoFrame[3]);
+			switch(HANDEDNESS){
+				case 0: orthoFrame[1] += dy / (HEIGHT / orthoFrame[3]); break;
+				case 1: orthoFrame[1] -= dy / (HEIGHT / orthoFrame[3]); break;
+			}
 			orthoPerspective(orthoFrame[0], orthoFrame[1], orthoFrame[2], orthoFrame[3]);
 			break;
 	}
@@ -547,7 +551,7 @@ void mouseButtons(int button, int state, int x, int y){
 	if(button == GLUT_LEFT_BUTTON){
 		if(!state){  // button down
 			mouseX = x;
-			switch(Y_UP){
+			switch(HANDEDNESS){
 				case 0: mouseY = y; break;
 				case 1: mouseY = HEIGHT - y; break;
 			}
@@ -571,13 +575,13 @@ void mouseButtons(int button, int state, int x, int y){
 // when mouse is dragging screen
 void mouseMotion(int x, int y){
 	int y_correct = y;
-	switch(Y_UP){
+	switch(HANDEDNESS){
 		case 0: y_correct = y; break;
 		case 1: y_correct = HEIGHT - y; break;
 	}
 	// change since last mouse event
 	if(OPTIONS & (1 << BIT_MOUSE_LOOK)){
-		switch(Y_UP){
+		switch(HANDEDNESS){
 			case 0: mouseUpdatePerspective(mouseX - x, mouseY - y_correct); break;
 			case 1: mouseUpdatePerspective(mouseX - x, y_correct - mouseY); break;
 		}
@@ -593,7 +597,7 @@ void mouseMotion(int x, int y){
 // when mouse is moving but no buttons are pressed
 void mousePassiveMotion(int x, int y){
 	mouseX = x;
-	switch(Y_UP){
+	switch(HANDEDNESS){
 		case 0: mouseY = y; break;
 		case 1: mouseY = HEIGHT - y; break;
 	}
@@ -997,28 +1001,50 @@ void initPrimitives(){
 	}
 }
 /////////////////////////    HELPFUL ORIENTATION    //////////////////////////
+void simpleLights(){
+	GLfloat red[] =   {1.0f, 0.2f, 0.0f, 0.0f};
+	GLfloat green[] = {0.3f, 0.9f, 0.3f, 0.0f};
+	GLfloat blue[] =  {0.0f, 0.2f, 1.0f, 0.0f};
+	GLfloat light_position0[] = { 0.0, 100.0, 0.0, 1.0};
+	GLfloat light_position1[] = { 87.0, -50.0, 0.0, 1.0};
+	GLfloat light_position2[] = { -87.0, -50.0, 0.0, 1.0 };
+	glLightfv(GL_LIGHT0, GL_DIFFUSE, red);
+	glLightfv(GL_LIGHT0, GL_SPECULAR, red);
+	glLightfv(GL_LIGHT0, GL_POSITION, light_position0);
+	glLightfv(GL_LIGHT1, GL_DIFFUSE, green);
+	glLightfv(GL_LIGHT1, GL_SPECULAR, green);
+	glLightfv(GL_LIGHT1, GL_POSITION, light_position1);
+	glLightfv(GL_LIGHT2, GL_DIFFUSE, blue);
+	glLightfv(GL_LIGHT2, GL_SPECULAR, blue);
+	glLightfv(GL_LIGHT2, GL_POSITION, light_position2);
+	glEnable(GL_LIGHTING);
+	glEnable(GL_LIGHT0);
+	glEnable(GL_LIGHT1);
+	glEnable(GL_LIGHT2);
+}
 void orientationText(int x, int y, int z){
 	switch(PERSPECTIVE){
 		case FPP:   text("First Person Perspective", x, y, z); break;
 		case POLAR: text("Polar Perspective", x, y, z); break;
 		case ORTHO: text("Orthographic Perspective", x, y, z); break;
 	}
-	char orientationString[50];
+	char line1String[50], line2String[50], line3String[50];
 	switch(PERSPECTIVE){
 		case ORTHO:
-		sprintf(orientationString, "X:%.1f, Y:%.1f, W:%.1f, H:%.1f", orthoFrame[0], orthoFrame[1], orthoFrame[2], orthoFrame[3] );
+		sprintf(line1String, "X:%.1f, Y:%.1f, W:%.1f, H:%.1f", orthoFrame[0], orthoFrame[1], orthoFrame[2], orthoFrame[3] );
+		float mWorldX = mouseX/(float)WIDTH * orthoFrame[2] + orthoFrame[0];
+		float mWorldY = mouseY/(float)HEIGHT * orthoFrame[3] + orthoFrame[1];
+		sprintf(line2String, "MOUSE WORLD (%.2f, %.2f)", mWorldX, mWorldY);
 		break;
 		case FPP: case POLAR:
-		sprintf(orientationString, "LOOK AZ:%.2f, ALT:%.2f, ZOOM:%.2f", horizon[0], horizon[1], horizon[2]);
-		char originString[50];
-		sprintf(originString, "ORIGIN X:%.2f, Y:%.2f, Z:%.2f", origin[0], origin[1], origin[2]);		
-		text(originString, x, y+13*2, z);
+		sprintf(line1String, "LOOK AZ:%.2f, ALT:%.2f, ZOOM:%.2f", horizon[0], horizon[1], horizon[2]);
+		sprintf(line2String, "ORIGIN X:%.2f, Y:%.2f, Z:%.2f", origin[0], origin[1], origin[2]);		
 		break;
 	}
-	text(orientationString, x, y+13*1, z);
-	char mouseString[50];
-	sprintf(mouseString, "MOUSE (%d, %d)", mouseX, mouseY );
-	text(mouseString, x, y+13*3, z);
+	sprintf(line3String, "MOUSE SCREEN (%d, %d)", mouseX, mouseY );
+	text(line1String, x, y+13*1, z);
+	text(line2String, x, y+13*2, z);
+	text(line3String, x, y+13*3, z);
 }
 void drawAxesLabels(float scale){
 	text("+X", scale, 0, 0);  text("-X", -scale, 0, 0);
@@ -1051,6 +1077,7 @@ void drawCheckerboard(float walkX, float walkY, int numSquares){
 			drawUnitSquare(i-XOffset - evenOdd, j-YOffset - evenOdd, 0);
 		}
 	}
+	glMaterialfv(GL_FRONT, GL_DIFFUSE, mat_white);
 }
 // span: how many units to skip inbetween each axis
 // repeats: how many rows/cols/stacks on either side of center
