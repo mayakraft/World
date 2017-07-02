@@ -114,15 +114,19 @@ void noFill();
 void text(const char *text, float x, float y, float z);
 void drawPoint(float x, float y, float z);
 void drawLine(float x1, float y1, float z1, float x2, float y2, float z2);
-void drawUnitOriginSquare();
+// everything below uses fill() and noFill() to draw filled or wireframe
 void drawRect(float x, float y, float z, float width, float height);
-void drawUnitSquare(float x, float y, float z);
-void drawUnitOriginSphere();
-void drawUnitSphere(float x, float y, float z);
-void drawSphere(float x, float y, float z, float radius);
-void drawUnitOriginCircle();
-void drawUnitCircle(float x, float y, float z);
 void drawCircle(float x, float y, float z, float radius);
+void drawSphere(float x, float y, float z, float radius);
+void drawTetrahedron();
+void drawOctahedron();
+void drawHexahedron();
+void drawCube();
+void drawIcosahedron();
+void drawDodecahedron();
+void drawUnitSquare(float x, float y, float z);
+void drawUnitCircle(float x, float y, float z);
+void drawUnitSphere(float x, float y, float z);
 void draw3DAxesLines(float x, float y, float z, float scale);
 void drawUVSphereLines();
 void drawPlatonicSolidFaces(char solidType);
@@ -687,6 +691,8 @@ void keyboardSetIdleFunc(){
 /////////////////////////        TINY OPENGL TOOLBOX         //////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////
 
+void fill(){ SHAPE_FILL = 1; }
+void noFill(){ SHAPE_FILL = 0; }
 // void text(const char *text, float x, float y, void *font){
 void text(const char *text, float x, float y, float z){
 	// GLUT_BITMAP_8_BY_13
@@ -717,9 +723,6 @@ void drawLine(float x1, float y1, float z1, float x2, float y2, float z2){
 	glDrawArrays(GL_LINES, 0, 2);
 	glDisableClientState(GL_VERTEX_ARRAY);
 }
-// EVERYTHING BELOW HERE USES FILL / NOFILL
-void fill(){ SHAPE_FILL = 1; }
-void noFill(){ SHAPE_FILL = 0; }
 void drawUnitOriginSquareFill(){
 	static const GLfloat _unit_square_vertex[] = {
 		0.0f, 1.0f, 0.0f,     1.0f, 1.0f, 0.0f,    0.0f, 0.0f, 0.0f,    1.0f, 0.0f, 0.0f };

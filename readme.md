@@ -78,24 +78,21 @@ loadTexture(filename, width, height);
 
 ```c
 text("text", x, y, z);
-drawPoint(x, y, z);
-drawLine(x1, y1, z1, x2, y2, z2);
-drawUnitOriginSquare();
-drawRect(x, y, z, width, height);
-drawUnitSquare(x, y, z);
-drawUnitOriginSphere();
-drawUnitSphere(x, y, z);
-drawSphere(x, y, z, radius);
-drawUnitOriginCircle();
-drawUnitCircle(x, y, z);
-drawCircle(x, y, z, radius);
-draw3DAxesLines(x, y, z, scale);
-drawUVSphereLines();
-// solid: 0=tetra, 1=octa... 4=dodeca
-drawPlatonicSolidFaces(solid);
-drawPlatonicSolidLines(solid);
-drawPlatonicSolidPoints(solid);
+void drawPoint(x, y, z);
+void drawLine(x1, y1, z1, x2, y2, z2);
+void drawRect(x, y, z, width, height);
+void drawCircle(x, y, z, radius);
+void drawSphere(x, y, z, radius);
+void drawTetrahedron();
+void drawOctahedron();
+void drawHexahedron(); drawCube();
+void drawIcosahedron();
+void drawDodecahedron();
 ```
+
+### `fill() `, `noFill()`
+
+calling `noFill()` will render all upcoming shapes as wireframe, see-through, and textures will no longer show. It will stay that way until you call `fill()`.
 
 ### Shaders
 
