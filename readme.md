@@ -7,17 +7,15 @@ a hyper-minimalist (1 file) framework to bring the Processing design paradigm to
 * textures, shaders
 * easy built-in perspective frustums
 
-### try it out
-
-1. clone this repostory
-2. in terminal type `make` then `make run`
-
-### or try any one of the examples
-
-1. navigate to the /examples folder `cd examples`
-2. type `make` then `make run1` or `make run2` ...
-
----
+> ### Try it out
+>
+> 1. clone this repostory
+> 2. in terminal type `make` then `make run`
+> 
+> or try the examples
+>
+> 1. navigate to the /examples folder `cd examples`
+> 2. type `make` then `make run1` or `make run2` ...
 
 # Introduction
 

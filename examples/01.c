@@ -26,7 +26,7 @@ void draw3D() {
 	glColor4f(1.0, 1.0, 1.0, 1.0);
 	draw3DAxesLines(0,0,0,1);
 	glColor4f(0.33, 0.66, 1.0, 0.66);
-	drawUVSphereLines();
+	drawUnitOriginSphereWireframe(6);
 }
 void draw2D() {
 	float minD = min(WIDTH, HEIGHT);

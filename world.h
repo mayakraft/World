@@ -109,6 +109,8 @@ void specialDown(int key, int x, int y);
 void specialUp(int key, int x, int y);
 void keyboardSetIdleFunc();
 // TINY OPENGL TOOLBOX: all 2D shapes are in the X Y plane, normal along the Z
+void fill();    // fill vs. wireframe
+void noFill(); 
 void text(const char *text, float x, float y, float z);
 void drawPoint(float x, float y, float z);
 void drawLine(float x1, float y1, float z1, float x2, float y2, float z2);
@@ -149,6 +151,7 @@ static float _unit_circle_normals[192];
 static float _unit_circle_texCoord[192];
 float *_unit_sphere_vertices, *_unit_sphere_normals, *_unit_sphere_texture;
 static float _invert_y_m[16] = {1,0,0,0,0,-1,0,0,0,0,1,0,0,0,0,1};
+static unsigned char SHAPE_FILL = 1;
 
 #define ESCAPE_KEY 27
 #define SPACE_BAR 32
@@ -714,7 +717,10 @@ void drawLine(float x1, float y1, float z1, float x2, float y2, float z2){
 	glDrawArrays(GL_LINES, 0, 2);
 	glDisableClientState(GL_VERTEX_ARRAY);
 }
-void drawUnitOriginSquare(){
+// EVERYTHING BELOW HERE USES FILL / NOFILL
+void fill(){ SHAPE_FILL = 1; }
+void noFill(){ SHAPE_FILL = 0; }
+void drawUnitOriginSquareFill(){
 	static const GLfloat _unit_square_vertex[] = {
 		0.0f, 1.0f, 0.0f,     1.0f, 1.0f, 0.0f,    0.0f, 0.0f, 0.0f,    1.0f, 0.0f, 0.0f };
 	static const GLfloat _unit_square_normals[] = {
@@ -727,24 +733,60 @@ void drawUnitOriginSquare(){
 	glNormalPointer(GL_FLOAT, 0, _unit_square_normals);
 	glTexCoordPointer(2, GL_FLOAT, 0, _texture_coordinates);
 	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+	glDisableClientState(GL_TEXTURE_COORD_ARRAY);
 	glDisableClientState(GL_NORMAL_ARRAY);
 	glDisableClientState(GL_VERTEX_ARRAY);
-	glDisableClientState(GL_TEXTURE_COORD_ARRAY);
+}
+void drawUnitOriginSquareWireframe(){
+	static const GLfloat _unit_square_wireframe_vertex[] = {
+		0.0f, 0.0f, 0.0f,    0.0f, 1.0f, 0.0f,
+		0.0f, 1.0f, 0.0f,    1.0f, 1.0f, 0.0f,
+		1.0f, 1.0f, 0.0f,    1.0f, 0.0f, 0.0f,
+		1.0f, 0.0f, 0.0f,    0.0f, 0.0f, 0.0f };
+	glEnableClientState(GL_VERTEX_ARRAY);
+	glVertexPointer(3, GL_FLOAT, 0, _unit_square_wireframe_vertex);
+	glDrawArrays(GL_LINES, 0, 4);
+	glDisableClientState(GL_VERTEX_ARRAY);
+}
+void drawUnitPlaneWireframe(int subdivisions){
+	GLfloat _plane_vertices[ (subdivisions+2) * 12 ];
+	memset(_plane_vertices, 0, sizeof(_plane_vertices));
+	for(int i = 0; i <= subdivisions+1; i++){
+		float step = (float)i/subdivisions;
+		_plane_vertices[ i * 12 + 0] = _plane_vertices[ i * 12 + 3] = _plane_vertices[ i * 12 + 7] = _plane_vertices[ i * 12 + 10] = step;
+		_plane_vertices[ i * 12 + 4] = _plane_vertices[ i * 12 + 9] = 1.0;
+	}
+	glEnableClientState(GL_VERTEX_ARRAY);
+	glVertexPointer(3, GL_FLOAT, 0, _plane_vertices);
+	glDrawArrays(GL_LINES, 0, (subdivisions+1)*4);
+	glDisableClientState(GL_VERTEX_ARRAY);
+}
+void drawUnitSquare(float x, float y, float z){
+	glPushMatrix();
+		glTranslatef(x, y, z);
+		switch(SHAPE_FILL){
+			case 0: drawUnitOriginSquareWireframe(); break;
+			default: drawUnitOriginSquareFill(); break;
+		}
+	glPopMatrix();
 }
 void drawRect(float x, float y, float z, float width, float height){
 	glPushMatrix();
 		glTranslatef(x, y, z);
 		glScalef(width, height, 1.0);
-		drawUnitOriginSquare();
+		switch(SHAPE_FILL){
+			case 0: drawUnitOriginSquareWireframe(); break;
+			default: drawUnitOriginSquareFill(); break;
+		}
 	glPopMatrix();
 }
-void drawUnitSquare(float x, float y, float z){
-	glPushMatrix();
-		glTranslatef(x, y, z);
-		drawUnitOriginSquare();
-	glPopMatrix();
+void drawUnitPlane(int subdivisions){
+	switch(SHAPE_FILL){
+		case 0: drawUnitPlaneWireframe(subdivisions); break;
+		default: drawUnitOriginSquareFill(); break;
+	}
 }
-void drawUnitOriginSphere(){
+void drawUnitOriginSphereFill(){
 	glEnableClientState(GL_VERTEX_ARRAY);
 	glEnableClientState(GL_NORMAL_ARRAY);
 	glEnableClientState(GL_TEXTURE_COORD_ARRAY);  
@@ -757,17 +799,44 @@ void drawUnitOriginSphere(){
 	glDisableClientState(GL_NORMAL_ARRAY);
 	glDisableClientState(GL_VERTEX_ARRAY);
 }
+void drawUnitOriginSphereWireframe(int subdivisions){
+	glPushMatrix();
+		drawUnitCircle(0, 0, 0);  // equator
+		// latitude
+		for(float pos = 1.0/(subdivisions*0.5); pos < 1.0; pos += 1.0/(subdivisions*0.5)){
+			glPushMatrix();
+				float r = cosf(pos*M_PI*0.5);
+				r = sqrt(1 - powf(pos,2));
+				glScalef(r, r, 1.0);
+				drawUnitCircle(0, 0, -pos);
+				drawUnitCircle(0, 0, pos);
+			glPopMatrix();
+		}
+		// longitude
+		glRotatef(90, 0, 1, 0); drawUnitCircle(0, 0, 0);
+		float angle = 180.0 / subdivisions;
+		for(int pos = 0; pos < subdivisions-1; pos++){
+			glRotatef(angle, 1, 0, 0); drawUnitCircle(0, 0, 0);
+		}
+	glPopMatrix();
+}
 void drawUnitSphere(float x, float y, float z){
 	glPushMatrix();
 		glTranslatef(x, y, z);
-		drawUnitOriginSphere();
+		switch(SHAPE_FILL){
+			case 0: drawUnitOriginSphereWireframe(6); break;
+			default: drawUnitOriginSphereFill(); break;
+		}
 	glPopMatrix();
 }
 void drawSphere(float x, float y, float z, float radius){
 	glPushMatrix();
 		glTranslatef(x, y, z);
 		glScalef(radius, radius, radius);
-		drawUnitOriginSphere();
+		switch(SHAPE_FILL){
+			case 0: drawUnitOriginSphereWireframe(6); break;
+			default: drawUnitOriginSphereFill(); break;
+		}
 	glPopMatrix();
 }
 void drawUnitOriginCircle(){
@@ -802,44 +871,6 @@ void draw3DAxesLines(float x, float y, float z, float scale){
 	glDrawArrays(GL_LINES, 0, 6);
 	glDisableClientState(GL_VERTEX_ARRAY);
 	glPopMatrix();
-}
-void drawUVSphereLines(){
-	float a1 = 0.33;
-	float a2 = 0.166;
-	glPushMatrix();
-		// equator
-		// glColor4f(1.0, 1.0, 1.0, a1);
-			drawUnitCircle(0, 0, 0);
-		// latitude
-		// glColor4f(1.0, 1.0, 1.0, a2);
-		for(float pos = 1.0/3; pos < 1.0; pos += 1.0/3){
-			glPushMatrix();
-				float r = cosf(pos*M_PI*0.5);
-				r = sqrt(1 - powf(pos,2));
-				glScalef(r, r, 1.0);
-					drawUnitCircle(0, 0, -pos);
-					drawUnitCircle(0, 0, pos);
-			glPopMatrix();
-		}
-		// longitude
-		// glColor4f(1.0, 1.0, 1.0, a1);
-			glRotatef(90, 0, 1, 0);
-			drawUnitCircle(0, 0, 0);
-		// glColor4f(1.0, 1.0, 1.0, a2);
-			glRotatef(30, 1, 0, 0);
-			drawUnitCircle(0, 0, 0);
-			glRotatef(30, 1, 0, 0);
-			drawUnitCircle(0, 0, 0);
-		// glColor4f(1.0, 1.0, 1.0, a1);
-			glRotatef(30, 1, 0, 0);
-			drawUnitCircle(0, 0, 0);
-		// glColor4f(1.0, 1.0, 1.0, a2);
-			glRotatef(30, 1, 0, 0);
-			drawUnitCircle(0, 0, 0);
-			glRotatef(30, 1, 0, 0);
-			drawUnitCircle(0, 0, 0);
-	glPopMatrix();
-	// glColor4f(1.0, 1.0, 1.0, 1.0);
 }
 const float _tetrahedron_points[12] = {1.0,0.0,0.0,-0.3333,-0.9428,0.0,-0.3333,0.4714,0.81649,-0.3333,0.4714,-0.8164};
 const unsigned short _tetrahedron_lines[12] = {2,3,2,0,2,1,3,0,3,1,0,1};
@@ -894,7 +925,38 @@ void drawPlatonicSolidPoints(char solidType){
 	glDisableClientState(GL_NORMAL_ARRAY);
 	glDisableClientState(GL_VERTEX_ARRAY);
 }
-unsigned char * getTextureData(const char * filename, int width, int height){
+void drawTetrahedron(){
+	switch(SHAPE_FILL){
+		case 0: drawPlatonicSolidLines(0); break;
+		default: drawPlatonicSolidFaces(0); break;
+	}
+}
+void drawOctahedron(){
+	switch(SHAPE_FILL){
+		case 0: drawPlatonicSolidLines(1); break;
+		default: drawPlatonicSolidFaces(1); break;
+	}
+}
+void drawHexahedron(){
+	switch(SHAPE_FILL){
+		case 0: drawPlatonicSolidLines(2); break;
+		default: drawPlatonicSolidFaces(2); break;
+	}
+}
+void drawCube(){ drawHexahedron(); }
+void drawIcosahedron(){
+	switch(SHAPE_FILL){
+		case 0: drawPlatonicSolidLines(3); break;
+		default: drawPlatonicSolidFaces(3); break;
+	}
+}
+void drawDodecahedron(){
+	switch(SHAPE_FILL){
+		case 0: drawPlatonicSolidLines(4); break;
+		default: drawPlatonicSolidFaces(4); break;
+	}
+}
+unsigned char* getTextureData(const char * filename, int width, int height){
 	FILE * file;
 	file = fopen(filename, "rb");
 	if (file == NULL) return 0;
