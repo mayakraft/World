@@ -1082,10 +1082,31 @@ void simpleLights(){
 	glLightfv(GL_LIGHT2, GL_DIFFUSE, blue);
 	glLightfv(GL_LIGHT2, GL_SPECULAR, blue);
 	glLightfv(GL_LIGHT2, GL_POSITION, light_position2);
-	glEnable(GL_LIGHTING);
 	glEnable(GL_LIGHT0);
 	glEnable(GL_LIGHT1);
 	glEnable(GL_LIGHT2);
+	glEnable(GL_LIGHTING);
+}
+void simpleGrayLights(){
+	GLfloat red[] =   {1.0f, 1.0f, 1.0f, 0.0f};
+	GLfloat green[] = {1.0f, 1.0f, 1.0f, 0.0f};
+	GLfloat blue[] =  {1.0f, 1.0f, 1.0f, 0.0f};
+	GLfloat light_position0[] = { 0.0, 100.0, 40.0, 1.0};
+	GLfloat light_position1[] = { 87.0, -50.0, -40.0, 1.0};
+	GLfloat light_position2[] = { -87.0, -50.0, 0.0, 1.0 };
+	glLightfv(GL_LIGHT0, GL_DIFFUSE, red);
+	glLightfv(GL_LIGHT0, GL_SPECULAR, red);
+	glLightfv(GL_LIGHT0, GL_POSITION, light_position0);
+	glLightfv(GL_LIGHT1, GL_DIFFUSE, green);
+	glLightfv(GL_LIGHT1, GL_SPECULAR, green);
+	glLightfv(GL_LIGHT1, GL_POSITION, light_position1);
+	glLightfv(GL_LIGHT2, GL_DIFFUSE, blue);
+	glLightfv(GL_LIGHT2, GL_SPECULAR, blue);
+	glLightfv(GL_LIGHT2, GL_POSITION, light_position2);
+	glEnable(GL_LIGHT0);
+	glEnable(GL_LIGHT1);
+	glEnable(GL_LIGHT2);
+	glEnable(GL_LIGHTING);
 }
 void orientationText(int x, int y, int z){
 	switch(PERSPECTIVE){

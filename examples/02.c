@@ -1,7 +1,7 @@
 // example 2
 //
 // demonstrates built in OpenGL lighting
-// and 1000 platonic solids particles
+// and 1000 particles
 
 #include "../world.h"
 
@@ -29,9 +29,9 @@ void setupLighting(){
 	GLfloat blue[] =  {0.0f, 0.2f, 1.0f, 0.0f};
 	GLfloat spot_direction[] = { 0.0, 0.0, -1.0 };
 	GLfloat light_position0[] = { 0.0, 0.0, 10.0, 1.0 };
-	GLfloat light_position1[] = { -8.0, 0.0, -5.0, 0.0 };
-	GLfloat light_position2[] = { -5.0, 5.0, 5.0, 0.0 };
-	GLfloat light_position3[] = { 5.0, 5.0, -5.0, 0.0 };
+	GLfloat light_position1[] = { 8.0, 0.0, -5.0, 0.0 };
+	GLfloat light_position2[] = { 5.0, 5.0, 5.0, 0.0 };
+	GLfloat light_position3[] = { -5.0, 5.0, -5.0, 0.0 };
 	glLightfv(GL_LIGHT0, GL_DIFFUSE, white);
 	glLightfv(GL_LIGHT0, GL_SPECULAR, white);
 	glLightfv(GL_LIGHT0, GL_POSITION, light_position0);
