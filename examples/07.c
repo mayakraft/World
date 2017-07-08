@@ -1,124 +1,112 @@
 // example 7
 //
-// textures and shaders
-
-#ifdef OS_WINDOWS
-#  include "../lib/glew-2.0.0/include/GL/glew.h"
-#  include "../lib/glew-2.0.0/src/wglew.c"
-#else
-#  include "../lib/glew-2.0.0/include/GL/glew.h"
-#  include "../lib/glew-2.0.0/src/glew.c"
-#endif
+// OpenGL lighting, 1000 particles
 
 #include "../world.h"
 
-const unsigned int numPoly = 50;
-float poly[numPoly * 3];
+// polyhedra into particles
+typedef struct{
+	unsigned int type;  // 0-4 which platonic solid
+	float pos[3];
+	float vel[3];
+	float spin[3];
+	float scale;
+} Particle;
 
-GLuint shader = 0;
-GLuint shader2 = 0;
-GLuint spectrum;
-
-char *vertexPath1 = "../examples/shaders/simple.vert";
-char *fragmentPath1 = "../examples/shaders/fog.frag";
-char *vertexPath2 = "../examples/shaders/wobble.vert";
-char *fragmentPath2 = "../examples/shaders/water.frag";
+// particles
+const unsigned int numPolyhedra = 1000;
+Particle poly[numPolyhedra];
+// +/- X,Y,Z boundary for the particles
+static float BOUNDS[3] = {5.0, 5.0, 20.0};
+// move the center of the bounding box up in the z
+static float B_OFFSET[3] = {0.0, 0.0, 19.0};  
 
 void setupLighting(){
-	GLfloat light_position1[] = { 0.0, 0.0, 10.0, 1.0 };
 	GLfloat white[] = {1.0f, 1.0f, 1.0f, 0.0f};
-	// GLfloat light_position2[] = { 10.0, 10.0, -15.0, 0.0 };
-	GLfloat light_position2[] = { 3.0, 3.0, -3.0, 0.0 };
-	GLfloat color[] = {0.0f, 0.2f, 1.0f, 0.0f};
-	glEnable(GL_LIGHT0);
+	GLfloat red[] =   {1.0f, 0.2f, 0.0f, 0.0f};
+	GLfloat green[] = {0.3f, 0.9f, 0.3f, 0.0f};
+	GLfloat blue[] =  {0.0f, 0.2f, 1.0f, 0.0f};
+	GLfloat spot_direction[] = { 0.0, 0.0, -1.0 };
+	GLfloat light_position0[] = { 0.0, 0.0, 10.0, 1.0 };
+	GLfloat light_position1[] = { 8.0, 0.0, -5.0, 0.0 };
+	GLfloat light_position2[] = { 5.0, 5.0, 5.0, 0.0 };
+	GLfloat light_position3[] = { -5.0, 5.0, -5.0, 0.0 };
 	glLightfv(GL_LIGHT0, GL_DIFFUSE, white);
 	glLightfv(GL_LIGHT0, GL_SPECULAR, white);
-	glLightfv(GL_LIGHT0, GL_POSITION, light_position1);
-	glEnable(GL_LIGHT1);
-	glLightfv(GL_LIGHT1, GL_DIFFUSE, color);
-	glLightfv(GL_LIGHT1, GL_SPECULAR, color);
-	glLightfv(GL_LIGHT1, GL_POSITION, light_position2);
-	glLightf(GL_LIGHT0, GL_SPOT_CUTOFF, 40.0);
-	GLfloat spot_direction[] = { 0.0, 0.0, -1.0 };
+	glLightfv(GL_LIGHT0, GL_POSITION, light_position0);
 	glLightfv(GL_LIGHT0, GL_SPOT_DIRECTION, spot_direction);
+	glLightf(GL_LIGHT0, GL_SPOT_CUTOFF, 40.0);
 	glLightf(GL_LIGHT0, GL_SPOT_EXPONENT, 40.0);
 	glLightf(GL_LIGHT0, GL_CONSTANT_ATTENUATION, 1.0);
+
+	glLightfv(GL_LIGHT1, GL_DIFFUSE, red);
+	glLightfv(GL_LIGHT1, GL_SPECULAR, red);
+	glLightfv(GL_LIGHT1, GL_POSITION, light_position1);
+	glLightfv(GL_LIGHT2, GL_DIFFUSE, green);
+	glLightfv(GL_LIGHT2, GL_SPECULAR, green);
+	glLightfv(GL_LIGHT2, GL_POSITION, light_position2);
+	glLightfv(GL_LIGHT3, GL_DIFFUSE, blue);
+	glLightfv(GL_LIGHT3, GL_SPECULAR, blue);
+	glLightfv(GL_LIGHT3, GL_POSITION, light_position3);
+
 	glEnable(GL_LIGHTING);
 }
 
 void setup() {
+	firstPersonPerspective();
+	setupLighting();
 	// glShadeModel(GL_FLAT);
 	glShadeModel(GL_SMOOTH);
-	// setupLighting();
-	shader = loadShader(  vertexPath1, fragmentPath1 );
-	shader2 = loadShader( vertexPath2, fragmentPath2 );
-	OPTIONS = SET_MOUSE_LOOK | SET_KEYBOARD_MOVE | SET_KEYBOARD_FUNCTIONS;
-	polarPerspective();
-	horizon[1] = 12;
-	horizon[2] = 10;
-	spectrum = loadTexture("../examples/data/spectrum.raw", 128, 64);
+	OPTIONS = SET_MOUSE_LOOK | SET_KEYBOARD_MOVE | SET_KEYBOARD_FUNCTIONS | SET_SHOW_GROUND;
 
-	int range = 10;
-	for(int i = 0; i < numPoly; i++){
-		poly[i*3+0] = random()%range - range*0.5;
-		poly[i*3+1] = random()%range - range*0.5;
-		poly[i*3+2] = random()%range - range*0.5;
+	for (int i = 0; i < numPolyhedra; i++){
+		poly[i].type = random() % 5;
+		for(int j = 0; j < 3; j++){
+			poly[i].pos[j] = ((random()%1000)*0.001-0.5)*2.0 * (BOUNDS[j]) + B_OFFSET[j];
+			poly[i].vel[j] = ((random()%1000)*0.001-0.5)*2.0 * 0.01;
+			poly[i].spin[j] = ((random()%1000)*0.001-0.5)*2.0 * 200.0;
+		}
+		poly[i].scale = 0.01 + 0.05 * (random()%100)*0.01;
+		poly[i].vel[2] = -0.03;  // z velocity (falling) is fixed
 	}
 }
-void update() {
-	if(frame%60 == 0){ 
-		shader = loadShader(  vertexPath1, fragmentPath1 );
-		shader2 = loadShader( vertexPath2, fragmentPath2 );
+void update() { 
+	// update particle positions
+	for (int i = 0; i < numPolyhedra; i++){
+		for(int j = 0; j < 3; j++){
+			poly[i].pos[j] += poly[i].vel[j];
+			if(poly[i].pos[j] < origin[j]-BOUNDS[j]+B_OFFSET[j]){ poly[i].pos[j] = origin[j]+BOUNDS[j]+B_OFFSET[j]; }
+			if(poly[i].pos[j] > origin[j]+BOUNDS[j]+B_OFFSET[j]){ poly[i].pos[j] = origin[j]-BOUNDS[j]+B_OFFSET[j]; }
+		}
 	}
-	float rect[2] = {WIDTH, HEIGHT};
-	setShaderUniform1f(shader, "u_time", elapsed);
-	setShaderUniform1f(shader2, "u_time", elapsed);
-	setShaderUniformVec2f(shader, "u_resolution", rect);
-	setShaderUniformVec2f(shader2, "u_resolution", rect);
 }
 void draw3D() {
-	GLfloat mat_white[] = { 1.0f, 1.0f, 1.0f, 1.0f };
-	glPushMatrix();
-		glEnable(GL_CULL_FACE);
-		glCullFace(GL_FRONT);
-		float brightness = -cos(elapsed*0.5)*0.5+0.5;
-		glColor4f(1.0, 1.0, 1.0, brightness);
-		glBindTexture(GL_TEXTURE_2D, spectrum);
-		// glScalef(-1.0, 1.0, -1.0);
-		glScalef(100, 100, 100);
-		drawSphere(0, 0, 0, 0.5);
-		glBindTexture (GL_TEXTURE_2D, 0);
-		glDisable(GL_CULL_FACE);
-	glPopMatrix();
-
-	glUseProgram(shader2);
-
-	glPushMatrix();
-		glRotatef(frame*0.5, 0,1,0);
-		float sqW = 16;
-		drawRect(-sqW*0.5, -sqW*0.5, -0.01, sqW, sqW);
-	glPopMatrix();
-
-	glUseProgram(shader);
-	for(int i = 0; i < numPoly; i++){
+	// color lights only
+	glDisable(GL_LIGHT0);
+	glEnable(GL_LIGHT1);
+	glEnable(GL_LIGHT2);
+	glEnable(GL_LIGHT3);
+	// material
+	GLfloat mat_white[] = { 0.1f, 0.1f, 0.1f, 1.0f };
+	glMaterialfv(GL_FRONT, GL_DIFFUSE, mat_white);
+	// draw particles
+	for (int i = 0; i < numPolyhedra; i++){
 		glPushMatrix();
-			glTranslatef(poly[i*3+0], poly[i*3+1], poly[i*3+2] );
-			drawPlatonicSolidFaces(3);
+			glTranslatef(poly[i].pos[0], poly[i].pos[1], poly[i].pos[2]);
+			glRotatef(poly[i].spin[0]*elapsed, 1, 0, 0);
+			glRotatef(poly[i].spin[1]*elapsed, 0, 1, 0);
+			glRotatef(poly[i].spin[2]*elapsed, 0, 0, 1);
+			glPushMatrix();
+				glScalef(poly[i].scale, poly[i].scale, poly[i].scale);
+				drawPlatonicSolidFaces(poly[i].type);
+			glPopMatrix();
 		glPopMatrix();
 	}
-	glUseProgram(0);
-
-	// glColor4f(0.7, 0.7, 0.7, (-cos(elapsed)*0.5+0.5) );
-	glColor4f(0.15, 0.15, 0.15, 1.0);
-	glLineWidth(1.5);// + 6*(cos(elapsed)*0.5+0.5) );
-	for(int i = 0; i < numPoly; i++){
-		glPushMatrix();
-			glTranslatef(poly[i*3+0], poly[i*3+1], poly[i*3+2] );
-			glScalef(1.005, 1.005, 1.005);
-			drawPlatonicSolidLines(3);
-		glPopMatrix();
-	}
-	glLineWidth(1);
+	// reset: white light only
+	glEnable(GL_LIGHT0);
+	glDisable(GL_LIGHT1);
+	glDisable(GL_LIGHT2);
+	glDisable(GL_LIGHT3);
 }
 void draw2D() { }
 void keyDown(unsigned int key) { }
