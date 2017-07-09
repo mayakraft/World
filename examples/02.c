@@ -5,11 +5,12 @@
 #include "../world.h"
 #include "noise.c"
 
-static int LAND_WIDTH = 600;
-static int LAND_HEIGHT = 600;
+static int LAND_WIDTH = 400;
+static int LAND_HEIGHT = 400;
 #define ZSCALE 10.0
 
 static float *_points;
+static float *_normals;
 static uint32_t *_indices;
 static float *_colors;
 
@@ -22,10 +23,13 @@ void drawLandscape(){
 	glPushMatrix();
 		glEnableClientState(GL_COLOR_ARRAY);
 		glEnableClientState(GL_VERTEX_ARRAY);
+		glEnableClientState(GL_NORMAL_ARRAY);
 		glColorPointer(3, GL_FLOAT, 0, _colors);
 		glVertexPointer(3, GL_FLOAT, 0, _points);
+		glNormalPointer(GL_FLOAT, 0, _normals);
 		// glDrawArrays(GL_POINTS, 0, _numPoints);
 		glDrawElements(GL_TRIANGLES, _numIndices, GL_UNSIGNED_INT, _indices);
+		glDisableClientState(GL_NORMAL_ARRAY);
 		glDisableClientState(GL_VERTEX_ARRAY);
 		glDisableClientState(GL_COLOR_ARRAY);
 	glPopMatrix();
@@ -33,6 +37,7 @@ void drawLandscape(){
 
 void setup(){ 
 	_points = (float*)malloc(sizeof(float) * LAND_WIDTH*LAND_HEIGHT * 3);
+	_normals = (float*)malloc(sizeof(float) * LAND_WIDTH*LAND_HEIGHT * 3);
 	_indices = (uint32_t*)malloc(sizeof(uint32_t) * 2*(LAND_WIDTH-1)*(LAND_HEIGHT-1) * 3);
 	_colors = (float*)malloc(sizeof(float) * LAND_WIDTH*LAND_HEIGHT * 3);
 	buildWorld();
@@ -70,6 +75,7 @@ void update(){
 		}
 	}
 	origin[2] = origin[2]*0.5 + target*0.5;
+
 }
 void draw3D(){ 
 	drawLandscape();
@@ -194,6 +200,21 @@ void buildWorld(){
 	for(int i = 0; i < LAND_WIDTH * LAND_HEIGHT; i++){
 		if(_points[i*3+2] < -.33 * ZSCALE*.5){
 			_points[i*3+2] = -.33 * ZSCALE*.5;
+		}
+	}
+
+	// generate normals
+	for(int h = 0; h < LAND_HEIGHT; h++){
+		for(int w = 0; w < LAND_WIDTH; w++){
+			int i =        ((h)*LAND_WIDTH+(w))*3;
+			int nextOver = ((h)*LAND_WIDTH+(w+1))*3;
+			int downOne =  ((h+1)*LAND_WIDTH+(w))*3;
+			if(w == LAND_WIDTH-1)  nextOver = ((h)*LAND_WIDTH+(w-1))*3;
+			if(h == LAND_HEIGHT-1) downOne =  ((h-1)*LAND_WIDTH+(w))*3;
+			float a[3] = {_points[nextOver+0]-_points[i+0], _points[nextOver+1]-_points[i+1], _points[nextOver+2]-_points[i+2]};
+			float b[3] = {_points[downOne+0]-_points[i+0], _points[downOne+1]-_points[i+1], _points[downOne+2]-_points[i+2]};
+			vec3Cross(a, b, &_normals[i]);
+			vec3Normalize(&_normals[i]);
 		}
 	}
 

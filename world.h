@@ -1345,7 +1345,7 @@ void setMat4Identity(float *m){
 	m[8] = 0; m[9] = 0; m[10] = 1; m[11] = 0;
 	m[12] = 0; m[13] = 0; m[14] = 0; m[15] = 1;
 }
-// VECTORS
+// MATRICES & VECTORS
 void mat4Vec4Mult(const float m[16], const float v[4], float result[4]){
 	result[0] = m[0] * v[0] + m[1] * v[1] + m[2] * v[2] + m[3] * v[3];
 	result[1] = m[4] * v[0] + m[5] * v[1] + m[6] * v[2] + m[7] * v[3];
@@ -1356,5 +1356,17 @@ void mat3Vec3Mult(const float m[9], const float v[3], float result[3]){
 	result[0] = m[0] * v[0] + m[1] * v[1] + m[2] * v[2];
 	result[1] = m[3] * v[0] + m[4] * v[1] + m[5] * v[2];
 	result[2] = m[6] * v[0] + m[7] * v[1] + m[8] * v[2];
+}
+// VECTORS
+void vec3Cross(const float u[3], const float v[3], float result[3]){
+	result[0] = u[1]*v[2] - u[2]*v[1];
+	result[1] = u[2]*v[0] - u[0]*v[2];
+	result[2] = u[0]*v[1] - u[1]*v[0];
+}
+void vec3Normalize(float vec[3]){
+	float m = sqrt( powf(vec[0],2) + powf(vec[1],2) + powf(vec[2],2) );
+	vec[0] /= m;
+	vec[1] /= m;
+	vec[2] /= m;
 }
 #endif /* WORLD_FRAMEWORK */
