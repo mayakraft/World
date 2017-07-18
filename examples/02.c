@@ -75,13 +75,14 @@ void update(){
 		}
 	}
 	origin[2] = origin[2]*0.5 + target*0.5;
-
 }
 void draw3D(){ 
 	drawLandscape();
 }
 void draw2D(){ }
-void keyDown(unsigned int key){ }
+void keyDown(unsigned int key){ 
+	if(key == ' ') buildWorld();
+}
 void keyUp(unsigned int key){ }
 void mouseDown(unsigned int button){ }
 void mouseUp(unsigned int button){ }

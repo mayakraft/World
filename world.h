@@ -118,12 +118,12 @@ void drawLine(float x1, float y1, float z1, float x2, float y2, float z2);
 void drawRect(float x, float y, float z, float width, float height);
 void drawCircle(float x, float y, float z, float radius);
 void drawSphere(float x, float y, float z, float radius);
-void drawTetrahedron();
-void drawOctahedron();
-void drawHexahedron();
-void drawCube();
-void drawIcosahedron();
-void drawDodecahedron();
+void drawTetrahedron(float scale);
+void drawOctahedron(float scale);
+void drawHexahedron(float scale);
+void drawCube(float scale);
+void drawIcosahedron(float scale);
+void drawDodecahedron(float scale);
 void drawUnitSquare(float x, float y, float z);
 void drawUnitCircle(float x, float y, float z);
 void drawUnitSphere(float x, float y, float z);
@@ -928,36 +928,51 @@ void drawPlatonicSolidPoints(char solidType){
 	glDisableClientState(GL_NORMAL_ARRAY);
 	glDisableClientState(GL_VERTEX_ARRAY);
 }
-void drawTetrahedron(){
+void drawTetrahedron(float scale){
+	glPushMatrix();
+	glScalef(scale, scale, scale);
 	switch(SHAPE_FILL){
 		case 0: drawPlatonicSolidLines(0); break;
 		default: drawPlatonicSolidFaces(0); break;
 	}
+	glPopMatrix();
 }
-void drawOctahedron(){
+void drawOctahedron(float scale){
+	glPushMatrix();
+	glScalef(scale, scale, scale);
 	switch(SHAPE_FILL){
 		case 0: drawPlatonicSolidLines(1); break;
 		default: drawPlatonicSolidFaces(1); break;
 	}
+	glPopMatrix();
 }
-void drawHexahedron(){
+void drawHexahedron(float scale){
+	glPushMatrix();
+	glScalef(scale, scale, scale);
 	switch(SHAPE_FILL){
 		case 0: drawPlatonicSolidLines(2); break;
 		default: drawPlatonicSolidFaces(2); break;
 	}
+	glPopMatrix();
 }
-void drawCube(){ drawHexahedron(); }
-void drawIcosahedron(){
+void drawCube(float scale){ drawHexahedron(scale); }
+void drawIcosahedron(float scale){
+	glPushMatrix();
+	glScalef(scale, scale, scale);
 	switch(SHAPE_FILL){
 		case 0: drawPlatonicSolidLines(3); break;
 		default: drawPlatonicSolidFaces(3); break;
 	}
+	glPopMatrix();
 }
-void drawDodecahedron(){
+void drawDodecahedron(float scale){
+	glPushMatrix();
+	glScalef(scale, scale, scale);
 	switch(SHAPE_FILL){
 		case 0: drawPlatonicSolidLines(4); break;
 		default: drawPlatonicSolidFaces(4); break;
 	}
+	glPopMatrix();
 }
 unsigned char* getTextureData(const char * filename, int width, int height){
 	FILE * file;

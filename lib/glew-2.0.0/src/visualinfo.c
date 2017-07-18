@@ -33,19 +33,19 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <GL/glew.h>
+#include "../include/GL/glew.h"
 #if defined(GLEW_OSMESA)
 #define GLAPI extern
-#include <GL/osmesa.h>
+#include "../include/GL/osmesa.h"
 #elif defined(GLEW_EGL)
-#include <GL/eglew.h>
+#include "../include/GL/eglew.h"
 #elif defined(_WIN32)
-#include <GL/wglew.h>
+#include "../include/GL/wglew.h"
 #elif defined(__APPLE__) && !defined(GLEW_APPLE_GLX)
 #include <OpenGL/OpenGL.h>
 #include <OpenGL/CGLTypes.h>
 #elif !defined(__HAIKU__)
-#include <GL/glxew.h>
+#include "../include/GL/glxew.h"
 #endif
 
 #ifdef GLEW_MX
