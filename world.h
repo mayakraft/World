@@ -150,9 +150,12 @@ void simpleLights();
 void initPrimitives();
 GLint _sphere_stacks = 20; //7;
 GLint _sphere_slices = 30; //13;
-static float _unit_circle_vertices[192];
-static float _unit_circle_normals[192];
-static float _unit_circle_texCoord[192];
+static float _unit_circle_outline_vertices[192];
+static float _unit_circle_outline_normals[192];
+static float _unit_circle_outline_texCoord[192];
+static float _unit_circle_fill_vertices[198]; // includes 1 more point: the center
+static float _unit_circle_fill_normals[198];
+static float _unit_circle_fill_texCoord[198];
 float *_unit_sphere_vertices, *_unit_sphere_normals, *_unit_sphere_texture;
 static float _invert_y_m[16] = {1,0,0,0,0,-1,0,0,0,0,1,0,0,0,0,1};
 static unsigned char SHAPE_FILL = 1;
@@ -842,11 +845,29 @@ void drawSphere(float x, float y, float z, float radius){
 		}
 	glPopMatrix();
 }
-void drawUnitOriginCircle(){
+void drawUnitOriginCircleFill(){
 	glEnableClientState(GL_VERTEX_ARRAY);
-	glVertexPointer(3, GL_FLOAT, 0, _unit_circle_vertices);
+	glEnableClientState(GL_NORMAL_ARRAY);
+	glEnableClientState(GL_TEXTURE_COORD_ARRAY);  
+	glVertexPointer(3, GL_FLOAT, 0, _unit_circle_fill_vertices);
+	glNormalPointer(GL_FLOAT, 0, _unit_circle_fill_normals);
+	glTexCoordPointer(2, GL_FLOAT, 0, _unit_circle_fill_texCoord);
+	glDrawArrays(GL_TRIANGLE_FAN, 0, 66);
+	glDisableClientState(GL_TEXTURE_COORD_ARRAY);
+	glDisableClientState(GL_NORMAL_ARRAY);
+	glDisableClientState(GL_VERTEX_ARRAY);
+}
+void drawUnitOriginCircleWireframe(){
+	glEnableClientState(GL_VERTEX_ARRAY);
+	glVertexPointer(3, GL_FLOAT, 0, _unit_circle_outline_vertices);
 	glDrawArrays(GL_LINE_LOOP, 0, 64);
-	glDisableClientState(GL_VERTEX_ARRAY);	
+	glDisableClientState(GL_VERTEX_ARRAY);
+}
+void drawUnitOriginCircle(){
+	switch(SHAPE_FILL){
+		case 0: drawUnitOriginCircleWireframe(); break;
+		default: drawUnitOriginCircleFill(); break;
+	}
 }
 void drawUnitCircle(float x, float y, float z){
 	glPushMatrix();
@@ -1028,13 +1049,29 @@ void initPrimitives(){
 	if (!_geometry_initialized) {
 		// CIRCLE
 		for(int i = 0; i < 64; i++){
-			_unit_circle_vertices[i*3+0] = -sinf(M_PI*2/64.0f*i);
-			_unit_circle_vertices[i*3+1] = cosf(M_PI*2/64.0f*i);
-			_unit_circle_vertices[i*3+2] = 0.0f;
-			_unit_circle_normals[i*3+0] = _unit_circle_normals[i*3+1] = 0.0;
-			_unit_circle_normals[i*3+2] = 1.0;
-			_unit_circle_texCoord[i*3+0] = -sinf(M_PI*2/64.0f*i)*0.5 + 0.5;
-			_unit_circle_texCoord[i*3+1] = cosf(M_PI*2/64.0f*i)*0.5 + 0.5;
+			_unit_circle_outline_vertices[i*3+0] = -sinf(M_PI*2/64.0f*i);
+			_unit_circle_outline_vertices[i*3+1] = cosf(M_PI*2/64.0f*i);
+			_unit_circle_outline_vertices[i*3+2] = 0.0f;
+			_unit_circle_outline_normals[i*3+0] = _unit_circle_outline_normals[i*3+1] = 0.0;
+			_unit_circle_outline_normals[i*3+2] = 1.0;
+			_unit_circle_outline_texCoord[i*3+0] = -sinf(M_PI*2/64.0f*i)*0.5 + 0.5;
+			_unit_circle_outline_texCoord[i*3+1] = cosf(M_PI*2/64.0f*i)*0.5 + 0.5;
+		}
+		_unit_circle_fill_vertices[0] = 0.0f;
+		_unit_circle_fill_vertices[1] = 0.0f;
+		_unit_circle_fill_vertices[2] = 0.0f;
+		_unit_circle_fill_normals[0] = _unit_circle_fill_normals[1] = 0.0f;
+		_unit_circle_fill_normals[2] = 1.0f;
+		_unit_circle_fill_texCoord[0] = 0.0f;
+		_unit_circle_fill_texCoord[1] = 0.0f;
+		for(int i = 1; i <= 65; i++){
+			_unit_circle_fill_vertices[i*3+0] = -sinf(M_PI*2/64.0f*(i-1));
+			_unit_circle_fill_vertices[i*3+1] = cosf(M_PI*2/64.0f*(i-1));
+			_unit_circle_fill_vertices[i*3+2] = 0.0f;
+			_unit_circle_fill_normals[i*3+0] = _unit_circle_fill_normals[i*3+1] = 0.0f;
+			_unit_circle_fill_normals[i*3+2] = 1.0f;
+			_unit_circle_fill_texCoord[i*3+0] = -sinf(M_PI*2/64.0f*(i-1))*0.5 + 0.5f;
+			_unit_circle_fill_texCoord[i*3+1] = cosf(M_PI*2/64.0f*(i-1))*0.5 + 0.5f;
 		}
 		// SPHERE
 		GLfloat m_Scale = 1;

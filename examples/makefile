@@ -1,5 +1,5 @@
 # Linux (default)
-objects = 01 02 03 04 05 06 07 08 09 10
+objects = 01 02 03 04 05 06 07 08 09 10 11
 CFLAGS = -std=gnu99
 LDFLAGS = -lGL -lGLU -lglut -lm
 
@@ -51,3 +51,6 @@ run9:
 
 run10:
 	./../bin/10 $(ARGS)
+
+run11:
+	./../bin/11 $(ARGS)
