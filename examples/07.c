@@ -50,48 +50,52 @@ static double _rates[]= {0.00000037,  0.00001906, -0.00594749,149472.67411175,  
 	*planet_z = (			sin(omega)*sin(I)			 )*x0 + (			 cos(omega)*sin(I)			 )*y0;
 }
 
+static float colors[] = {192/256.0,192/256.0,192/256.0,206/256.0,172/256.0,113/256.0,0/256.0,19/256.0,174/256.0,172/256.0,81/256.0,40/256.0,186/256.0,130/256.0,83/256.0,253/256.0,196/256.0,126/256.0,149/256.0,188/256.0,198/256.0,98/256.0,119/256.0,226/256.0,192/256.0,192/256.0,192/256.0};
+
+char zodiacs[][50] = {"Aries","Taurus","Gemini","Cancer","Leo","Virgo","Libra","Scorpio","Saggitarius","Capricorn","Aquarius","Pisces"};
+char planets[][50] = {"Mercury","Venus","Earth","Mars","Jupiter","Saturn","Uranus","Neptune","Pluto"};
+char monthStrings[][50] = { "JANUARY", "FEBRUARY", "MARCH", "APRIL", "MAY", "JUNE", "JULY", "AUGUST", "SEPTEMBER", "OCTOBER", "NOVEMBER", "DECEMBER" };
+// this approximates what day of the year we are in. not for precise calculation!
+unsigned int monthDays[] = { 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 };
+unsigned int monthStartDay[12];
 double planetsX[9];
 double planetsY[9];
 double planetsZ[9];
+int year = 0; 
+int month = 0;
+int day = 0;
+int zodiac = 0;
+// double clockTime = .138767; // mid November 2013
+double clockTime = .130767;
+	static float lastAngle;
 
-char zodiacs[][50] = {
-	"Aries",
-	"Taurus",
-	"Gemini",
-	"Cancer",
-	"Leo",
-	"Virgo",
-	"Libra",
-	"Scorpio",
-	"Saggitarius",
-	"Capricorn",
-	"Aquarius",
-	"Pisces"
-};
+GLuint dot;
 
-char planets[][50] = {
-	"Mercury",
-	"Venus",
-	"Earth",
-	"Mars",
-	"Jupiter",
-	"Saturn",
-	"Uranus",
-	"Neptune",
-	"Pluto"
-};
 
-double clockTime = .138767; // mid November 2013
+typedef enum{
+	user,
+	follow
+}ModeState;
 
-static float colors[] = {192/256.0,192/256.0,192/256.0,206/256.0,172/256.0,113/256.0,0/256.0,19/256.0,174/256.0,172/256.0,81/256.0,40/256.0,186/256.0,130/256.0,83/256.0,253/256.0,196/256.0,126/256.0,149/256.0,188/256.0,198/256.0,98/256.0,119/256.0,226/256.0,192/256.0,192/256.0,192/256.0};
+ModeState MODE = user;
 
 void setup(){
 	OPTIONS ^= SET_SHOW_GROUND;
 	OPTIONS ^= SET_SHOW_GRID;
+
 	polarPerspective();
 	horizon[0] = -95;
-	horizon[1] = 25;
+	horizon[1] = 15;
 	horizon[2] = 16;
+
+	for(int i = 0; i < 12; i++){ 
+		int totalDays = 0;
+		for(int j = i; j >= 0; j--){
+			totalDays += monthDays[j];
+		}
+		monthStartDay[i] = totalDays;
+	}
+	dot = loadTexture("../examples/data/dot-black.raw", 64, 64);
 }
 
 void update(){
@@ -99,24 +103,74 @@ void update(){
 		calculateLocationOfPlanet(i, clockTime, &planetsX[i], &planetsY[i], &planetsZ[i]);
 	}
 	clockTime += .00001;
+	if(MODE == follow){
+		float newAngle = atan2(-planetsY[2], planetsX[2]);
+		newAngle += cosf(elapsed)*0.1;
+		horizon[0] += 180 / M_PI * (newAngle - lastAngle);
+		lastAngle = newAngle;
+
+		// origin[0] = planetsX[2] * 10;
+		// origin[1] = planetsY[2] * 10;
+		// origin[2] = planetsZ[2] * 10;
+	}
+
+	year = (int)(clockTime*100.0+2000);
+	float yearPct = clockTime*100.0+2000 - year;
+	for(int i = 0; i < 12; i++){
+		if(yearPct*365 < monthStartDay[i]){
+			month = i;
+			break;
+		}
+	}
+	float sunAngle = atan2(-planetsY[2], -planetsX[2]);
+	if(sunAngle < 0){ sunAngle += M_PI*2; }
+	zodiac = sunAngle * 180 / M_PI / 30;
 }
+
 void draw3D(){
-	// float yearPct = clockTime*100.0+2000 - year;
 	glScalef(10, 10, 10);
+
+	fill();
+	glBindTexture(GL_TEXTURE_2D, dot);
+	glBlendFunc(GL_DST_COLOR, GL_SRC_COLOR);
+	glBlendEquation(GL_FUNC_ADD);
 	glPushMatrix();
-		glTranslatef(0, 0, 0);
+		glTranslatef(0,0,-150);
+		glScalef(600, 600, 600);
+		glTranslatef(-0.5,-0.5,0);
+		drawUnitSquare(0,0,0);
+	glPopMatrix();
+	glPushMatrix();
+		glTranslatef(0,0,150);
+		glScalef(600, 600, 600);
+		glTranslatef(-0.5,-0.5,0);
+		drawUnitSquare(0,0,0);
+	glPopMatrix();
+	glBindTexture(GL_TEXTURE_2D, 0);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	glBlendEquation(GL_FUNC_ADD);
+
+
+	// sun
+	glPushMatrix();
 		fill();
 		glColor3f(242/256.0,229/256.0,129/256.0);
+		glRotatef(90,0,1,0);
 		drawIcosahedron(0.2);
 		noFill();
 		glColor3f(0, 0, 0);
 		drawIcosahedron(.201);
 	glPopMatrix();
+
+	// planets
 	for(int i = 0; i < 9; i++){
+		if(i == 2){ i++; }
 		glPushMatrix();
 			glTranslatef(planetsX[i], planetsY[i], planetsZ[i]);
 			fill();
 			glColor3f(colors[3*i+0],colors[3*i+1],colors[3*i+2]);
+			glRotatef(90,0,1,0);
+			// glRotatef(23.4,0,0,1);
 			drawIcosahedron(.1);
 			noFill();
 			glColor3f(0, 0, 0);
@@ -134,27 +188,32 @@ void draw3D(){
 	}
 	glPopMatrix();
 
-	// zodiac names
-	glColor4f(1.0, 0.1, 0.1, 1.0);
-	for(int i = 0; i < 12; i++){
-		float angle = i/12.0*2.0*M_PI + 0.36;
-		text(zodiacs[i], 1000*cosf(angle), 1000*sinf(angle), 100.0);
-	}
+	// earth celestial sphere
+	glColor4f(colors[3*2+0],colors[3*2+1],colors[3*2+2], 1.0);
+	noFill();
+	glPushMatrix();
+		glTranslatef(planetsX[2], planetsY[2], planetsZ[2]);
+		glRotatef(-23.4,1,0,0);
+		drawCircle(0,0,0,1000);
+		glColor4f(colors[3*2+0]*1.6,colors[3*2+1]*1.6,colors[3*2+2]*1.6, 1.0);
+		drawSphere(0,0,0,.1);
+		glPushMatrix();
+			fill();
+			glColor4f(colors[3*2+0],colors[3*2+1],colors[3*2+2], 1.0);
+			glRotatef(90,0,1,0);
+			drawIcosahedron(.1);
+			noFill();
+			glColor3f(0, 0, 0);
+			drawIcosahedron(.101);
+		glPopMatrix();
+		glColor4f(1.0, 1.0, 1.0, 0.8);
+		drawCircle(0,0,0,.101);
+	glPopMatrix();
 
-	// planet names
-	glColor4f(1.0, 1.0, 1.0, 1.0);
-	for(int i = 0; i < 9; i++){
-		text(planets[i], planetsX[i], planetsY[i], planetsZ[i]+.2);
-	}
-	// draw ecliptic planes, AU units
-	glColor4f(1.0, 1.0, 1.0, 0.1);
-	for(int i = 0; i < 20; i++){
-		drawCircle(0, 0, 0, powf(2,i));
-	}
 
-	fill();
 	// lines from Earth to each planet
-	float lineLen = 100;
+	fill();
+	float lineLen = 800;
 	for(int i = 0; i < 9; i++){
 		if(i != 2){
 			glColor4f(colors[3*i+0], colors[3*i+1], colors[3*i+2], 0.5);
@@ -169,10 +228,11 @@ void draw3D(){
 			dZ = dZ / mag * lineLen;
 			drawLine(planetsX[2], planetsY[2], planetsZ[2], planetsX[2]+dX, planetsY[2]+dY, planetsZ[2]+dZ );
 			glPushMatrix();
-				glTranslatef(planetsX[2]+dX, planetsY[2]+dY, planetsZ[2]+dZ);
+				glTranslatef(planetsX[2]+dX*(1+(i+1)*0.02), planetsY[2]+dY*(1+(i+1)*0.02), planetsZ[2]+dZ*(1+(i+1)*0.02));
 				glRotatef(90,1,0,0);
 				glRotatef(90+angle/M_PI*180.0,0,1,0);
-				drawCircle(0, 0, 0, 4);
+				glColor4f(colors[3*i+0], colors[3*i+1], colors[3*i+2], 1.0);
+				drawCircle(0, 0, 0, 40);
 			glPopMatrix();
 		}
 	}
@@ -187,23 +247,56 @@ void draw3D(){
 			glTranslatef(-planetsX[2]*mag, -planetsY[2]*mag, -planetsZ[2]*mag);
 			glRotatef(90,1,0,0);
 			glRotatef(90+angle/M_PI*180.0,0,1,0);
-			drawCircle(0, 0, 0, 4);
+			drawCircle(0, 0, 0, 40);
 			// drawSphere(planetsX[2]+dX, planetsY[2]+dY, planetsZ[2]+dZ, 4);
 		glPopMatrix();
 
 	}
 
+	// planet names
+	glColor4f(1.0, 1.0, 1.0, 1.0);
+	for(int i = 0; i < 9; i++){
+		if(i != 2)
+		text(planets[i], planetsX[i], planetsY[i], planetsZ[i]+.2);
+	}
+
+	// zodiac names
+	for(int i = 0; i < 12; i++){
+		float angle = i/12.0*2.0*M_PI + 0.36;
+		glColor4f(1.0, 0.1, 0.1, 1.0);
+		if(i == zodiac){ glColor4f(1.0, 1.0, 0.3, 1.0); }
+		text(zodiacs[i], 900*cosf(angle), 900*sinf(angle), 100.0);
+	}
+
+	// draw ecliptic planes, AU units
+	noFill();
+	glColor4f(1.0, 1.0, 1.0, 0.5);
+	drawCircle(0,0,0,1000);
+	glColor4f(1.0, 1.0, 1.0, 0.15);
+	for(int i = 0; i < 20; i++){
+		drawCircle(0, 0, 0, powf(2,i));
+	}
 
 	glColor4f(1.0, 1.0, 1.0, 1.0);
 }
 void draw2D(){
 	glColor3f(1.0, 1.0, 1.0);
-	int year = (int)(clockTime*100.0+2000);
-	char string[50];
-	sprintf(string, "%d", year);
-	text(string, 10, 10, 0);
+	char yearString[50];
+	sprintf(yearString, "%d", year);
+	text(yearString, 10, 10, 0);
+	text(monthStrings[month], 60, 10, 0);
 }
-void keyDown(unsigned int key){ }
+void keyDown(unsigned int key){
+	if (key == ' '){
+		if(MODE == follow){
+			MODE = user;
+		}
+		else if(MODE == user){ 
+			lastAngle = atan2(-planetsY[2], planetsX[2]);
+			MODE = follow;
+		}
+	}
+}
 void keyUp(unsigned int key){ }
 void mouseDown(unsigned int button){ }
 void mouseUp(unsigned int button){ }

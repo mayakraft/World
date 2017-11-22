@@ -1000,7 +1000,9 @@ unsigned char* getTextureData(const char * filename, int width, int height){
 	file = fopen(filename, "rb");
 	if (file == NULL) return 0;
 	unsigned char *data = (unsigned char *)malloc(width * height * 3);
+	// unsigned char *data = (unsigned char *)malloc(width * height * 4);
 	fread(data, width * height * 3, 1, file);
+	// fread(data, width * height * 4, 1, file);
 	fclose(file);
 	for(int i = 0; i < width * height; i++){
 		int index = i*3;
@@ -1024,6 +1026,7 @@ GLuint loadTexture(const char * filename, int width, int height){
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 	gluBuild2DMipmaps(GL_TEXTURE_2D, 3, width, height, GL_RGB, GL_UNSIGNED_BYTE, data);
+	// gluBuild2DMipmaps(GL_TEXTURE_2D, 3, width, height, GL_RGBA, GL_UNSIGNED_BYTE, data);
 	free(data);
 	glBindTexture(GL_TEXTURE_2D, 0);
 	return texture;
