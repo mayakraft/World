@@ -1,22 +1,28 @@
 // example 1
 //
-// shapes and fill() and noFill()
+// this example illustrates how to use fill() and noFill()
+// to create an opaque wireframe model by
+//  1) drawing a filled black shape
+//  2) drawing a wireframe scaled up by a small amount: 1.005
 
 #include "../world.h"
 
 void setup(){
 	OPTIONS ^= SET_SHOW_GROUND | SET_SHOW_GRID | SET_KEYBOARD_MOVE;
 	HORIZON[2] = 3.3;
-	HORIZON[1] = 15;
+	HORIZON[1] = 5;
 	polarPerspective();
 }
-void update(){ }
+void update(){
+	HORIZON[0] += 0.1;
+	HORIZON[1] += 0.05*sinf(ELAPSED/4);
+	HORIZON[2] += -0.0025*sinf(ELAPSED/3);
+}
 void draw3D(){ 
 	glPushMatrix();
-		glTranslatef(-50, -50, -0.5);
-		glScalef(100, 100, 100);
+		noFill();
 		glColor3f(0.6, 0.1, 0.3);
-		drawUnitPlaneWireframe(100);
+		drawPlane(-50, -50, -0.5, 100, 100, 100);
 	glPopMatrix();
 
 	float size1 = cosf(ELAPSED*0.5)*0.12 + 0.88;
@@ -25,15 +31,15 @@ void draw3D(){
 		glTranslatef(0.0, 0.0, 0.5);
 		glRotatef(ELAPSED*20, 1, 0, 0);
 		glRotatef(ELAPSED*44, 0, 1, 0);
-		glColor3f(0.0, 0.0, 0.0);
+		fill();
+		glColor4f(0.0, 0.0, 0.0, 0.5);
 		drawDodecahedron(size1);
 		drawIcosahedron(size2);
 		noFill();
 		glScalef(1.005, 1.005, 1.005);
-		glColor3f(0.3, 0.5, 0.9);
+		glColor4f(0.3, 0.5, 0.9, 1.0);
 		drawDodecahedron(size1);
 		drawIcosahedron(size2);
-		fill();
 	glPopMatrix();
 }
 void draw2D(){ }

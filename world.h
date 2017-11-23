@@ -71,6 +71,7 @@ static unsigned char PERSPECTIVE = FPP;  // initialize point of view in this sta
 float ORIGIN[3] = {0.0f, 0.0f, 0.0f};  // x, y, z, location of the eye
 float HORIZON[3] = {0.0f, 0.0f, 7.0f};   // azimuth, altitude, zoom (log)
 float WINDOW[4]; // x, y, width, height
+float ASPECT;
 static float EYE_HEIGHT = 1.0;  // height of the person off of the ground
 // INPUT
 static int mouseX = 0;  // get mouse location at any point, units in pixels
@@ -119,6 +120,7 @@ void drawPoint(float x, float y, float z);
 void drawLine(float x1, float y1, float z1, float x2, float y2, float z2);
 // everything below uses fill() and noFill() to draw filled or wireframe
 void drawRect(float x, float y, float z, float width, float height);
+void drawPlane(float x, float y, float z, float width, float height, int subdivisions);
 void drawCircle(float x, float y, float z, float radius);
 void drawSphere(float x, float y, float z, float radius);
 void drawTetrahedron(float scale);
@@ -130,12 +132,12 @@ void drawDodecahedron(float scale);
 void drawUnitSquare(float x, float y, float z);
 void drawUnitCircle(float x, float y, float z);
 void drawUnitSphere(float x, float y, float z);
-void draw3DAxesLines(float x, float y, float z, float scale);
 void drawUVSphereLines();
 void drawPlatonicSolidFaces(char solidType);
 void drawPlatonicSolidLines(char solidType);
 void drawPlatonicSolidPoints(char solidType);
 // combinations of shapes
+void draw3DAxesLines(float x, float y, float z, float scale);
 void drawCheckerboard(float walkX, float walkY, int numSquares);
 void drawAxesGrid(float walkX, float walkY, float walkZ, int span, int repeats);
 float modulusContext(float complete, int modulus);
@@ -149,7 +151,7 @@ void setShaderUniformVec2f(GLuint shader, char *uniform, float *array);
 void setShaderUniformVec3f(GLuint shader, char *uniform, float *array);
 void setShaderUniformVec4f(GLuint shader, char *uniform, float *array);
 void simpleLights();
-void updateTime(int *year, int *month, int *day, int *hour, int *minute, int *second);
+void updateTime();
 // preload for geometry primitives
 void initPrimitives();
 GLint _sphere_stacks = 20; //7;
@@ -206,6 +208,7 @@ int main(int argc, char **argv){
 	WINDOW[1] = 0.02 * -HEIGHT*0.5;
 	WINDOW[2] = 0.02 * WIDTH;
 	WINDOW[3] = 0.02 * HEIGHT;
+	ASPECT = WINDOW[2] / WINDOW[3];
 	memset(keyboard,0,256);
 	clock_gettime(CLOCK_MONOTONIC, &START);
 	FRAME = 0;
@@ -237,9 +240,10 @@ void typicalOpenGLSettings(){
 void reshapeWindow(int windowWidth, int windowHeight){
 	WIDTH = windowWidth;
 	HEIGHT = windowHeight;
+	ASPECT = (float)WIDTH / (float)HEIGHT;
 	glViewport(0, 0, (GLsizei) WIDTH, (GLsizei) HEIGHT);
 	// update orthographic frame with new aspect ratio
-	float newW = WINDOW[3] * ((float)WIDTH / (float)HEIGHT);
+	float newW = WINDOW[3] * ASPECT;
 	float dW = WINDOW[2] - newW;
 	WINDOW[2] = newW;
 	WINDOW[0] += dW * 0.5;
@@ -360,7 +364,7 @@ void display(){
 }
 void updateWorld(){
 	FRAME += 1;
-	updateTime(&YEAR, &MONTH, &DAY, &HOUR, &MINUTE, &SECOND);
+	updateTime();
 	clock_gettime(CLOCK_MONOTONIC, &CURRENT);
 	ELAPSED = (CURRENT.tv_sec - START.tv_sec);
 	ELAPSED += (CURRENT.tv_nsec - START.tv_nsec) / 1000000000.0;
@@ -409,19 +413,21 @@ void updateWorld(){
 	update();
 	glutPostRedisplay();
 }
-void updateTime(int *year, int *month, int *day, int *hour, int *minute, int *second){
+void updateTime(){
 	// input is human-readable: March 1st is month:03 day:01
 	time_t current; time(&current);
 	// todo, get time zone
 	struct tm GMT;  GMT = *gmtime(&current);
-	*year = GMT.tm_year + 1900; // The number of years since 1900   
-	*month = GMT.tm_mon + 1;    // range 0 to 11  
-	*day = GMT.tm_mday;         // range 1 to 31  
-	*hour = GMT.tm_hour;        // range 0 to 23  
-	*minute = GMT.tm_min;       // range 0 to 59  
-	*second = GMT.tm_sec;       // range 0 to 59  
+	YEAR = GMT.tm_year + 1900; // The number of years since 1900   
+	MONTH = GMT.tm_mon + 1;    // range 0 to 11  
+	DAY = GMT.tm_mday;         // range 1 to 31  
+	HOUR = GMT.tm_hour;        // range 0 to 23  
+	MINUTE = GMT.tm_min;       // range 0 to 59  
+	SECOND = GMT.tm_sec;       // range 0 to 59  
 	// int tm_isdst;            // daylight saving time     
 }
+
+
 ///////////////////////////////////////
 //////////      SHADERS      //////////
 ///////////////////////////////////////
@@ -778,19 +784,6 @@ void drawUnitOriginSquareWireframe(){
 	glDrawArrays(GL_LINES, 0, 4);
 	glDisableClientState(GL_VERTEX_ARRAY);
 }
-void drawUnitPlaneWireframe(int subdivisions){
-	GLfloat _plane_vertices[ (subdivisions+2) * 12 ];
-	memset(_plane_vertices, 0, sizeof(_plane_vertices));
-	for(int i = 0; i <= subdivisions+1; i++){
-		float step = (float)i/subdivisions;
-		_plane_vertices[ i * 12 + 0] = _plane_vertices[ i * 12 + 3] = _plane_vertices[ i * 12 + 7] = _plane_vertices[ i * 12 + 10] = step;
-		_plane_vertices[ i * 12 + 4] = _plane_vertices[ i * 12 + 9] = 1.0;
-	}
-	glEnableClientState(GL_VERTEX_ARRAY);
-	glVertexPointer(3, GL_FLOAT, 0, _plane_vertices);
-	glDrawArrays(GL_LINES, 0, (subdivisions+1)*4);
-	glDisableClientState(GL_VERTEX_ARRAY);
-}
 void drawUnitSquare(float x, float y, float z){
 	glPushMatrix();
 		glTranslatef(x, y, z);
@@ -810,11 +803,34 @@ void drawRect(float x, float y, float z, float width, float height){
 		}
 	glPopMatrix();
 }
-void drawUnitPlane(int subdivisions){
+void drawUnitPlaneWireframe(int subdivisions){
+	GLfloat _plane_vertices[ (subdivisions+2) * 12 ];
+	memset(_plane_vertices, 0, sizeof(_plane_vertices));
+	for(int i = 0; i <= subdivisions+1; i++){
+		float step = (float)i/subdivisions;
+		_plane_vertices[ i * 12 + 0] = _plane_vertices[ i * 12 + 3] = _plane_vertices[ i * 12 + 7] = _plane_vertices[ i * 12 + 10] = step;
+		_plane_vertices[ i * 12 + 4] = _plane_vertices[ i * 12 + 9] = 1.0;
+	}
+	glEnableClientState(GL_VERTEX_ARRAY);
+	glVertexPointer(3, GL_FLOAT, 0, _plane_vertices);
+	glDrawArrays(GL_LINES, 0, (subdivisions+1)*4);
+	glDisableClientState(GL_VERTEX_ARRAY);
+}
+void drawUnitOriginPlane(int subdivisions){
 	switch(SHAPE_FILL){
 		case 0: drawUnitPlaneWireframe(subdivisions); break;
 		default: drawUnitOriginSquareFill(); break;
 	}
+}
+void drawPlane(float x, float y, float z, float width, float height, int subdivisions){
+	glPushMatrix();
+		glTranslatef(x, y, z);
+		glScalef(width, height, 1.0);
+		switch(SHAPE_FILL){
+			case 0: drawUnitPlaneWireframe(subdivisions); break;
+			default: drawUnitOriginSquareFill(); break;
+		}
+	glPopMatrix();
 }
 void drawUnitOriginSphereFill(){
 	glEnableClientState(GL_VERTEX_ARRAY);

@@ -214,7 +214,7 @@ GLint myTexture = loadTexture(filename, width, height);
 apply it on geometry
 
 ```c
-glBindTexture(GL_TEXTURE_2D, dot);
+glBindTexture(GL_TEXTURE_2D, myTexture);
 // draw things
 glBindTexture(GL_TEXTURE_2D, 0);
 ```

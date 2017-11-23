@@ -178,7 +178,7 @@ void calculateLocationOfMoon(double time, double *moon_x, double *moon_y, double
 }
 static float colors[] = {192/256.0,192/256.0,192/256.0,206/256.0,172/256.0,113/256.0,0/256.0,19/256.0,174/256.0,172/256.0,81/256.0,40/256.0,186/256.0,130/256.0,83/256.0,253/256.0,196/256.0,126/256.0,149/256.0,188/256.0,198/256.0,98/256.0,119/256.0,226/256.0,192/256.0,192/256.0,192/256.0};
 char zodiacs[][50] = {"Aries","Taurus","Gemini","Cancer","Leo","Virgo","Libra","Scorpio","Saggitarius","Capricorn","Aquarius","Pisces"};
-char planets[][50] = {"Mercury","Venus","Earth","Mars","Jupiter","Saturn","Uranus","Neptune","Pluto"};
+char planetNames[][50] = {"Mercury","Venus","Earth","Mars","Jupiter","Saturn","Uranus","Neptune","Pluto"};
 char monthStrings[][50] = { "JANUARY", "FEBRUARY", "MARCH", "APRIL", "MAY", "JUNE", "JULY", "AUGUST", "SEPTEMBER", "OCTOBER", "NOVEMBER", "DECEMBER" };
 // this approximates what day of the year we are in. not for precise calculation!
 
@@ -187,6 +187,11 @@ double planetsX[9];
 double planetsY[9];
 double planetsZ[9];
 double moonPosition[3];
+
+double planetProjections[9][3];
+double moonProjection[3];
+double sunProjection[3];
+
 // int year = 0; 
 // int month = 0;
 // int day = 0;
@@ -202,7 +207,7 @@ int clockSpeed = 6;
 static float lastAngle;
 
 GLuint dot;
-GLuint constellationTexture;
+GLuint constellationTexture = 0;
 
 
 typedef enum{
@@ -232,9 +237,14 @@ void setup(){
 	dot = loadTexture("../examples/data/dot-black.raw", 64, 64);
 	// constellationTexture = loadTexture("../examples/data/constellations.raw", 1024, 512);
 
-	ZOOM_SPEED = 2.0f;
+	ZOOM_SPEED = 10.0f;
 
 	HANDED = RIGHT;
+
+	WINDOW[0] = (-17000*0.5) * ASPECT;
+	WINDOW[1] = -17000*0.5;
+	WINDOW[2] = 17000 * ASPECT;
+	WINDOW[3] = 17000;
 }
 
 void update(){
@@ -262,8 +272,6 @@ void update(){
 		// ORIGIN[1] = planetsY[2] * 10;
 		// ORIGIN[2] = planetsZ[2] * 10;
 	}
-
-
 
 	// year = (int)(clockTime*100.0+2000);
 	// float yearPct = clockTime*100.0+2000 - year;
@@ -295,9 +303,12 @@ void update(){
 	// minute++;
 	// clockTime += clockSpeed;
 	correctDates();
+
+	// printf("%d, %d, %d, %d\n", (int)WINDOW[0], (int)WINDOW[1], (int)WINDOW[2], (int)WINDOW[3] );
 }
 
 void draw3D(){
+	glEnable(GL_CULL_FACE);
 	glScalef(8, 8, 8);
 
 	glColor4f(1.0, 1.0, 1.0, 0.75);
@@ -305,18 +316,22 @@ void draw3D(){
 	// glColor4f(1.0, 1.0, 1.0, 0.25);
 	// drawLine(0,1000,0,0,-1000,0);
 
+	glCullFace(GL_BACK);
+
 	// constellation sphere
+	// fill();
 	// glColor4f(1.0, 1.0, 1.0, 0.2);
 	// glBindTexture(GL_TEXTURE_2D, constellationTexture);
 	// glPushMatrix();
 	// 	glRotatef(-23.4,1,0,0);
 	// 	glRotatef(90,0,0,1);
 	// 	glScalef(1,-1,1);
-	// 	drawSphere(0,0,0,1005);
+	// 	drawSphere(0,0,0,1000);
 	// glPopMatrix();
 	// glBindTexture(GL_TEXTURE_2D, 0);
 	// noFill();
 
+	glCullFace(GL_FRONT);
 
 	// sun
 	glPushMatrix();
@@ -347,7 +362,7 @@ void draw3D(){
 
 	glLineWidth(4);
 	// 12 zodiac divisions
-	glColor4f(1.0, 0.1, 0.1, 0.7);
+	glColor4f(1.0, 0.1, 0.1, 0.2);
 	glPushMatrix();
 	glRotatef(90,1,0,0);
 	for(int i = 0; i < 12; i++){
@@ -362,16 +377,16 @@ void draw3D(){
 	glPushMatrix();
 		// earth position
 		glTranslatef(planetsX[2], planetsY[2], planetsZ[2]);
-		// glPushMatrix();
+		glPushMatrix();
 		// 	// moon
-		// 	glTranslatef(moonPosition[0], moonPosition[1], moonPosition[2]);
-		// 	glColor4f(0.6, 0.6, 0.6, 1.0);
-		// 	fill();
-		// 	drawIcosahedron(.1);
-		// 	glColor4f(0.0, 0.0, 0.0, 1.0);
-		// 	noFill();
-		// 	drawIcosahedron(.101);
-		// glPopMatrix();
+			glTranslatef(moonPosition[0], moonPosition[1], moonPosition[2]);
+			glColor4f(0.6, 0.6, 0.6, 1.0);
+			fill();
+			drawIcosahedron(.1);
+			glColor4f(0.0, 0.0, 0.0, 1.0);
+			noFill();
+			drawIcosahedron(.101);
+		glPopMatrix();
 
 		glRotatef(-23.4,1,0,0);
 	glLineWidth(4);
@@ -398,25 +413,31 @@ void draw3D(){
 
 
 
-	fill();
-	glBindTexture(GL_TEXTURE_2D, dot);
-	glBlendFunc(GL_DST_COLOR, GL_SRC_COLOR);
-	glBlendEquation(GL_FUNC_ADD);
-	glPushMatrix();
-		glTranslatef(0,0,-50);
-		glScalef(600, 600, 600);
-		glTranslatef(-0.5,-0.5,0);
-		drawUnitSquare(0,0,0);
-	glPopMatrix();
-	glPushMatrix();
-		glTranslatef(0,0,50);
-		glScalef(600, 600, 600);
-		glTranslatef(-0.5,-0.5,0);
-		drawUnitSquare(0,0,0);
-	glPopMatrix();
-	glBindTexture(GL_TEXTURE_2D, 0);
-	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-	glBlendEquation(GL_FUNC_ADD);
+	if(PERSPECTIVE != ORTHO){
+		fill();
+		glBindTexture(GL_TEXTURE_2D, dot);
+		glBlendFunc(GL_DST_COLOR, GL_SRC_COLOR);
+		glBlendEquation(GL_FUNC_ADD);
+		glCullFace(GL_FRONT);
+		glPushMatrix();
+			glTranslatef(0,0,-50);
+			glScalef(600, 600, 600);
+			glTranslatef(-0.5,-0.5,0);
+			drawUnitSquare(0,0,0);
+		glPopMatrix();
+		glCullFace(GL_BACK);
+		glPushMatrix();
+			glTranslatef(0,0,50);
+			glScalef(600, 600, 600);
+			glTranslatef(-0.5,-0.5,0);
+			drawUnitSquare(0,0,0);
+		glPopMatrix();
+		glBindTexture(GL_TEXTURE_2D, 0);
+		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+		glBlendEquation(GL_FUNC_ADD);
+
+		glCullFace(GL_FRONT);
+	}
 
 
 
@@ -447,6 +468,9 @@ void draw3D(){
 				glColor4f(colors[3*i+0], colors[3*i+1], colors[3*i+2], 1.0);
 				drawCircle(0, 0, 0, 40);
 			glPopMatrix();
+			// planet names
+			glColor4f(1.0, 1.0, 1.0, 1.0);
+			text(planetNames[i], planetsX[2]+dX, planetsY[2]+dY, planetsZ[2]+dZ + 50);
 		}
 	}
 
@@ -465,30 +489,33 @@ void draw3D(){
 		glPopMatrix();
 	}
 	// to moon
-	// {
-	// 	glColor3f(0.6, 0.6, 0.6);
-	// 	float dX = moonPosition[0];
-	// 	float dY = moonPosition[1];
-	// 	float dZ = moonPosition[2];
-	// 	float angle = atan2(dY, dX);
-	// 	float mag = sqrt( powf(dX,2) + powf(dY,2) + powf(dZ,2) );
-	// 	dX = dX / mag * lineLen;
-	// 	dY = dY / mag * lineLen;
-	// 	dZ = dZ / mag * lineLen;
-	// 	drawLine(planetsX[2], planetsY[2], planetsZ[2], planetsX[2]+dX, planetsY[2]+dY, planetsZ[2]+dZ );
-	// 	glPushMatrix();
-	// 		glTranslatef(planetsX[2]+dX, planetsY[2]+dY, planetsZ[2]+dZ);
-	// 		glRotatef(90,1,0,0);
-	// 		glRotatef(90+angle/M_PI*180.0,0,1,0);
-	// 		drawCircle(0, 0, 0, 40);
-	// 	glPopMatrix();
-	// }
+	{
+		glColor3f(0.6, 0.6, 0.6);
+		float dX = moonPosition[0];
+		float dY = moonPosition[1];
+		float dZ = moonPosition[2];
+		float angle = atan2(dY, dX);
+		float mag = sqrt( powf(dX,2) + powf(dY,2) + powf(dZ,2) );
+		dX = dX / mag * lineLen;
+		dY = dY / mag * lineLen;
+		dZ = dZ / mag * lineLen;
+		drawLine(planetsX[2], planetsY[2], planetsZ[2], planetsX[2]+dX, planetsY[2]+dY, planetsZ[2]+dZ );
+		glPushMatrix();
+			glTranslatef(planetsX[2]+dX, planetsY[2]+dY, planetsZ[2]+dZ);
+			glRotatef(90,1,0,0);
+			glRotatef(90+angle/M_PI*180.0,0,1,0);
+			drawCircle(0, 0, 0, 40);
+		glPopMatrix();
+		// planet names
+		glColor4f(1.0, 1.0, 1.0, 1.0);
+		text("Earth's Moon", planetsX[2]+dX, planetsY[2]+dY, planetsZ[2]+dZ + 50);
+	}
 
 	// planet names
 	glColor4f(1.0, 1.0, 1.0, 1.0);
 	for(int i = 0; i < 9; i++){
 		if(i != 2)
-		text(planets[i], planetsX[i], planetsY[i], planetsZ[i]+.2);
+		text(planetNames[i], planetsX[i], planetsY[i], planetsZ[i]+.2);
 	}
 
 	// zodiac names
