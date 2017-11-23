@@ -74,9 +74,9 @@ RGB HSV2RGB(HSV in){
 
 void setup(){ 
 	OPTIONS = SET_MOUSE_LOOK | SET_KEYBOARD_MOVE | SET_KEYBOARD_FUNCTIONS;
-	horizon[2] = 50;
+	HORIZON[2] = 50;
 	polarPerspective();
-	horizon[1] = 90;
+	HORIZON[1] = 90;
 }
 void update(){ }
 void draw3D(){

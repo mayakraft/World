@@ -59,11 +59,12 @@ Done! To run: `./world` or `make run`
 
 ## Variables
 
-* `elapsed` time in seconds
+* `ELAPSED` time in seconds
 * `keyboard[256]` array of keyboard ASCII state: T/F if pressed
 * `mouseX` `mouseY` mouse location in pixels
-* `mouseDragX` `mouseDragY` mouse drag between click and release
+* `mouseDownX` `mouseDownY` mouse drag between click and release
 * `WIDTH` `HEIGHT` READ ONLY window dimensions
+* `YEAR` `MONTH` `DAY` `HOUR` `MINUTE` `SECOND` always updated time, date
 
 ## Funtions
 
@@ -94,6 +95,13 @@ void drawDodecahedron();
 
 calling `noFill()` will render all upcoming shapes as wireframe, see-through, and textures will no longer show. It will stay that way until you call `fill()`.
 
+functions affected by fill and noFill:
+
+* drawRect
+* drawCircle
+* drawSphere
+* drawTetrahedron.. all of the solids
+
 ### Shaders
 
 ```c
@@ -116,8 +124,8 @@ It's easy to get your bearings. Camera orientation is measured using horizontal 
 
 ### 3D Properties
 
-* `origin[3]` (x, y, z) the center of the world
-* `horizon[3]` (azimuth, altitude, zoom) point on celestial sphere
+* `ORIGIN[3]` (x, y, z) the center of the world
+* `HORIZON[3]` (azimuth, altitude, zoom) point on celestial sphere
 
 ### Polar Perspective
 
@@ -134,11 +142,11 @@ It's easy to get your bearings. Camera orientation is measured using horizontal 
 default is `BEGINNER`
 
 ```c
-OPTIONS = ADVANCED;
+OPTIONS = EMPTY;
 ```
 
 * `BEGINNER`
-* `ADVANCED`
+* `EMPTY`
 
 Beginner and Advanced turn **all the flags** on or off
 
@@ -189,15 +197,43 @@ Whenever possible, this framework uses standard OpenGL built-in functions. Here 
 
 ### Transforms
 
-* `	glTranslatef(x, y, z)`
-* `	glRotatef(angle, 1, 0, 0)`
+* `glTranslatef(x, y, z)`
+* `glRotatef(angle, 1, 0, 0)`
 * `glScalef(10, 10, 10)`
 * `glMultMatrixf(m)`
 * `glPushMatrix()` `glPopMatrix()`
 
+### Textures
+
+first load a texture
+
+```
+GLint myTexture = loadTexture(filename, width, height);
+```
+
+apply it on geometry
+
+```c
+glBindTexture(GL_TEXTURE_2D, dot);
+// draw things
+glBindTexture(GL_TEXTURE_2D, 0);
+```
+
+### Blending
+
+default
+
+* `glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)`
+* `glBlendEquation(GL_FUNC_ADD)`
+
+color as transparency
+
+* `glBlendFunc(GL_DST_COLOR, GL_SRC_COLOR)`
+* `glBlendEquation(GL_FUNC_ADD)`
+
 ### Lighting
 
-* `	glMaterialfv(GL_FRONT, GL_DIFFUSE, white)` set draw color
+* `glMaterialfv(GL_FRONT, GL_DIFFUSE, white)` set draw color
 * `glEnable(GL_LIGHTING)`, `glEnable(GL_LIGHT0)` enable light
 * `glLightfv(GL_LIGHT0, GL_DIFFUSE, white)` set light color
 * `glLightfv(GL_LIGHT0, GL_POSITION, pos)` set light position

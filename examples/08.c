@@ -25,9 +25,9 @@ void draw3D(){
 	glViewport(0, 0, (GLsizei) WIDTH*0.5, (GLsizei) HEIGHT*0.5);
 	firstPersonPerspective();
 		if(OPTIONS & (1 << BIT_SHOW_GRID)){
-			float newX = modulusContext(-origin[0], 5);
-			float newY = modulusContext(-origin[1], 5);
-			float newZ = modulusContext(-origin[2], 5);
+			float newX = modulusContext(-ORIGIN[0], 5);
+			float newY = modulusContext(-ORIGIN[1], 5);
+			float newZ = modulusContext(-ORIGIN[2], 5);
 			glPushMatrix();
 				glTranslatef(newX, newY, newZ);
 				drawAxesGrid(newX, newY, newZ, 5, 4);
@@ -35,20 +35,20 @@ void draw3D(){
 		}
 		// 2D REPEATED STRUCTURE
 		if(OPTIONS & (1 << BIT_SHOW_GROUND)){
-			float newX = modulusContext(-origin[0], 2);
-			float newY = modulusContext(-origin[1], 2);
+			float newX = modulusContext(-ORIGIN[0], 2);
+			float newY = modulusContext(-ORIGIN[1], 2);
 			glPushMatrix();
-				glTranslatef(newX, newY, -origin[2]);
+				glTranslatef(newX, newY, -ORIGIN[2]);
 				drawCheckerboard(newX, newY, 8);
 			glPopMatrix();
 		}
 
 	glViewport((GLsizei) WIDTH*0.5, (GLsizei) HEIGHT*0.5, (GLsizei) WIDTH*0.5, (GLsizei) HEIGHT*0.5);
-	orthoPerspective(orthoFrame[0], orthoFrame[1], orthoFrame[2], orthoFrame[3]);
+	orthoPerspective(WINDOW[0], WINDOW[1], WINDOW[2], WINDOW[3]);
 		if(OPTIONS & (1 << BIT_SHOW_GRID)){
-			float newX = modulusContext(-origin[0], 5);
-			float newY = modulusContext(-origin[1], 5);
-			float newZ = modulusContext(-origin[2], 5);
+			float newX = modulusContext(-ORIGIN[0], 5);
+			float newY = modulusContext(-ORIGIN[1], 5);
+			float newZ = modulusContext(-ORIGIN[2], 5);
 			glPushMatrix();
 				glTranslatef(newX, newY, newZ);
 				drawAxesGrid(newX, newY, newZ, 5, 4);
@@ -56,10 +56,10 @@ void draw3D(){
 		}
 		// 2D REPEATED STRUCTURE
 		if(OPTIONS & (1 << BIT_SHOW_GROUND)){
-			float newX = modulusContext(-origin[0], 2);
-			float newY = modulusContext(-origin[1], 2);
+			float newX = modulusContext(-ORIGIN[0], 2);
+			float newY = modulusContext(-ORIGIN[1], 2);
 			glPushMatrix();
-				glTranslatef(newX, newY, -origin[2]);
+				glTranslatef(newX, newY, -ORIGIN[2]);
 				drawCheckerboard(newX, newY, 8);
 			glPopMatrix();
 		}
@@ -68,10 +68,10 @@ void draw3D(){
 	polarPerspective();
 
 	// update orthographic frame with new aspect ratio
-	// float newW = orthoFrame[3] * ((float)WIDTH / (float)HEIGHT);
-	// float dW = orthoFrame[2] - newW;
-	// orthoFrame[2] = newW;
-	// orthoFrame[0] += dW * 0.5;
+	// float newW = WINDOW[3] * ((float)WIDTH / (float)HEIGHT);
+	// float dW = WINDOW[2] - newW;
+	// WINDOW[2] = newW;
+	// WINDOW[0] += dW * 0.5;
 }
 void draw2D(){ 
 	orientationText(5, 15, 10);

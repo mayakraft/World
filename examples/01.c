@@ -6,8 +6,8 @@
 
 void setup(){
 	OPTIONS ^= SET_SHOW_GROUND | SET_SHOW_GRID | SET_KEYBOARD_MOVE;
-	horizon[2] = 3.3;
-	horizon[1] = 15;
+	HORIZON[2] = 3.3;
+	HORIZON[1] = 15;
 	polarPerspective();
 }
 void update(){ }
@@ -19,12 +19,12 @@ void draw3D(){
 		drawUnitPlaneWireframe(100);
 	glPopMatrix();
 
-	float size1 = cosf(elapsed*0.5)*0.12 + 0.88;
-	float size2 = -cosf(elapsed*0.5)*0.12 + 0.88;
+	float size1 = cosf(ELAPSED*0.5)*0.12 + 0.88;
+	float size2 = -cosf(ELAPSED*0.5)*0.12 + 0.88;
 	glPushMatrix();
 		glTranslatef(0.0, 0.0, 0.5);
-		glRotatef(elapsed*20, 1, 0, 0);
-		glRotatef(elapsed*44, 0, 1, 0);
+		glRotatef(ELAPSED*20, 1, 0, 0);
+		glRotatef(ELAPSED*44, 0, 1, 0);
 		glColor3f(0.0, 0.0, 0.0);
 		drawDodecahedron(size1);
 		drawIcosahedron(size2);

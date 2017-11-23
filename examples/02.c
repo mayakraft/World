@@ -61,20 +61,20 @@ void setup(){
 }
 
 void update(){ 
-	int w = origin[0] * 10 + LAND_WIDTH*.5 ;
-	int h = origin[1] * 10 +  LAND_HEIGHT*.5 ;
+	int w = ORIGIN[0] * 10 + LAND_WIDTH*.5 ;
+	int h = ORIGIN[1] * 10 +  LAND_HEIGHT*.5 ;
 	if(w < 0) w = 0;
 	if(h < 0) h = 0;
 	if(w >= LAND_WIDTH) w = LAND_WIDTH-1;
 	if(h >= LAND_HEIGHT) h = LAND_HEIGHT-1;
 
-	float target = origin[2];
+	float target = ORIGIN[2];
 	if(_numPoints > h*LAND_WIDTH+w){
 		if(PERSPECTIVE == FPP){
 			target = _points[(h*LAND_WIDTH+w)*3+2];
 		}
 	}
-	origin[2] = origin[2]*0.5 + target*0.5;
+	ORIGIN[2] = ORIGIN[2]*0.5 + target*0.5;
 }
 void draw3D(){ 
 	drawLandscape();

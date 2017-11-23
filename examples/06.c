@@ -150,13 +150,13 @@ void setup() {
 	// hideHelpfulOrientation();
 	polarPerspective();
 	OPTIONS = SET_MOUSE_LOOK | SET_KEYBOARD_FUNCTIONS;
-	horizon[0] = 0;
-	horizon[1] = 0;
-	horizon[2] = sqrt( 1 + powf(4,zoom));
+	HORIZON[0] = 0;
+	HORIZON[1] = 0;
+	HORIZON[2] = sqrt( 1 + powf(4,zoom));
 }
 void update() { 
-	generateSiderealTimeMatrix(siderealMatrix, elapsed);
-	latitude = 30*sin(elapsed*0.1);
+	generateSiderealTimeMatrix(siderealMatrix, ELAPSED);
+	latitude = 30*sin(ELAPSED*0.1);
 	generateGeographicLatitudeMatrix(latitudeMatrix, latitude);
 }
 void draw3D() {
@@ -238,7 +238,7 @@ void draw2D() { }
 void keyDown(unsigned int key) {
 	if(key == ' '){
 		zoom = (zoom+1)%4;
-		horizon[2] = sqrt( 1 + powf(4,zoom));
+		HORIZON[2] = sqrt( 1 + powf(4,zoom));
 	}
 }
 void keyUp(unsigned int key) { }

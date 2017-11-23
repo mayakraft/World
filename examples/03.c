@@ -14,9 +14,9 @@ void setup() {
 	polarPerspective();
 	// GROUND = 0;
 	// GRID = 0;
-	horizon[0] = 180;
-	horizon[1] = 0;
-	horizon[2] = sqrt(2);
+	HORIZON[0] = 180;
+	HORIZON[1] = 0;
+	HORIZON[2] = sqrt(2);
 	OPTIONS = SET_MOUSE_LOOK | SET_SHOW_GRID | SET_KEYBOARD_FUNCTIONS;
 }
 void update() { }
@@ -37,11 +37,11 @@ void draw2D() {
 	text("spacebar to change zoom", WIDTH-23*8, 10, 0);
 
 	char zoomString[50];
-	sprintf(zoomString, "when camera is distance %.2f from origin", horizon[2]);
+	sprintf(zoomString, "when camera is distance %.2f from origin", HORIZON[2]);
 	text(zoomString, 0, 10, 0);
 
 	char equationString[50];
-	sprintf(equationString, "  (sqrt(1+4^%d) = %.2f)", zoom, horizon[2]);
+	sprintf(equationString, "  (sqrt(1+4^%d) = %.2f)", zoom, HORIZON[2]);
 	text(equationString, 0, 25, 0);
 
 	char fillString[50];
@@ -62,7 +62,7 @@ void draw2D() {
 void keyDown(unsigned int key) {
 	if(key == ' '){
 		zoom = (zoom+1)%4;
-		horizon[2] = sqrt( 1 + powf(4,zoom));
+		HORIZON[2] = sqrt( 1 + powf(4,zoom));
 	}
 }
 void keyUp(unsigned int key) { }

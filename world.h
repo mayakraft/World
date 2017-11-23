@@ -44,46 +44,49 @@ void mouseMoved(int x, int y);
 enum{ 
 	SET_MOUSE_LOOK = 1 << 0,
 	SET_KEYBOARD_MOVE = 1 << 1,
-	SET_KEYBOARD_FUNCTIONS = 1 << 2,
-	SET_SHOW_GROUND = 1 << 3,  // a 2D grid
-	SET_SHOW_GRID = 1 << 4    // a 3D grid
+	SET_KEYBOARD_ZOOM = 1 << 2,
+	SET_KEYBOARD_FUNCTIONS = 1 << 3,
+	SET_SHOW_GROUND = 1 << 4,  // a 2D grid
+	SET_SHOW_GRID = 1 << 5    // a 3D grid
 };
-enum { BIT_MOUSE_LOOK, BIT_KEYBOARD_MOVE, BIT_KEYBOARD_FUNCTIONS, BIT_SHOW_GROUND, BIT_SHOW_GRID };
-static unsigned char ADVANCED = 0;
+enum { BIT_MOUSE_LOOK, BIT_KEYBOARD_MOVE, BIT_KEYBOARD_ZOOM, BIT_KEYBOARD_FUNCTIONS, BIT_SHOW_GROUND, BIT_SHOW_GRID };
+enum { LEFT, RIGHT };
+static unsigned char EMPTY = 0;
 static unsigned char BEGINNER = 255; // BEGINNER (default) hooks helpful keyboard and visual feedback
-static unsigned char OPTIONS = 255;//0b11111111;
+static unsigned char OPTIONS = 0b11111111;
 #define CONTINUOUS_REFRESH 1  // (0) = maximum efficiency, only redraws screen if received input
-#define HANDEDNESS 1 // 0:left, 1:right
-static float MOUSE_SENSITIVITY = 0.333f;
-static float WALK_INTERVAL = 0.077f;  // WALKING SPEED. @ 60 UPS (updates/sec), walk speed (units/sec) = INTERVAL * UPS
-static float ZOOM_SPEED = 0.1f;
+unsigned char HANDED = LEFT; // 0:left, 1:right
 // WINDOW size upon boot
 static int WIDTH = 800;  // (readonly) set these values here
 static int HEIGHT = 600; // (readonly) setting during runtime will not re-size window
 static unsigned char FULLSCREEN = 0;  // fullscreen:1   window:0
-// INPUT
-static int mouseX = 0;  // get mouse location at any point, units in pixels
-static int mouseY = 0;
-static int mouseDragX = 0;  // dragging during one session (between click and release)
-static int mouseDragY = 0;
-static unsigned char keyboard[256];  // query this at any point for the state of a key (0:up, 1:pressed)
-// GRAPHICS
+// PROJECTION
 static float NEAR_CLIP = 0.1;
 static float FAR_CLIP = 10000.0;
 static float FOV = 0.1;
-static float ZOOM_RADIX = 3;
 // PERSPECTIVE
 enum{  FPP,  POLAR,  ORTHO  }; // first persion, polar, orthographic
 static unsigned char PERSPECTIVE = FPP;  // initialize point of view in this state
 // details of each perspective
-float origin[3] = {0.0f, 0.0f, 0.0f};  // x, y, z, location of the eye
-float horizon[3] = {0.0f, 0.0f, 7.0f};   // azimuth, altitude, zoom (log)
-float orthoFrame[4]; // x, y, width, height
-static float FPP_BODY_HEIGHT = 1.0;  // height of the person off of the ground
+float ORIGIN[3] = {0.0f, 0.0f, 0.0f};  // x, y, z, location of the eye
+float HORIZON[3] = {0.0f, 0.0f, 7.0f};   // azimuth, altitude, zoom (log)
+float WINDOW[4]; // x, y, width, height
+static float EYE_HEIGHT = 1.0;  // height of the person off of the ground
+// INPUT
+static int mouseX = 0;  // get mouse location at any point, units in pixels
+static int mouseY = 0;
+	// mouse drag
+static int mouseDownX, mouseDownY;  // mouse down drag distance
+static int mouseDownStartX, mouseDownStartY;  // mouse down initial location
+static unsigned char keyboard[256];  // the state of each keyboard key (0:up, 1:pressed)
+static float MOUSE_SENSITIVITY = 0.333f;
+static float WALK_INTERVAL = 0.077f;  // WALKING SPEED. @ 60 UPS (updates/sec), walk speed (units/sec) = INTERVAL * UPS
+static float ZOOM_SPEED = 0.1f;
 // TIME
-static unsigned long frame;  // # times the screen has drawn 
-struct timespec startTime, currentTime;
-static float elapsed;  // elapsed time in seconds, includes fractional part
+static unsigned long FRAME;  // # times the screen has drawn 
+struct timespec START, CURRENT;
+static float ELAPSED;  // elapsed time in seconds, includes fractional part
+int YEAR, MONTH, DAY, HOUR, MINUTE, SECOND;
 
 // TABLE OF CONTENTS:
 int main(int argc, char **argv);  // initialize Open GL context
@@ -139,13 +142,14 @@ float modulusContext(float complete, int modulus);
 float min(float one, float two);
 float max(float one, float two);
 // TEXTURES, SHADERS
-GLuint loadTexture(const char * filename, int width, int height);
+GLuint loadTexture(const char *filename, int width, int height);
 GLuint loadShader(char *vertex_path, char *fragment_path);
 void setShaderUniform1f(GLuint shader, char *uniform, float value);
 void setShaderUniformVec2f(GLuint shader, char *uniform, float *array);
 void setShaderUniformVec3f(GLuint shader, char *uniform, float *array);
 void setShaderUniformVec4f(GLuint shader, char *uniform, float *array);
 void simpleLights();
+void updateTime(int *year, int *month, int *day, int *hour, int *minute, int *second);
 // preload for geometry primitives
 void initPrimitives();
 GLint _sphere_stacks = 20; //7;
@@ -177,6 +181,7 @@ static unsigned char SHAPE_FILL = 1;
 #define DOWN_KEY GLUT_KEY_DOWN+128//231
 #define RIGHT_KEY GLUT_KEY_RIGHT+128//230
 #define LEFT_KEY GLUT_KEY_LEFT+128//228
+
 int main(int argc, char **argv){
 	// initialize glut
 	glutInit(&argc, argv);
@@ -197,13 +202,13 @@ int main(int argc, char **argv){
 	if(CONTINUOUS_REFRESH){
 		glutIdleFunc(updateWorld); }
 	// setup this program
-	orthoFrame[0] = 0.02 * -WIDTH*0.5;
-	orthoFrame[1] = 0.02 * -HEIGHT*0.5;
-	orthoFrame[2] = 0.02 * WIDTH;
-	orthoFrame[3] = 0.02 * HEIGHT;
+	WINDOW[0] = 0.02 * -WIDTH*0.5;
+	WINDOW[1] = 0.02 * -HEIGHT*0.5;
+	WINDOW[2] = 0.02 * WIDTH;
+	WINDOW[3] = 0.02 * HEIGHT;
 	memset(keyboard,0,256);
-	clock_gettime(CLOCK_MONOTONIC, &startTime);
-	frame = 0;
+	clock_gettime(CLOCK_MONOTONIC, &START);
+	FRAME = 0;
 	initPrimitives();
 	time_t t;
 	srand((unsigned) time(&t));
@@ -234,10 +239,10 @@ void reshapeWindow(int windowWidth, int windowHeight){
 	HEIGHT = windowHeight;
 	glViewport(0, 0, (GLsizei) WIDTH, (GLsizei) HEIGHT);
 	// update orthographic frame with new aspect ratio
-	float newW = orthoFrame[3] * ((float)WIDTH / (float)HEIGHT);
-	float dW = orthoFrame[2] - newW;
-	orthoFrame[2] = newW;
-	orthoFrame[0] += dW * 0.5;
+	float newW = WINDOW[3] * ((float)WIDTH / (float)HEIGHT);
+	float dW = WINDOW[2] - newW;
+	WINDOW[2] = newW;
+	WINDOW[0] += dW * 0.5;
 	rebuildProjection();
 	updateWorld();
 }
@@ -248,7 +253,7 @@ void rebuildProjection(){
 		case POLAR:
 			polarPerspective(); break;
 		case ORTHO:
-			orthoPerspective(orthoFrame[0], orthoFrame[1], orthoFrame[2], orthoFrame[3]); break;
+			orthoPerspective(WINDOW[0], WINDOW[1], WINDOW[2], WINDOW[3]); break;
 	}
 }
 void toggleFullscreen(){
@@ -268,12 +273,12 @@ void firstPersonPerspective(){
 	if(WIDTH < HEIGHT) glFrustum(-FOV, FOV, -FOV/a, FOV/a, NEAR_CLIP, FAR_CLIP);
 	else               glFrustum(-FOV/a, FOV/a, -FOV, FOV, NEAR_CLIP, FAR_CLIP);
 	// change POV
-	glRotatef(-90-horizon[1], 1, 0, 0);
-	glRotatef(90+horizon[0], 0, 0, 1);
+	glRotatef(-90-HORIZON[1], 1, 0, 0);
+	glRotatef(90+HORIZON[0], 0, 0, 1);
 	// for left handed, invert the Y
-	if(!HANDEDNESS){ glMultMatrixf(_invert_y_m); }
+	if(!HANDED){ glMultMatrixf(_invert_y_m); }
 	// raise POV 1.0 above the floor, 1.0 is an arbitrary value
-	glTranslatef(0.0f, 0.0f, -FPP_BODY_HEIGHT);
+	glTranslatef(0.0f, 0.0f, -EYE_HEIGHT);
 	glMatrixMode(GL_MODELVIEW);
 }
 void polarPerspective(){
@@ -284,22 +289,22 @@ void polarPerspective(){
 	if(WIDTH < HEIGHT) glFrustum(-FOV, FOV, -FOV/a, FOV/a, NEAR_CLIP, FAR_CLIP);
 	else               glFrustum(-FOV/a, FOV/a, -FOV, FOV, NEAR_CLIP, FAR_CLIP);
 	// change POV
-	glTranslatef(0, 0, -horizon[2]);
-	glRotatef(-90+horizon[1], 1, 0, 0);
-	glRotatef(90+180+horizon[0], 0, 0, 1);
+	glTranslatef(0, 0, -HORIZON[2]);
+	glRotatef(-90+HORIZON[1], 1, 0, 0);
+	glRotatef(90+180+HORIZON[0], 0, 0, 1);
 	// for left handed, invert the Y
-	if(!HANDEDNESS){ glMultMatrixf(_invert_y_m); }
+	if(!HANDED){ glMultMatrixf(_invert_y_m); }
 	glMatrixMode(GL_MODELVIEW);
 }
 void orthoPerspective(float x, float y, float width, float height){
 	PERSPECTIVE = ORTHO;
-	orthoFrame[0] = x;
-	orthoFrame[1] = y;
-	orthoFrame[2] = width;
-	orthoFrame[3] = height;
+	WINDOW[0] = x;
+	WINDOW[1] = y;
+	WINDOW[2] = width;
+	WINDOW[3] = height;
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
-	switch(HANDEDNESS){
+	switch(HANDED){
 		case 0: glOrtho(x, width + x, height + y, y, -FAR_CLIP, FAR_CLIP); break;
 		case 1: glOrtho(x, width + x, y, height + y, -FAR_CLIP, FAR_CLIP); break;
 	}
@@ -311,14 +316,14 @@ void display(){
 	glPushMatrix();
 		glPushMatrix();
 			glColor4f(1.0, 1.0, 1.0, 1.0);
-			if(OPTIONS & (1 << BIT_KEYBOARD_MOVE)){ glTranslatef(-origin[0], -origin[1], -origin[2]); }
+			if(OPTIONS & (1 << BIT_KEYBOARD_MOVE)){ glTranslatef(-ORIGIN[0], -ORIGIN[1], -ORIGIN[2]); }
 			draw3D();
 		glPopMatrix();
 		// 3D REPEATED STRUCTURE
 		if(OPTIONS & (1 << BIT_SHOW_GRID)){
-			float newX = modulusContext(-origin[0], 5);
-			float newY = modulusContext(-origin[1], 5);
-			float newZ = modulusContext(-origin[2], 5);
+			float newX = modulusContext(-ORIGIN[0], 5);
+			float newY = modulusContext(-ORIGIN[1], 5);
+			float newZ = modulusContext(-ORIGIN[2], 5);
 			glPushMatrix();
 				glTranslatef(newX, newY, newZ);
 				drawAxesGrid(newX, newY, newZ, 5, 4);
@@ -326,10 +331,10 @@ void display(){
 		}
 		// 2D REPEATED STRUCTURE
 		if(OPTIONS & (1 << BIT_SHOW_GROUND)){
-			float newX = modulusContext(-origin[0], 2);
-			float newY = modulusContext(-origin[1], 2);
+			float newX = modulusContext(-ORIGIN[0], 2);
+			float newY = modulusContext(-ORIGIN[1], 2);
 			glPushMatrix();
-				glTranslatef(newX, newY, -origin[2]);
+				glTranslatef(newX, newY, -ORIGIN[2]);
 				drawCheckerboard(newX, newY, 8);
 			glPopMatrix();
 		}
@@ -338,7 +343,7 @@ void display(){
 	// TO ORTHOGRAPHIC
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
-	switch(HANDEDNESS){
+	switch(HANDED){
 		case 0: glOrtho(0, WIDTH, HEIGHT, 0, -100.0, 100.0); break;
 		case 1: glOrtho(0, WIDTH, 0, HEIGHT, -100.0, 100.0); break;
 	}
@@ -354,48 +359,68 @@ void display(){
 	// glFlush();
 }
 void updateWorld(){
-	frame += 1;
-	clock_gettime(CLOCK_MONOTONIC, &currentTime);
-	elapsed = (currentTime.tv_sec - startTime.tv_sec);
-	elapsed += (currentTime.tv_nsec - startTime.tv_nsec) / 1000000000.0;
+	FRAME += 1;
+	updateTime(&YEAR, &MONTH, &DAY, &HOUR, &MINUTE, &SECOND);
+	clock_gettime(CLOCK_MONOTONIC, &CURRENT);
+	ELAPSED = (CURRENT.tv_sec - START.tv_sec);
+	ELAPSED += (CURRENT.tv_nsec - START.tv_nsec) / 1000000000.0;
 	// keyboard input
 	if(OPTIONS & (1 << BIT_KEYBOARD_MOVE)){
 		moveOriginWithArrowKeys();
+	}
+	if(OPTIONS & (1 << BIT_KEYBOARD_ZOOM)){
 		if(keyboard[MINUS_KEY]){
 			switch(PERSPECTIVE){
+				case FPP:
+					FOV += 0.001; break;
 				case POLAR:
-					horizon[2] += ZOOM_SPEED; break;
+					HORIZON[2] += ZOOM_SPEED; break;
 				case ORTHO: {
 					float dH = -ZOOM_SPEED;
-					orthoFrame[3] -= dH;
-					orthoFrame[1] += dH * 0.5;
-					float newW = orthoFrame[3] * ((float)WIDTH / (float)HEIGHT);
-					float dW = orthoFrame[2] - newW;
-					orthoFrame[2] = newW;
-					orthoFrame[0] += dW * 0.5;
+					WINDOW[3] -= dH;
+					WINDOW[1] += dH * 0.5;
+					float newW = WINDOW[3] * ((float)WIDTH / (float)HEIGHT);
+					float dW = WINDOW[2] - newW;
+					WINDOW[2] = newW;
+					WINDOW[0] += dW * 0.5;
 					} break;
 			}
 			rebuildProjection();
 		}
 		if(keyboard[PLUS_KEY]){
 			switch(PERSPECTIVE){
+				case FPP:
+					FOV -= 0.001; break;
 				case POLAR:
-					horizon[2] -= ZOOM_SPEED; break;
+					HORIZON[2] -= ZOOM_SPEED; break;
 				case ORTHO:{
 					float dH = ZOOM_SPEED;
-					orthoFrame[3] -= dH;
-					orthoFrame[1] += dH * 0.5;
-					float newW = orthoFrame[3] * ((float)WIDTH / (float)HEIGHT);
-					float dW = orthoFrame[2] - newW;
-					orthoFrame[2] = newW;
-					orthoFrame[0] += dW * 0.5;
+					WINDOW[3] -= dH;
+					WINDOW[1] += dH * 0.5;
+					float newW = WINDOW[3] * ((float)WIDTH / (float)HEIGHT);
+					float dW = WINDOW[2] - newW;
+					WINDOW[2] = newW;
+					WINDOW[0] += dW * 0.5;
 					} break;
 			}
 			rebuildProjection();
-		}		
+		}
 	}
 	update();
 	glutPostRedisplay();
+}
+void updateTime(int *year, int *month, int *day, int *hour, int *minute, int *second){
+	// input is human-readable: March 1st is month:03 day:01
+	time_t current; time(&current);
+	// todo, get time zone
+	struct tm GMT;  GMT = *gmtime(&current);
+	*year = GMT.tm_year + 1900; // The number of years since 1900   
+	*month = GMT.tm_mon + 1;    // range 0 to 11  
+	*day = GMT.tm_mday;         // range 1 to 31  
+	*hour = GMT.tm_hour;        // range 0 to 23  
+	*minute = GMT.tm_min;       // range 0 to 59  
+	*second = GMT.tm_sec;       // range 0 to 59  
+	// int tm_isdst;            // daylight saving time     
 }
 ///////////////////////////////////////
 //////////      SHADERS      //////////
@@ -503,7 +528,7 @@ void moveOriginWithArrowKeys(){
 	// process input devices if in first person perspective mode
 	// map movement direction to the direction the person is facing
 	// float lookAzimuth = lookOrientation[0]/180.0*M_PI;
-	float lookAzimuth = horizon[0]/180.0*M_PI;
+	float lookAzimuth = HORIZON[0]/180.0*M_PI;
 	if(PERSPECTIVE == POLAR){ lookAzimuth += M_PI; }
 	float dOrigin[3] = {0.0f, 0.0f, 0.0f};
 	if(keyboard[UP_KEY] || keyboard['W'] || keyboard['w']){
@@ -526,33 +551,32 @@ void moveOriginWithArrowKeys(){
 		dOrigin[2] += WALK_INTERVAL;
 	if(keyboard['Z'] || keyboard['z'])
 		dOrigin[2] -= WALK_INTERVAL;
-	origin[0] += dOrigin[0];
-	origin[1] += dOrigin[1];
-	origin[2] += dOrigin[2];
+	ORIGIN[0] += dOrigin[0];
+	ORIGIN[1] += dOrigin[1];
+	ORIGIN[2] += dOrigin[2];
 }
-static int mouseDragStartX, mouseDragStartY;
 void mouseUpdatePerspective(int dx, int dy){
 	switch(PERSPECTIVE){
 		case FPP:
-			horizon[0] -= (dx * MOUSE_SENSITIVITY);
-			horizon[1] += (dy * MOUSE_SENSITIVITY);
-			// horizon[2] = 0.0;
+			HORIZON[0] -= (dx * MOUSE_SENSITIVITY);
+			HORIZON[1] += (dy * MOUSE_SENSITIVITY);
+			// HORIZON[2] = 0.0;
 			firstPersonPerspective();
 		break;
 		case POLAR:
-			horizon[0] -= (dx * MOUSE_SENSITIVITY);
-			horizon[1] -= (dy * MOUSE_SENSITIVITY);
-			// horizon[2] = 0.0;
+			HORIZON[0] -= (dx * MOUSE_SENSITIVITY);
+			HORIZON[1] -= (dy * MOUSE_SENSITIVITY);
+			// HORIZON[2] = 0.0;
 			polarPerspective();
 			break;
 		case ORTHO:
-			orthoFrame[0] += dx / (WIDTH / orthoFrame[2]);
-			// orthoFrame[1] -= dy / (HEIGHT / orthoFrame[3]);
-			switch(HANDEDNESS){
-				case 0: orthoFrame[1] += dy / (HEIGHT / orthoFrame[3]); break;
-				case 1: orthoFrame[1] -= dy / (HEIGHT / orthoFrame[3]); break;
+			WINDOW[0] += dx / (WIDTH / WINDOW[2]);
+			// WINDOW[1] -= dy / (HEIGHT / WINDOW[3]);
+			switch(HANDED){
+				case 0: WINDOW[1] += dy / (HEIGHT / WINDOW[3]); break;
+				case 1: WINDOW[1] -= dy / (HEIGHT / WINDOW[3]); break;
 			}
-			orthoPerspective(orthoFrame[0], orthoFrame[1], orthoFrame[2], orthoFrame[3]);
+			orthoPerspective(WINDOW[0], WINDOW[1], WINDOW[2], WINDOW[3]);
 			break;
 	}
 }
@@ -561,12 +585,12 @@ void mouseButtons(int button, int state, int x, int y){
 	if(button == GLUT_LEFT_BUTTON){
 		if(!state){  // button down
 			mouseX = x;
-			switch(HANDEDNESS){
+			switch(HANDED){
 				case 0: mouseY = y; break;
 				case 1: mouseY = HEIGHT - y; break;
 			}
-			mouseDragStartX = mouseX;
-			mouseDragStartY = mouseY;
+			mouseDownStartX = mouseX;
+			mouseDownStartY = mouseY;
 			mouseDown(button);
 		}
 		else {  // button up
@@ -585,13 +609,13 @@ void mouseButtons(int button, int state, int x, int y){
 // when mouse is dragging screen
 void mouseMotion(int x, int y){
 	int y_correct = y;
-	switch(HANDEDNESS){
+	switch(HANDED){
 		case 0: y_correct = y; break;
 		case 1: y_correct = HEIGHT - y; break;
 	}
 	// change since last mouse event
 	if(OPTIONS & (1 << BIT_MOUSE_LOOK)){
-		switch(HANDEDNESS){
+		switch(HANDED){
 			case 0: mouseUpdatePerspective(mouseX - x, mouseY - y_correct); break;
 			case 1: mouseUpdatePerspective(mouseX - x, y_correct - mouseY); break;
 		}
@@ -599,15 +623,15 @@ void mouseMotion(int x, int y){
 	// update new state
 	mouseX = x;
 	mouseY = y_correct;
-	mouseDragX = mouseDragStartX - x;
-	mouseDragY = mouseDragStartY - y_correct;
+	mouseDownX = mouseDownStartX - x;
+	mouseDownY = mouseDownStartY - y_correct;
 	mouseMoved(mouseX, mouseY);
 	glutPostRedisplay();
 }
 // when mouse is moving but no buttons are pressed
 void mousePassiveMotion(int x, int y){
 	mouseX = x;
-	switch(HANDEDNESS){
+	switch(HANDED){
 		case 0: mouseY = y; break;
 		case 1: mouseY = HEIGHT - y; break;
 	}
@@ -1172,14 +1196,14 @@ void orientationText(int x, int y, int z){
 	char line1String[50], line2String[50], line3String[50];
 	switch(PERSPECTIVE){
 		case ORTHO:
-		sprintf(line1String, "X:%.1f, Y:%.1f, W:%.1f, H:%.1f", orthoFrame[0], orthoFrame[1], orthoFrame[2], orthoFrame[3] );
-		float mWorldX = mouseX/(float)WIDTH * orthoFrame[2] + orthoFrame[0];
-		float mWorldY = mouseY/(float)HEIGHT * orthoFrame[3] + orthoFrame[1];
+		sprintf(line1String, "X:%.1f, Y:%.1f, W:%.1f, H:%.1f", WINDOW[0], WINDOW[1], WINDOW[2], WINDOW[3] );
+		float mWorldX = mouseX/(float)WIDTH * WINDOW[2] + WINDOW[0];
+		float mWorldY = mouseY/(float)HEIGHT * WINDOW[3] + WINDOW[1];
 		sprintf(line2String, "MOUSE WORLD (%.2f, %.2f)", mWorldX, mWorldY);
 		break;
 		case FPP: case POLAR:
-		sprintf(line1String, "LOOK AZ:%.2f, ALT:%.2f, ZOOM:%.2f", horizon[0], horizon[1], horizon[2]);
-		sprintf(line2String, "ORIGIN X:%.2f, Y:%.2f, Z:%.2f", origin[0], origin[1], origin[2]);		
+		sprintf(line1String, "LOOK AZ:%.2f, ALT:%.2f, ZOOM:%.2f", HORIZON[0], HORIZON[1], HORIZON[2]);
+		sprintf(line2String, "ORIGIN X:%.2f, Y:%.2f, Z:%.2f", ORIGIN[0], ORIGIN[1], ORIGIN[2]);		
 		break;
 	}
 	sprintf(line3String, "MOUSE SCREEN (%d, %d)", mouseX, mouseY );

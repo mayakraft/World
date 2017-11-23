@@ -75,8 +75,8 @@ void update() {
 	for (int i = 0; i < numPolyhedra; i++){
 		for(int j = 0; j < 3; j++){
 			poly[i].pos[j] += poly[i].vel[j];
-			if(poly[i].pos[j] < origin[j]-BOUNDS[j]+B_OFFSET[j]){ poly[i].pos[j] = origin[j]+BOUNDS[j]+B_OFFSET[j]; }
-			if(poly[i].pos[j] > origin[j]+BOUNDS[j]+B_OFFSET[j]){ poly[i].pos[j] = origin[j]-BOUNDS[j]+B_OFFSET[j]; }
+			if(poly[i].pos[j] < ORIGIN[j]-BOUNDS[j]+B_OFFSET[j]){ poly[i].pos[j] = ORIGIN[j]+BOUNDS[j]+B_OFFSET[j]; }
+			if(poly[i].pos[j] > ORIGIN[j]+BOUNDS[j]+B_OFFSET[j]){ poly[i].pos[j] = ORIGIN[j]-BOUNDS[j]+B_OFFSET[j]; }
 		}
 	}
 }
@@ -93,9 +93,9 @@ void draw3D() {
 	for (int i = 0; i < numPolyhedra; i++){
 		glPushMatrix();
 			glTranslatef(poly[i].pos[0], poly[i].pos[1], poly[i].pos[2]);
-			glRotatef(poly[i].spin[0]*elapsed, 1, 0, 0);
-			glRotatef(poly[i].spin[1]*elapsed, 0, 1, 0);
-			glRotatef(poly[i].spin[2]*elapsed, 0, 0, 1);
+			glRotatef(poly[i].spin[0]*ELAPSED, 1, 0, 0);
+			glRotatef(poly[i].spin[1]*ELAPSED, 0, 1, 0);
+			glRotatef(poly[i].spin[2]*ELAPSED, 0, 0, 1);
 			glPushMatrix();
 				glScalef(poly[i].scale, poly[i].scale, poly[i].scale);
 				drawPlatonicSolidFaces(poly[i].type);

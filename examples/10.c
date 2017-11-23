@@ -54,8 +54,8 @@ void setup() {
 	shader2 = loadShader( vertexPath2, fragmentPath2 );
 	OPTIONS = SET_MOUSE_LOOK | SET_KEYBOARD_MOVE | SET_KEYBOARD_FUNCTIONS;
 	polarPerspective();
-	horizon[1] = 12;
-	horizon[2] = 10;
+	HORIZON[1] = 12;
+	HORIZON[2] = 10;
 	spectrum = loadTexture("../examples/data/spectrum.raw", 128, 64);
 
 	int range = 10;
@@ -66,13 +66,13 @@ void setup() {
 	}
 }
 void update() {
-	if(frame%60 == 0){ 
+	if(FRAME%60 == 0){ 
 		shader = loadShader(  vertexPath1, fragmentPath1 );
 		shader2 = loadShader( vertexPath2, fragmentPath2 );
 	}
 	float rect[2] = {WIDTH, HEIGHT};
-	setShaderUniform1f(shader, "u_time", elapsed);
-	setShaderUniform1f(shader2, "u_time", elapsed);
+	setShaderUniform1f(shader, "u_time", ELAPSED);
+	setShaderUniform1f(shader2, "u_time", ELAPSED);
 	setShaderUniformVec2f(shader, "u_resolution", rect);
 	setShaderUniformVec2f(shader2, "u_resolution", rect);
 }
@@ -81,7 +81,7 @@ void draw3D() {
 	glPushMatrix();
 		glEnable(GL_CULL_FACE);
 		glCullFace(GL_FRONT);
-		float brightness = -cos(elapsed*0.5)*0.5+0.5;
+		float brightness = -cos(ELAPSED*0.5)*0.5+0.5;
 		glColor4f(1.0, 1.0, 1.0, brightness);
 		glBindTexture(GL_TEXTURE_2D, spectrum);
 		// glScalef(-1.0, 1.0, -1.0);
@@ -94,7 +94,7 @@ void draw3D() {
 	glUseProgram(shader2);
 
 	glPushMatrix();
-		glRotatef(frame*0.5, 0,1,0);
+		glRotatef(FRAME*0.5, 0,1,0);
 		float sqW = 16;
 		drawRect(-sqW*0.5, -sqW*0.5, -0.01, sqW, sqW);
 	glPopMatrix();
@@ -108,9 +108,9 @@ void draw3D() {
 	}
 	glUseProgram(0);
 
-	// glColor4f(0.7, 0.7, 0.7, (-cos(elapsed)*0.5+0.5) );
+	// glColor4f(0.7, 0.7, 0.7, (-cos(ELAPSED)*0.5+0.5) );
 	glColor4f(0.15, 0.15, 0.15, 1.0);
-	glLineWidth(1.5);// + 6*(cos(elapsed)*0.5+0.5) );
+	glLineWidth(1.5);// + 6*(cos(ELAPSED)*0.5+0.5) );
 	for(int i = 0; i < numPoly; i++){
 		glPushMatrix();
 			glTranslatef(poly[i*3+0], poly[i*3+1], poly[i*3+2] );
