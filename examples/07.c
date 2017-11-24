@@ -1,110 +1,4 @@
 
-#ifndef ASTRONOMY_J2000_H
-#define ASTRONOMY_J2000_H
-
-#include <time.h>
-#include <math.h>
-
-double mod360(double input){
-	if(input > 360.0){
-		int n = input / 360.0;
-		return input - n*360;
-	}
-	if(input < 0.0){
-		int n = input / 360.0;
-		return input - (n-1)*360;
-	}
-	return input;
-}
-
-// date input is human-readable: month and day are one-based indexing (March 1st is 03,01)
-void getTime(int *year, int *month, int *day, int *hour, int *minute, int *second){
-	time_t current;
-	time(&current);
-	struct tm GMT;
-	GMT = *gmtime(&current);
-	*year = GMT.tm_year + 1900; /* The number of years since 1900   */
-	*month = GMT.tm_mon + 1;    /* month, range 0 to 11             */
-	*day = GMT.tm_mday;         /* day of the month, range 1 to 31  */
-	*hour = GMT.tm_hour;        /* hours, range 0 to 23             */
-	*minute = GMT.tm_min;       /* minutes, range 0 to 59           */
-	*second = GMT.tm_sec;       /* seconds,  range 0 to 59          */
-	// int tm_isdst;       /* daylight saving time             */
-}
-
-double J2000SecondsFromJ2000Days(double J2000Days){
-	return J2000Days * 60 * 60 * 24;
-}
-double J2000CenturiesFromJ2000Days(double J2000Days){
-	return J2000Days / 36525.0;
-}
-
-// time since january 1st, at 12:00 (noon)
-double J2000DaysFromUTCNow(){
-	int year, month, day, hour, minute, second;
-	getTime(&year, &month, &day, &hour, &minute, &second);
-	double wholePart = 367*year-floor(7*(year+floor((month+9)/12.0))/4.0)+floor(275*month/9.0)+day-730531.5;
-	double fractionalPart = (hour + minute/60.0 + second/3600.0)/24.0;
-	// return value units in days
-	return (double)wholePart + fractionalPart;
-}
-double J2000SecondsFromUTCNow(){
-	return J2000SecondsFromJ2000Days(J2000DaysFromUTCNow());
-}
-double J2000CenturiesFromUTCNow(){
-	return J2000CenturiesFromJ2000Days(J2000DaysFromUTCNow());
-}
-
-// time since january 1st, at 12:00 (noon)
-// date input is human-readable: month and day are one-based indexing (March 1st is 03,01)
-double J2000DaysFromUTCTime(int year, int month, int day, int hour, int minute, int second){
-	double wholePart = 367*year-floor(7*(year+floor((month+9)/12.0))/4.0)+floor(275*month/9.0)+day-730531.5;
-	double fractionalPart = (hour + minute/60.0 + second/3600.0)/24.0;
-	// return value units in days
-	return (double)wholePart + fractionalPart;
-}
-double J2000SecondsFromUTCTime(int year, int month, int day, int hour, int minute, int second){
-	return J2000SecondsFromJ2000Days(J2000DaysFromUTCTime(year, month, day, hour, minute, second));
-}
-double J2000CenturiesFromUTCTime(int year, int month, int day, int hour, int minute, int second){
-	return J2000CenturiesFromJ2000Days(J2000DaysFromUTCTime(year, month, day, hour, minute, second));
-}
-
-#endif
-
-unsigned int monthDays[] = { 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 };
-int year = 2000;
-int month = 1;
-int day = 1;
-// int year = 2016;
-// int month = 12;
-// int day = 21;
-int hour = 0;
-int minute = 0;
-int second = 0;
-
-void correctDates(){
-	if(year%4 == 0) monthDays[1] = 29;
-	else monthDays[1] = 28;
-	// time. simple
-	if(minute < 0)       { hour--; minute += 60; }
-	else if(minute > 60) { hour++; minute -= 60; }
-	if(hour < 0)         { day--; hour += 24; }
-	else if(hour > 23)   { day++; hour -= 24; }
-	if(day < 1) {
-		month--; 
-		if(month < 1){ month += 12; year--; }
-		day = monthDays[month-1];
-	} else if( day > monthDays[month-1]) {
-		month++;
-		if(month > 12){ month -= 12; year++; }
-		day = 1;
-	}
-	// if(month < 1)        { year--; month = 12; }
-	// else if(month > 12)  { year++; month = 1; }
-	if(day == -1) { day = monthDays[month]; }
-}
-
 #include "../world.h"
 
 double KeplersEquation(double E, double M, double e){
@@ -162,46 +56,42 @@ void calculateLocationOfMoon(double time, double *moon_x, double *moon_y, double
 	//  (km)                 (deg)   (deg)  (deg)    (deg)   (deg/day)  (days)   (yr)    (yr)
 	// 384400.     0.0554   318.15   135.27   5.16   125.08   13.176358   27.322   5.997   18.600   1
 	// moon calculation http://njsas.org/projects/tidal_forces/altaz/pausch/ppcomp.html#6
+	// time = time + 1.42;
+	// time = time + M_PI*0.5; // i dunno why. sorry.
+	time = time + 1.5;
 	double N = (125.1228 - 0.0529538083 * time) / 180.0 * M_PI;
 	double i = 5.1454 / 180.0 * M_PI;
 	double w = (318.0634 + 0.1643573223 * time) / 180.0 * M_PI;
 	double e = 0.054900; //eccentricity
 	double M = (115.3654 + 13.0649929509 * time) / 180.0 * M_PI ; //mean anomaly
 	double E = M + e * sin(M) * ( 1.0 + e * cos(M) );
+	// for(int i = 0; i < 5; i++){
+	// 	E = E - ( E - e * sin(E) - M ) / ( 1 - e * cos(E) );
+	// }
 	// double a = 60.2666; // earth radius
 	// double a = 385000; // km
 	double a = 0.00257356604; // au
 	double xv = a * ( cos(E) - e );
 	double yv = a * ( sqrt(1.0 - e*e) * sin(E) );
-	double v = atan2(yv, xv) + 0.059475880243028 * M_PI*2;
+	double v = atan2(yv, xv);
 	double r = sqrt(xv*xv + yv*yv);
 	*moon_x = r * ( cos(N) * cos(v+w) - sin(N) * sin(v+w) * cos(i) );
 	*moon_y = r * ( sin(N) * cos(v+w) + cos(N) * sin(v+w) * cos(i) );
 	*moon_z = r * ( sin(v+w) * sin(i) );
-	return;
-	// E = E - ( E - e * sin(E) - M ) / ( 1 - e * cos(E) );
-	// double xv = ( cos(E) - e );
-	// double yv = ( sqrt(1.0 - e*e) * sin(E) );
-	// double v = atan2( yv, xv );
-	// double xv = ( cos(E) - e );
-	// double yv = ( sqrt(1.0 - e*e) * sin(E) );
-	// double v = atan2( yv, xv );
-
-// a = 60.2666
-	// double r = 60.2666;//  (Earth radii)
-	// 239000 miles average radius of orbit
-	// double r = 0.00257111424;  // radius of moon's orbit in AU
-	// *moon_x = r * ( cos(N) * cos(v+w) - sin(N) * sin(v+w) * cos(i) );
-	// *moon_y = r * ( sin(N) * cos(v+w) + cos(N) * sin(v+w) * cos(i) );
-	// *moon_z = r * ( sin(v+w) * sin(i) );
 }
-static float colors[] = {192/256.0,192/256.0,192/256.0,206/256.0,172/256.0,113/256.0,0/256.0,19/256.0,174/256.0,172/256.0,81/256.0,40/256.0,186/256.0,130/256.0,83/256.0,253/256.0,196/256.0,126/256.0,149/256.0,188/256.0,198/256.0,98/256.0,119/256.0,226/256.0,192/256.0,192/256.0,192/256.0};
+
 char zodiacs[][50] = {"Aries","Taurus","Gemini","Cancer","Leo","Virgo","Libra","Scorpio","Saggitarius","Capricorn","Aquarius","Pisces"};
 char planetNames[][50] = {"Mercury","Venus","Earth","Mars","Jupiter","Saturn","Uranus","Neptune","Pluto"};
 char monthStrings[][50] = { "JANUARY", "FEBRUARY", "MARCH", "APRIL", "MAY", "JUNE", "JULY", "AUGUST", "SEPTEMBER", "OCTOBER", "NOVEMBER", "DECEMBER" };
-// this approximates what day of the year we are in. not for precise calculation!
+static float colors[] = {0.75,0.75,0.75,0.8,0.67,113/256.0,0/256.0,19/256.0,174/256.0,0.67,81/256.0,40/256.0,186/256.0,130/256.0,83/256.0,253/256.0,196/256.0,126/256.0,149/256.0,188/256.0,198/256.0,98/256.0,119/256.0,226/256.0,0.75,0.75,0.75};
 
-unsigned int monthStartDay[12];
+int year = 2000;
+int month = 1;
+int day = 1;
+int hour = 0;
+int minute = 0;
+int second = 0;
+
 double planetsX[9];
 double planetsY[9];
 double planetsZ[9];
@@ -211,23 +101,36 @@ double planetProjections[9][3];
 double moonProjection[3];
 double sunProjection[3];
 
-// int year = 0; 
-// int month = 0;
-// int day = 0;
 int zodiac = 0;
 // double clockTime = .138767; // mid November 2013
 // double clockTime = .130767;
-int clockSpeed = 6;
-// double clockSpeeds[] = {
-// 	-.001, -.0001, -.00001, -.000001, -.0000001,
-// 	0.0,
-// 	.0000001, .000001, .00001, .0001,  .001
-// };
+
+int clockSpeed = 5;
+
 static float lastAngle;
 
 GLuint dot;
 GLuint constellationTexture = 0;
 
+void correctDates(){
+	static unsigned int monthDays[] = { 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 };
+	if(year%4 == 0) monthDays[1] = 29;
+	else monthDays[1] = 28;
+	// time. simple
+	if(minute < 0)       { hour--; minute += 60; }
+	else if(minute > 60) { hour++; minute -= 60; }
+	if(hour < 0)         { day--; hour += 24; }
+	else if(hour > 23)   { day++; hour -= 24; }
+	if(day < 1) {
+		month--; 
+		if(month < 1){ month += 12; year--; }
+		day = monthDays[month-1];
+	} else if( day > monthDays[month-1]) {
+		month++;
+		if(month > 12){ month -= 12; year++; }
+		day = 1;
+	}
+}
 
 typedef enum{
 	user,
@@ -246,13 +149,6 @@ void setup(){
 	HORIZON[1] = 15;
 	HORIZON[2] = 16;
 
-	for(int i = 0; i < 12; i++){ 
-		int totalDays = 0;
-		for(int j = i; j >= 0; j--){
-			totalDays += monthDays[j];
-		}
-		monthStartDay[i] = totalDays;
-	}
 	dot = loadTexture("../examples/data/dot-black.raw", 64, 64);
 	// constellationTexture = loadTexture("../examples/data/constellations.raw", 1024, 512);
 
@@ -265,26 +161,67 @@ void setup(){
 	WINDOW[2] = 17000 * ASPECT;
 	WINDOW[3] = 17000;
 
-	double X = -2.116176305054759E-03;
-	double Y = -1.655447224647796E-03;
-	printf("ATAN: %f\n", atan2(Y, X));
+	// total solar eclipse, 2019 Chile
+	year = 2019;
+	month = 7;
+	day = 2;
+	hour = 19;
+	minute = 22;
+	second = 57;
+
+	// total solar eclipse, North America
+	year = 2017;
+	month = 8;
+	day = 21;
+	hour = 18;
+	minute = 25;
+	second = 35;
+
+	// total solar eclipse, 2001
+	year = 2001;
+	month = 6;
+	day = 21;
+	hour = 12;
+	minute = 04;
+	second = 46;
+
+	// total solar eclipse, 2009
+	year = 2009;
+	month = 7;
+	day = 22;
+	hour = 02;
+	minute = 36;
+	second = 25;
+
+	// total solar eclipse, 2026
+	year = 2026;
+	month = 8;
+	day = 12;
+	hour = 17;
+	minute = 47;
+	second = 06;
+
+	// transit of venus 2012
+	year = 2012;
+	month = 6;
+	day = 6;
+	hour = 1;
+	minute = 13;
+	second = 00;
+
 }
 
 void update(){
-	// getTime(&year, &month, &day, &hour, &minute, &second);
-	double clockTime = J2000CenturiesFromUTCTime(year, month, day, hour, minute, second);
-	
-	// double clockTime = J2000DaysFromUTCTime(year, month, day, hour, minute, second);
+	double clockTime = j2000Centuries(year, month, day, hour, minute, second);
 
 	for(int i = 0; i < 9; i++){
 		calculateLocationOfPlanet(i, clockTime, &planetsX[i], &planetsY[i], &planetsZ[i]);
 	}
 	// calculateLocationOfMoon(clockTime*36525.0+1.625, &moonPosition[0], &moonPosition[1], &moonPosition[2] );
+
 	calculateLocationOfMoon(clockTime*36525.0, &moonPosition[0], &moonPosition[1], &moonPosition[2] );
 
 	// 27.322
-
-
 
 	// TODO: moon radius is exaggerated here
 	// moonPosition[0] *= 90;
@@ -302,14 +239,6 @@ void update(){
 		// ORIGIN[2] = planetsZ[2] * 10;
 	}
 
-	// year = (int)(clockTime*100.0+2000);
-	// float yearPct = clockTime*100.0+2000 - year;
-	// for(int i = 0; i < 12; i++){
-	// 	if(yearPct*365 < monthStartDay[i]){
-	// 		month = i;
-	// 		break;
-	// 	}
-	// }
 	float sunAngle = atan2(-planetsY[2], -planetsX[2]);
 	if(sunAngle < 0){ sunAngle += M_PI*2; }
 	zodiac = sunAngle * 180 / M_PI / 30;
@@ -408,8 +337,10 @@ void draw3D(){
 		glTranslatef(planetsX[2], planetsY[2], planetsZ[2]);
 		glPushMatrix();
 		// 	// moon
-			glTranslatef(moonPosition[0], moonPosition[1], moonPosition[2]);
-			glColor4f(0.6, 0.6, 0.6, 1.0);
+			glTranslatef(moonPosition[0]*50, moonPosition[1]*50, moonPosition[2]*50);
+			if(moonPosition[2] < 0) { glColor4f(1.0, 0.6, 0.6, 1.0); }
+			else  { glColor4f(0.6, 0.6, 1.0, 1.0); }
+			// glColor4f(0.6, 0.6, 0.6, 1.0);
 			fill();
 			drawIcosahedron(.1);
 			glColor4f(0.0, 0.0, 0.0, 1.0);
@@ -599,14 +530,18 @@ void keyDown(unsigned int key){
 		if(clockSpeed < 0){ clockSpeed = 0; }
 	}
 	if(key == 'n'){
-		getTime(&year, &month, &day, &hour, &minute, &second);
+		year = YEAR;
+		month = MONTH;
+		day = DAY;
+		hour = HOUR;
+		minute = MINUTE;
+		second = SECOND;
 	}
 }
 void keyUp(unsigned int key){ }
 void mouseDown(unsigned int button){ }
 void mouseUp(unsigned int button){ }
 void mouseMoved(int x, int y){ }
-
 
 void write(){
 	// output

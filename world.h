@@ -413,6 +413,9 @@ void updateWorld(){
 	update();
 	glutPostRedisplay();
 }
+////////////////////////////////////////
+//////////       TIME       ////////////
+////////////////////////////////////////
 void updateTime(){
 	// input is human-readable: March 1st is month:03 day:01
 	time_t current; time(&current);
@@ -424,10 +427,23 @@ void updateTime(){
 	HOUR = GMT.tm_hour;        // range 0 to 23  
 	MINUTE = GMT.tm_min;       // range 0 to 59  
 	SECOND = GMT.tm_sec;       // range 0 to 59  
-	// int tm_isdst;            // daylight saving time     
+	// int tm_isdst;           // daylight saving time     
 }
-
-
+double j2000Days(int year, int month, int day, int hour, int minute, int second){
+	double wholePart = 367*year-floor(7*(year+floor((month+9)/12.0))/4.0)+floor(275*month/9.0)+day-730531.5;
+	double fractionalPart = (hour + minute/60.0 + second/3600.0)/24.0;
+	// return value units in days
+	return (double)wholePart + fractionalPart;
+}
+double j2000Seconds(int year, int month, int day, int hour, int minute, int second){
+	return j2000Days(year, month, day, hour, minute, second) * 86400.0;
+}
+double j2000Centuries(int year, int month, int day, int hour, int minute, int second){
+	return j2000Days(year, month, day, hour, minute, second) / 36525.0;
+}
+double j2000DaysNow(){ return j2000Days(YEAR, MONTH, DAY, HOUR, MINUTE, SECOND); }
+double j2000SecondsNow(){ return j2000Days(YEAR, MONTH, DAY, HOUR, MINUTE, SECOND) * 86400.0; }
+double j2000CenturiesNow(){ return j2000Days(YEAR, MONTH, DAY, HOUR, MINUTE, SECOND) / 36525.0; }
 ///////////////////////////////////////
 //////////      SHADERS      //////////
 ///////////////////////////////////////
@@ -723,7 +739,6 @@ void keyboardSetIdleFunc(){
 ///////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////        TINY OPENGL TOOLBOX         //////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////
-
 void fill(){ SHAPE_FILL = 1; }
 void noFill(){ SHAPE_FILL = 0; }
 // void text(const char *text, float x, float y, void *font){
@@ -1205,7 +1220,6 @@ void simpleGrayLights(){
 }
 void headsUpDisplay(int x, int y, int z){
 	static char monthStrings[][10] = { "JANUARY", "FEBRUARY", "MARCH", "APRIL", "MAY", "JUNE", "JULY", "AUGUST", "SEPTEMBER", "OCTOBER", "NOVEMBER", "DECEMBER" };
-
 	switch(PERSPECTIVE){
 		case FPP:   text("First Person Perspective", x, y, z); break;
 		case POLAR: text("Polar Perspective", x, y, z); break;
