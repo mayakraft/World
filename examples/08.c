@@ -74,7 +74,7 @@ void draw3D(){
 	// WINDOW[0] += dW * 0.5;
 }
 void draw2D(){ 
-	orientationText(5, 15, 10);
+	headsUpDisplay(5, 15, 10);
 }
 void keyDown(unsigned int key){ }
 void keyUp(unsigned int key){ }

@@ -73,9 +73,12 @@ double J2000CenturiesFromUTCTime(int year, int month, int day, int hour, int min
 #endif
 
 unsigned int monthDays[] = { 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 };
-int year = 2016;
-int month = 12;
-int day = 21;
+int year = 2000;
+int month = 1;
+int day = 1;
+// int year = 2016;
+// int month = 12;
+// int day = 21;
 int hour = 0;
 int minute = 0;
 int second = 0;
@@ -159,22 +162,38 @@ void calculateLocationOfMoon(double time, double *moon_x, double *moon_y, double
 	//  (km)                 (deg)   (deg)  (deg)    (deg)   (deg/day)  (days)   (yr)    (yr)
 	// 384400.     0.0554   318.15   135.27   5.16   125.08   13.176358   27.322   5.997   18.600   1
 	// moon calculation http://njsas.org/projects/tidal_forces/altaz/pausch/ppcomp.html#6
-	float N = (125.1228 - 0.0529538083 * time) / 180 * M_PI;
-	float i = 5.1454 / 180 * M_PI;
-	float w = (318.0634 + 0.1643573223 * time) / 180 * M_PI;
-	float e = 0.054900; //eccentricity
-	float M = (115.3654 + 13.0649929509 * time) / 180.0f * M_PI ; //mean anomaly
-	float E = M + e * sin(M) * ( 1.0 + e * cos(M) );
-	E = E - ( E - e * sin(E) - M ) / ( 1 - e * cos(E) );
-	float xv = ( cos(E) - e );
-	float yv = ( sqrt(1.0 - e*e) * sin(E) );
-	float v = atan2( yv, xv );
-	// float r = 60.2666;//  (Earth radii)
-	// 239000 miles average radius of orbit
-	float r = 0.00257111424;  // radius of moon's orbit in AU
+	double N = (125.1228 - 0.0529538083 * time) / 180.0 * M_PI;
+	double i = 5.1454 / 180.0 * M_PI;
+	double w = (318.0634 + 0.1643573223 * time) / 180.0 * M_PI;
+	double e = 0.054900; //eccentricity
+	double M = (115.3654 + 13.0649929509 * time) / 180.0 * M_PI ; //mean anomaly
+	double E = M + e * sin(M) * ( 1.0 + e * cos(M) );
+	// double a = 60.2666; // earth radius
+	// double a = 385000; // km
+	double a = 0.00257356604; // au
+	double xv = a * ( cos(E) - e );
+	double yv = a * ( sqrt(1.0 - e*e) * sin(E) );
+	double v = atan2(yv, xv) + 0.059475880243028 * M_PI*2;
+	double r = sqrt(xv*xv + yv*yv);
 	*moon_x = r * ( cos(N) * cos(v+w) - sin(N) * sin(v+w) * cos(i) );
 	*moon_y = r * ( sin(N) * cos(v+w) + cos(N) * sin(v+w) * cos(i) );
 	*moon_z = r * ( sin(v+w) * sin(i) );
+	return;
+	// E = E - ( E - e * sin(E) - M ) / ( 1 - e * cos(E) );
+	// double xv = ( cos(E) - e );
+	// double yv = ( sqrt(1.0 - e*e) * sin(E) );
+	// double v = atan2( yv, xv );
+	// double xv = ( cos(E) - e );
+	// double yv = ( sqrt(1.0 - e*e) * sin(E) );
+	// double v = atan2( yv, xv );
+
+// a = 60.2666
+	// double r = 60.2666;//  (Earth radii)
+	// 239000 miles average radius of orbit
+	// double r = 0.00257111424;  // radius of moon's orbit in AU
+	// *moon_x = r * ( cos(N) * cos(v+w) - sin(N) * sin(v+w) * cos(i) );
+	// *moon_y = r * ( sin(N) * cos(v+w) + cos(N) * sin(v+w) * cos(i) );
+	// *moon_z = r * ( sin(v+w) * sin(i) );
 }
 static float colors[] = {192/256.0,192/256.0,192/256.0,206/256.0,172/256.0,113/256.0,0/256.0,19/256.0,174/256.0,172/256.0,81/256.0,40/256.0,186/256.0,130/256.0,83/256.0,253/256.0,196/256.0,126/256.0,149/256.0,188/256.0,198/256.0,98/256.0,119/256.0,226/256.0,192/256.0,192/256.0,192/256.0};
 char zodiacs[][50] = {"Aries","Taurus","Gemini","Cancer","Leo","Virgo","Libra","Scorpio","Saggitarius","Capricorn","Aquarius","Pisces"};
@@ -245,6 +264,10 @@ void setup(){
 	WINDOW[1] = -17000*0.5;
 	WINDOW[2] = 17000 * ASPECT;
 	WINDOW[3] = 17000;
+
+	double X = -2.116176305054759E-03;
+	double Y = -1.655447224647796E-03;
+	printf("ATAN: %f\n", atan2(Y, X));
 }
 
 void update(){
@@ -256,11 +279,17 @@ void update(){
 	for(int i = 0; i < 9; i++){
 		calculateLocationOfPlanet(i, clockTime, &planetsX[i], &planetsY[i], &planetsZ[i]);
 	}
+	// calculateLocationOfMoon(clockTime*36525.0+1.625, &moonPosition[0], &moonPosition[1], &moonPosition[2] );
 	calculateLocationOfMoon(clockTime*36525.0, &moonPosition[0], &moonPosition[1], &moonPosition[2] );
+
+	// 27.322
+
+
+
 	// TODO: moon radius is exaggerated here
-	moonPosition[0] *= 90;
-	moonPosition[1] *= 90;
-	moonPosition[2] *= 90;
+	// moonPosition[0] *= 90;
+	// moonPosition[1] *= 90;
+	// moonPosition[2] *= 90;
 
 	if(MODE == follow){
 		float newAngle = atan2(-planetsY[2], planetsX[2]);
@@ -487,6 +516,9 @@ void draw3D(){
 			drawCircle(0, 0, 0, 40);
 			// drawSphere(planetsX[2]+dX, planetsY[2]+dY, planetsZ[2]+dZ, 4);
 		glPopMatrix();
+		// sun name
+		glColor4f(1.0, 1.0, 1.0, 1.0);
+		text("Sun", -planetsX[2]*mag, -planetsY[2]*mag, -planetsZ[2]*mag + 50);
 	}
 	// to moon
 	{
@@ -506,7 +538,7 @@ void draw3D(){
 			glRotatef(90+angle/M_PI*180.0,0,1,0);
 			drawCircle(0, 0, 0, 40);
 		glPopMatrix();
-		// planet names
+		// moon names
 		glColor4f(1.0, 1.0, 1.0, 1.0);
 		text("Earth's Moon", planetsX[2]+dX, planetsY[2]+dY, planetsZ[2]+dZ + 50);
 	}
@@ -555,6 +587,8 @@ void keyDown(unsigned int key){
 			lastAngle = atan2(-planetsY[2], planetsX[2]);
 			MODE = follow;
 		}
+		printf("MOON:  %f, %f, %f:  %f\n", moonPosition[0], moonPosition[1], moonPosition[2], atan2(moonPosition[1], moonPosition[0]));
+		
 	}
 	if(key == ']'){
 		clockSpeed++;

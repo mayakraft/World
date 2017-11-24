@@ -33,7 +33,7 @@ void draw2D() {
 	float maxD = max(WIDTH, HEIGHT);
 
 	glColor4f(1.0, 1.0, 1.0, 1.0);
-	orientationText(0, HEIGHT-25, 0);
+	headsUpDisplay(0, HEIGHT-25, 0);
 	text("spacebar to change zoom", WIDTH-23*8, 10, 0);
 
 	char zoomString[50];

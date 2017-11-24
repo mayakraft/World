@@ -1203,7 +1203,9 @@ void simpleGrayLights(){
 	glEnable(GL_LIGHT2);
 	glEnable(GL_LIGHTING);
 }
-void orientationText(int x, int y, int z){
+void headsUpDisplay(int x, int y, int z){
+	static char monthStrings[][10] = { "JANUARY", "FEBRUARY", "MARCH", "APRIL", "MAY", "JUNE", "JULY", "AUGUST", "SEPTEMBER", "OCTOBER", "NOVEMBER", "DECEMBER" };
+
 	switch(PERSPECTIVE){
 		case FPP:   text("First Person Perspective", x, y, z); break;
 		case POLAR: text("Polar Perspective", x, y, z); break;
@@ -1222,10 +1224,13 @@ void orientationText(int x, int y, int z){
 		sprintf(line2String, "ORIGIN X:%.2f, Y:%.2f, Z:%.2f", ORIGIN[0], ORIGIN[1], ORIGIN[2]);		
 		break;
 	}
+	char line4String[70];
 	sprintf(line3String, "MOUSE SCREEN (%d, %d)", mouseX, mouseY );
+	sprintf(line4String, "%d %s %d  %02d:%02d:%02d UTC", YEAR, monthStrings[(MONTH-1)%12], DAY, HOUR, MINUTE, SECOND);
 	text(line1String, x, y+13*1, z);
 	text(line2String, x, y+13*2, z);
 	text(line3String, x, y+13*3, z);
+	text(line4String, x, y+13*4, z);
 }
 void drawAxesLabels(float scale){
 	text("+X", scale, 0, 0);  text("-X", -scale, 0, 0);
