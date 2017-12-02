@@ -56,9 +56,13 @@ void calculateLocationOfMoon(double time, double *moon_x, double *moon_y, double
 	//  (km)                 (deg)   (deg)  (deg)    (deg)   (deg/day)  (days)   (yr)    (yr)
 	// 384400.     0.0554   318.15   135.27   5.16   125.08   13.176358   27.322   5.997   18.600   1
 	// moon calculation http://njsas.org/projects/tidal_forces/altaz/pausch/ppcomp.html#6
+
+	// i dunno why. sorry.
 	// time = time + 1.42;
-	// time = time + M_PI*0.5; // i dunno why. sorry.
-	time = time + 1.5;
+	// time = time + M_PI*0.5;
+	// time = time + 1.5;
+	time = time + 1.6666666;
+
 	double N = (125.1228 - 0.0529538083 * time) / 180.0 * M_PI;
 	double i = 5.1454 / 180.0 * M_PI;
 	double w = (318.0634 + 0.1643573223 * time) / 180.0 * M_PI;
@@ -83,11 +87,28 @@ void calculateLocationOfMoon(double time, double *moon_x, double *moon_y, double
 char zodiacs[][50] = {"Aries","Taurus","Gemini","Cancer","Leo","Virgo","Libra","Scorpio","Saggitarius","Capricorn","Aquarius","Pisces"};
 char planetNames[][50] = {"Mercury","Venus","Earth","Mars","Jupiter","Saturn","Uranus","Neptune","Pluto"};
 char monthStrings[][50] = { "JANUARY", "FEBRUARY", "MARCH", "APRIL", "MAY", "JUNE", "JULY", "AUGUST", "SEPTEMBER", "OCTOBER", "NOVEMBER", "DECEMBER" };
-static float colors[] = {0.75,0.75,0.75,0.8,0.67,113/256.0,0/256.0,19/256.0,174/256.0,0.67,81/256.0,40/256.0,186/256.0,130/256.0,83/256.0,253/256.0,196/256.0,126/256.0,149/256.0,188/256.0,198/256.0,98/256.0,119/256.0,226/256.0,0.75,0.75,0.75};
+static float colors[] = {0.75,0.75,0.75,0.8,0.67,113/256.0,0/256.0,19/256.0,174/256.0,0.67,81/256.0,40/256.0,186/256.0,130/256.0,83/256.0,253/256.0,196/256.0,126/256.0,149/256.0,188/256.0,198/256.0,98/256.0,119/256.0,226/256.0,169/256.0,149/256.0,146/256.0};
 
-int year = 2016;
+float moonEventAngles[] = {
+	0.0,
+	1.570796326794897,
+	3.141592653589793,
+	4.71238898038469
+};
+char moonEventDescriptions[][50] = {
+	"New",
+	"Waxing Crescent",
+	"First Quarter",
+	"Waxing Gibbous",
+	"Full",
+	"Waning Gibbous",
+	"Third Quarter",
+	"Waning Crescent"
+};
+
+int year = 2017;
 int month = 12;
-int day = 21;
+int day = 1;
 int hour = 0;
 int minute = 0;
 int second = 0;
@@ -101,10 +122,12 @@ double sunProjection[3];
 double planetAngles[9];
 double moonAngle;
 double sunAngle;
+double moonPhase; // angle, 0 and 2PI are 0 sunlight. PI is full sunlight
+double daylightHours;
 
 int zodiac = 0;
 
-int clockSpeed = 5;
+int clockSpeed = 8;
 
 static float lastAngle;
 
@@ -116,20 +139,19 @@ ModeState MODE = user;
 
 unsigned char isFileOpen = 0;
 
-
 FILE *file;
 void openFile(){
 	char filename[128] = "calendar-data.csv\0";
 	char path[128] = "../examples/data/\0";
 	strcat(path, filename);
 	file = fopen(path, "w");
-	fprintf(file, "Year, Month, Day, Hour, Minute, Second, Sun, Moon, ");
+	fprintf(file, "Year,Month,Day,Hour,Minute,Second,Sun,Moon,");
 	for(int i = 0; i < 9; i++){ 
 		if(i != 2){
-			fprintf(file, "%s, ", planetNames[i]);
+			fprintf(file, "%s,", planetNames[i]);
 		}
 	}
-	fprintf(file, "Zodiac\n");
+	fprintf(file, "Zodiac,Daylight,Phase\n");
 }
 void closeFile(){
 	fclose(file);
@@ -297,16 +319,21 @@ void update(){
 	if(sunAngle < 0){ sunAngle += M_PI*2; }
 	zodiac = sunAngle * 180 / M_PI / 30;
 
+	// this is for new york latitude. ~40 N
+	daylightHours = 9.25 + 2.92 + 2.92*sin(sunAngle);
+	moonPhase = moonAngle - sunAngle;
+	if(moonPhase < 0) { moonPhase += M_PI*2; }
+
 	switch(clockSpeed){
 		case 0: day-=50; break;
 		case 1: day-=5; break;
-		case 2: day--; break;
+		case 2: hour-=6; break;
 		case 3: hour--; break;
 		case 4: minute--; break;
 		case 5:           break;
 		case 6: minute++; break;
 		case 7: hour++; break;
-		case 8: day++; break;
+		case 8: hour+=6; break;
 		case 9: day+=5; break;
 		case 10: day+=50; break;
 	}
@@ -316,16 +343,23 @@ void update(){
 	correctDates();
 
 	if(isFileOpen){
-		fprintf(file, "%d, %d, %d, %d, %d, %d, ", year, month, day, hour, minute, second);
-		fprintf(file, "%f, ", sunAngle * 180 / M_PI);
-		fprintf(file, "%f, ", moonAngle * 180 / M_PI);
+		static float lastMoonAngle = -1;
+		fprintf(file, "%d,%d,%d,%d,%d,%d,", year, month, day, hour, minute, second);
+		fprintf(file, "%f,", sunAngle * 180 / M_PI);
+		fprintf(file, "%f,", moonAngle * 180 / M_PI);
 		for(int i = 0; i < 9; i++){
 			if(i != 2){
-				fprintf(file, "%f, ", planetAngles[i] * 180 / M_PI);
+				fprintf(file, "%f,", planetAngles[i] * 180 / M_PI);
 			}
 		}
 		// fprintf(file, "%d", zodiac+1);
-		fprintf(file, "%s", zodiacs[zodiac]);
+		fprintf(file, "%s,", zodiacs[zodiac]);
+		fprintf(file, "%f,", daylightHours);
+		fprintf(file, "%f", moonPhase * 180 / M_PI);
+		// if(lastMoonAngle == -1){ lastMoonAngle = moonAngle; }
+		// else{
+
+		// }
 		fprintf(file, "\n");
 	}
 }
