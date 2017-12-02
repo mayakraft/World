@@ -133,6 +133,9 @@ int zodiac = 0;
 
 int clockSpeed = 8;
 
+unsigned char showText = 1;
+unsigned char showCoordinates = 1;
+
 static float lastAngle;
 
 GLuint dot;
@@ -464,8 +467,6 @@ void draw3D(){
 	glEnable(GL_CULL_FACE);
 	glScalef(8, 8, 8);
 
-
-
 	// glCullFace(GL_BACK);
 	// constellation sphere
 	// fill();
@@ -487,33 +488,32 @@ void draw3D(){
 	glColor3f(247/256.0, 248/256.0, 243/256.0);
 	drawSphere(0,0,0,0.11);
 	glEnable(GL_LIGHTING);
-
 	// planets
 	for(int i = 0; i < 9; i++){
 		if(i != 2){
 			drawPlanet(i, planets[i][0], planets[i][1], planets[i][2]);
 		}
 	}
-
 	// earth 
 	glPushMatrix();
 		glTranslatef(planets[2][0], planets[2][1], planets[2][2]);
 		glRotatef(-23.4,1,0,0);
 		drawPlanet(2, 0, 0, 0);
 	glPopMatrix();
-
 	// moon
 	drawMoon();
 
-	// lines from Earth to each planet
+	///////////////////////////////////////////////////////
+	// PROJECTION LINES FROM EARTH
+	if(showCoordinates){
 	glDisable(GL_LIGHTING);
 	fill();
+	glLineWidth(1);
 	glCullFace(GL_FRONT);
-	glColor4f(1.0, 1.0, 1.0, 1.0);
+	// to planets
 	for(int i = 0; i < 9; i++){
 		if(i != 2){
 			glColor4f(colors[3*i+0], colors[3*i+1], colors[3*i+2], 0.5);
-			glLineWidth(1);
 			drawLine(planets[2][0], planets[2][1], planets[2][2],
 			         planetProjections[i][0], planetProjections[i][1], planetProjections[i][2]);
 			glPushMatrix();
@@ -526,14 +526,72 @@ void draw3D(){
 				glColor4f(1.0, 1.0, 1.0, 1.0);
 				drawCircle(0, 0, 0, 10);
 			glPopMatrix();
-			// planet names
-			glColor4f(1.0, 1.0, 1.0, 1.0);
 			drawLine(planetProjections[i][0]*(1+(i+1)*0.02), 
 					 planetProjections[i][1]*(1+(i+1)*0.02), 
 					 planetProjections[i][2]*(1+(i+1)*0.02),
 					 planetProjections[i][0]*(1+(i+1)*0.02), 
 					 planetProjections[i][1]*(1+(i+1)*0.02), 
 					 0 );
+		}
+	}
+
+	// to sun
+	glColor4f(1.0, 1.0, 1.0, 1.0);
+	drawLine(planets[2][0], planets[2][1], planets[2][2], sunProjection[0], sunProjection[1], sunProjection[2] );
+	glPushMatrix();
+		glTranslatef(sunProjection[0], sunProjection[1], sunProjection[2]);
+		glRotatef(90,1,0,0);
+		glRotatef(90+sunLongitude/M_PI*180.0,0,1,0);
+		drawCircle(0, 0, 0, 20);
+	glPopMatrix();
+
+	// to moon
+	glColor4f(0.6, 0.6, 0.6, 1.0);
+	drawLine(planets[2][0], planets[2][1], planets[2][2], moonProjection[0], moonProjection[1], moonProjection[2] );
+	glPushMatrix();
+		glTranslatef(moonProjection[0], moonProjection[1], moonProjection[2]);
+		glRotatef(90,1,0,0);
+		glRotatef(90+moonLongitude/M_PI*180.0,0,1,0);
+		glColor3f(1.0, 1.0, 1.0);
+		drawCircle(0, 0, 0, 10);
+	glPopMatrix();
+	drawLine(moonProjection[0], moonProjection[1], moonProjection[2],
+			 moonProjection[0], moonProjection[1], 0 );
+	}
+
+	///////////////////////////////////////////////////////
+	// TEXT
+	if(showText){
+
+	// planet names
+	// glColor4f(1.0, 1.0, 1.0, 1.0);
+	// for(int i = 0; i < 9; i++){
+	// 	if(i != 2)
+	// 	text(planetNames[i], planets[i][0], planets[i][1], planets[i][2]+.2);
+	// }
+
+	// sun text
+	glDisable(GL_LIGHTING);
+	glColor4f(1.0, 1.0, 0.0, 1.0);
+	text("Sun", sunProjection[0], sunProjection[1], sunProjection[2] + 150);
+	glColor4f(0.6, 0.6, 0.6, 1.0);
+	char sunDetailString[50];
+	sprintf(sunDetailString, "%0.2f lo", sunLongitude*180/M_PI);
+	text(sunDetailString, sunProjection[0], sunProjection[1], sunProjection[2] + 120);
+	// moon text
+	glColor4f(1.0, 1.0, 1.0, 1.0);
+	text("Earth's Moon", moonProjection[0], moonProjection[1], moonProjection[2] + 50);
+	glColor4f(0.6, 0.6, 0.6, 1.0);
+	char moonDetailString[50];
+	sprintf(moonDetailString, "%0.2f lo", moonLongitude*180/M_PI);
+	text(moonDetailString, moonProjection[0], moonProjection[1], moonProjection[2] + 30);
+	char moonDetailString2[50];
+	sprintf(moonDetailString2, "   %0.2f la", moonLatitude*180/M_PI);
+	text(moonDetailString2, moonProjection[0], moonProjection[1], moonProjection[2]-10);
+	// planet text
+	for(int i = 0; i < 9; i++){
+		if(i != 2){
+			glColor4f(1.0, 1.0, 1.0, 1.0);
 			text(planetNames[i], planetProjections[i][0], planetProjections[i][1], planetProjections[i][2] + 90);
 			glColor4f(0.6, 0.6, 0.6, 1.0);
 			char planetDetailString[50];
@@ -544,63 +602,6 @@ void draw3D(){
 			text(planetDetailString2, planetProjections[i][0], planetProjections[i][1], planetProjections[i][2] - 10);
 		}
 	}
-
-	// to sun
-	{
-		glColor4f(1.0, 1.0, 1.0, 1.0);
-		glLineWidth(1);
-		drawLine(planets[2][0], planets[2][1], planets[2][2], sunProjection[0], sunProjection[1], sunProjection[2] );
-		glPushMatrix();
-			glTranslatef(sunProjection[0], sunProjection[1], sunProjection[2]);
-			glRotatef(90,1,0,0);
-			glRotatef(90+sunLongitude/M_PI*180.0,0,1,0);
-			glLineWidth(2);
-			// glColor3f(1.0, 1.0, 1.0);
-			drawCircle(0, 0, 0, 20);
-			// drawSphere(planets[2][0]+dX, planets[2][1]+dY, planets[2][2]+dZ, 4);
-		glPopMatrix();
-		// sun name
-		glColor4f(1.0, 1.0, 0.0, 1.0);
-		text("Sun", sunProjection[0], sunProjection[1], sunProjection[2] + 200);
-		glColor4f(0.6, 0.6, 0.6, 1.0);
-		char sunDetailString[50];
-		sprintf(sunDetailString, "%0.2f lo", sunLongitude*180/M_PI);
-		text(sunDetailString, sunProjection[0], sunProjection[1], sunProjection[2] + 170);
-	}
-	// to moon
-	{
-		glColor3f(0.6, 0.6, 0.6);
-			glLineWidth(1);
-		drawLine(planets[2][0], planets[2][1], planets[2][2], moonProjection[0], moonProjection[1], moonProjection[2] );
-		glPushMatrix();
-			glTranslatef(moonProjection[0], moonProjection[1], moonProjection[2]);
-			glRotatef(90,1,0,0);
-			glRotatef(90+moonLongitude/M_PI*180.0,0,1,0);
-			// glLineWidth(2);
-			glColor3f(1.0, 1.0, 1.0);
-			drawCircle(0, 0, 0, 10);
-		glPopMatrix();
-		// moon name
-		glColor4f(1.0, 1.0, 1.0, 1.0);
-		drawLine(moonProjection[0], moonProjection[1], moonProjection[2],
-				 moonProjection[0], moonProjection[1], 0 );
-		text("Earth's Moon", moonProjection[0], moonProjection[1], moonProjection[2] + 50);
-		glColor4f(0.6, 0.6, 0.6, 1.0);
-		char moonDetailString[50];
-		sprintf(moonDetailString, "%0.2f lo", moonLongitude*180/M_PI);
-		text(moonDetailString, moonProjection[0], moonProjection[1], moonProjection[2] + 30);
-		char moonDetailString2[50];
-		sprintf(moonDetailString2, "   %0.2f la", moonLatitude*180/M_PI);
-		text(moonDetailString2, moonProjection[0], moonProjection[1], moonProjection[2]-10);
-	}
-
-	// planet names
-	// glColor4f(1.0, 1.0, 1.0, 1.0);
-	// for(int i = 0; i < 9; i++){
-	// 	if(i != 2)
-	// 	text(planetNames[i], planets[i][0], planets[i][1], planets[i][2]+.2);
-	// }
-
 	// zodiac names
 	for(int i = 0; i < 12; i++){
 		float angle = i/12.0*2.0*M_PI + 0.36;
@@ -608,17 +609,18 @@ void draw3D(){
 		if(i == zodiac){ glColor4f(1.0, 1.0, 0.3, 1.0); }
 		text(zodiacs[i], 900*cosf(angle), 900*sinf(angle), 20.0);
 	}
+	}
 
-
-
-	// celestial coordinates
+	///////////////////////////////////////////////////////
+	// COORDINATE LINES
+	if(showCoordinates){
 	glDisable(GL_LIGHTING);
 	noFill();
 
 	// 12 zodiac divisions
 	glLineWidth(4);
 	// glColor4f(0.5, 0.05, 0.05, 1.0);
-	glColor4f(0.4, 0.04, 0.04, 1.0);
+	glColor4f(0.6, 0.06, 0.06, 1.0);
 	glPushMatrix();
 		glRotatef(90,1,0,0);
 		for(int i = 0; i < 12; i++){
@@ -663,7 +665,9 @@ void draw3D(){
 	for(int i = 0; i < 20; i++){
 		drawCircle(0, 0, 0, powf(2,i));
 	}
+	}
 
+	///////////////////////
 	// reset
 	glColor4f(1.0, 1.0, 1.0, 1.0);
 	glEnable(GL_LIGHTING);
@@ -674,9 +678,11 @@ void draw2D(){
 	glColor3f(1.0, 1.0, 1.0);
 	char dateString[50];
 	sprintf(dateString, "%d %s %d  %02d:%02d:%02d UTC", year, monthStrings[month-1], day, hour, minute, second);
-	text(dateString, 10, 10, 0);
+	text(dateString, WIDTH*0.5 - 120, HEIGHT - 20, 0);
 }
 void keyDown(unsigned int key){
+	if (key == 't' || key == 'T'){ showText = !showText; }
+	if (key == 'c' || key == 'C'){ showCoordinates = !showCoordinates; }
 	if (key == ' '){
 		if(MODE == follow){
 			MODE = user;
