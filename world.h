@@ -1069,6 +1069,19 @@ unsigned char* getTextureData(const char * filename, int width, int height){
 	}
 	return data;
 }
+GLuint loadTextureBGR(const char * filename, int width, int height){
+	GLuint texture;
+	unsigned char *data = getTextureData(filename, width, height);
+	glGenTextures(1, &texture);
+	glBindTexture(GL_TEXTURE_2D, texture);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	gluBuild2DMipmaps(GL_TEXTURE_2D, 3, width, height, GL_BGR, GL_UNSIGNED_BYTE, data);
+	free(data);
+	glBindTexture(GL_TEXTURE_2D, 0);
+	return texture;
+}
 GLuint loadTexture(const char * filename, int width, int height){
 	GLuint texture;
 	unsigned char *data = getTextureData(filename, width, height);
