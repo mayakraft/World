@@ -254,10 +254,19 @@ void drawPlanet(int planetNumber, float x, float y, float z){
 		// saturns rings
 		if(planetNumber == 5){
 			noFill();
-			glColor3f(0.25, 0.25, 0.25);
 			glDisable(GL_LIGHTING);
-			for(int i = 0; i < 5; i++){
-				drawCircle(0, 0, 0, sqrt(planetRadiuses[planetNumber]) * PLANET_SCALE * 1.3+.1*i);
+			float r1 = sqrt(planetRadiuses[planetNumber]) * PLANET_SCALE * 1.3;
+			float r1_2 = sqrt(planetRadiuses[planetNumber]) * PLANET_SCALE * 1.9;
+			float r2 = sqrt(planetRadiuses[planetNumber]) * PLANET_SCALE * 2.2;
+			glColor4f(0.13, 0.13, 0.13, 1.0);
+			for(int i = 0; i < 60; i++){
+				float rr = (i/60.0) * (r1_2-r1) + r1;
+				drawCircle(0, 0, 0, rr);
+			}
+			glColor4f(0.1, 0.1, 0.1, 1.0);
+			for(int i = 0; i < 15; i++){
+				float rr = (i/15.0) * (r2-r1_2) + r1_2;
+				drawCircle(0, 0, 0, rr);
 			}
 			glEnable(GL_LIGHTING);
 		}
@@ -568,7 +577,7 @@ void draw3D(){
 	glDisable(GL_CULL_FACE);
 	fill();
 	glLineWidth(1);
-	// glCullFace(GL_FRONT);
+	glCullFace(GL_FRONT);
 	// to planets
 	for(int i = 0; i < 9; i++){
 		if(i != 2){
@@ -738,11 +747,32 @@ void draw3D(){
 		             planets[2][2]/coordinateScale*universeScale );
 
 
+		//////////////////////////////////////////////////////////
+		// draw ecliptic planes, AU units
+		glColor4f(1.0, 1.0, 1.0, 0.3);
+
+		// ecliptic equator
+		drawCircle(0,0,0,1);
+		// ecliptic node intersection
+		drawLine(1,0,0,-1,0,0);
+		// drawLine(0,100,0,0,-100,0);
+		glPushMatrix();
+			glRotatef(-23.4, 1, 0, 0);
+			// celestial equator
+			drawCircle(0,0,0,1);
+		glPopMatrix();
+
+		// solar system rings
+		// glColor4f(1.0, 1.0, 1.0, 0.15);
+		// for(int i = 0; i < 20; i++){
+		// 	drawCircle(0, 0, 0, powf(2,i));
+		// }
+
 		// 12 zodiac divisions
 		if(PERSPECTIVE != ORTHO){
-		glLineWidth(4);
-		// glColor4f(0.5, 0.05, 0.05, 1.0);
-		glColor4f(0.6, 0.06, 0.06, 1.0);
+		glLineWidth(2);
+		// glColor4f(0.6, 0.06, 0.06, 1.0);  // red
+		glColor4f(1.0, 1.0, 1.0, 0.1);
 		glPushMatrix();
 			glRotatef(90,1,0,0);
 			for(int i = 0; i < 12; i++){
@@ -750,43 +780,44 @@ void draw3D(){
 				glRotatef(30,0,1,0);
 			}
 		glPopMatrix();
+		glLineWidth(1);
+
 		// earth celestial sphere
-		glLineWidth(3);
-		// glColor4f(.2, .3, .9, 1.0);
-		glColor4f(.04, .07, .3, 1.0);
+		// glColor4f(.04, .07, .3, 1.0); // blue
+		glColor4f(1.0, 1.0, 1.0, 0.07);
 		glPushMatrix();
-			// earth position
 			glRotatef(-23.4,1,0,0);
 			drawCircle(0,0,0,1);
-			glLineWidth(1);
 			drawSphere(0,0,0,1);
 		glPopMatrix();
-		glLineWidth(1);
 
 		// upper and lower black fades
 		glDisable(GL_CULL_FACE);
 		fill();
 		glColor4f(0.0, 0.0, 0.0, 0.2);
+		float NUM_DARK_PANELS = 7.0;
 		glPushMatrix();
-			for(int i = 10; i >= 0; i--){ drawUnitCircle(0,0,.3+0.05*i); }
-			for(int i = 10; i >= 0; i--){ drawUnitCircle(0,0,-.3-0.05*i); }
+			for(int i = NUM_DARK_PANELS; i >= 0; i--){
+				float z1 =  0.5 + 0.5/NUM_DARK_PANELS*i;  // 0 to 1
+				float z2 = -0.5 - 0.5/NUM_DARK_PANELS*i;  // 0 to 1
+				// float r1 = sin((1-z1)*M_PI*0.5);
+				// float r2 = sin((-1-z2)*M_PI*0.5);
+				float r1 = sqrt(1-powf(z1,2));
+				float r2 = sqrt(1-powf(z2,2));
+				glPushMatrix();
+					glScalef(r1, r1, 1);
+					drawUnitCircle(0,0, z1);
+				glPopMatrix();
+				glPushMatrix();
+					glScalef(r1, r1, 1);
+					drawUnitCircle(0,0, z2);
+				glPopMatrix();
+			}
 		glPopMatrix();
 		noFill();
 		}
 
 
-		// draw ecliptic planes, AU units
-		glColor4f(1.0, 1.0, 1.0, 0.2);
-		drawLine(1,0,0,-1,0,0);
-		// glColor4f(1.0, 1.0, 1.0, 0.25);
-		// drawLine(0,100,0,0,-100,0);
-
-		glColor4f(1.0, 1.0, 1.0, 0.5);
-		drawCircle(0,0,0,1);
-		glColor4f(1.0, 1.0, 1.0, 0.15);
-		for(int i = 0; i < 20; i++){
-			drawCircle(0, 0, 0, powf(2,i));
-		}
 	glPopMatrix(); // coordinate matrix
 	}
 
