@@ -555,16 +555,32 @@ void moveOriginWithArrowKeys(){
 	// process input devices if in first person perspective mode
 	// map movement direction to the direction the person is facing
 	// float lookAzimuth = lookOrientation[0]/180.0*M_PI;
-	float lookAzimuth = HORIZON[0]/180.0*M_PI;
+	float lookAzimuth = (HANDED) ? HORIZON[0]/180.0*M_PI : -HORIZON[0]/180.0*M_PI;
 	if(PERSPECTIVE == POLAR){ lookAzimuth += M_PI; }
 	float dOrigin[3] = {0.0f, 0.0f, 0.0f};
 	if(keyboard[UP_KEY] || keyboard['W'] || keyboard['w']){
-		dOrigin[0] += WALK_INTERVAL * cosf(lookAzimuth);
-		dOrigin[1] -= WALK_INTERVAL * sinf(lookAzimuth);
+		switch(HANDED){
+			case 0:
+				dOrigin[0] -= WALK_INTERVAL * cosf(lookAzimuth);
+				dOrigin[1] += WALK_INTERVAL * sinf(lookAzimuth);
+				break;
+			case 1:
+				dOrigin[0] += WALK_INTERVAL * cosf(lookAzimuth);
+				dOrigin[1] -= WALK_INTERVAL * sinf(lookAzimuth);
+			break;
+		}
 	}
 	if(keyboard[DOWN_KEY] || keyboard['S'] || keyboard['s']){
+		switch(HANDED){
+			case 0:
+		dOrigin[0] += WALK_INTERVAL * cosf(lookAzimuth);
+		dOrigin[1] -= WALK_INTERVAL * sinf(lookAzimuth);
+			break;
+			case 1:
 		dOrigin[0] -= WALK_INTERVAL * cosf(lookAzimuth);
 		dOrigin[1] += WALK_INTERVAL * sinf(lookAzimuth);
+			break;
+		}
 	}
 	if(keyboard[LEFT_KEY] || keyboard['A'] || keyboard['a']){
 		dOrigin[0] -= WALK_INTERVAL * cosf(lookAzimuth+M_PI_2);
@@ -578,8 +594,17 @@ void moveOriginWithArrowKeys(){
 		dOrigin[2] += WALK_INTERVAL;
 	if(keyboard['Z'] || keyboard['z'])
 		dOrigin[2] -= WALK_INTERVAL;
-	ORIGIN[0] += dOrigin[0];
-	ORIGIN[1] += dOrigin[1];
+	switch(HANDED){
+		case 0:
+			ORIGIN[0] -= dOrigin[0];
+			ORIGIN[1] -= dOrigin[1];
+		break;
+		case 1:
+			ORIGIN[0] += dOrigin[0];
+			ORIGIN[1] += dOrigin[1];
+			// ORIGIN[2] += dOrigin[2];
+		break;
+	}
 	ORIGIN[2] += dOrigin[2];
 }
 void mouseUpdatePerspective(int dx, int dy){

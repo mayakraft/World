@@ -86,6 +86,13 @@ void calculateLocationOfMoon(double time, double *moon_x, double *moon_y, double
 	*moon_z = r * ( sin(v+w) * sin(i) );
 }
 
+
+typedef enum { user, follow } ModeState;
+ModeState MODE = user;
+
+FILE *file;
+unsigned char isFileOpen = 0;
+
 char zodiacs[][50] = {"Aries","Taurus","Gemini","Cancer","Leo","Virgo","Libra","Scorpio","Saggitarius","Capricorn","Aquarius","Pisces"};
 char planetNames[][50] = {"Mercury","Venus","Earth","Mars","Jupiter","Saturn","Uranus","Neptune","Pluto"};
 char monthStrings[][50] = { "JANUARY", "FEBRUARY", "MARCH", "APRIL", "MAY", "JUNE", "JULY", "AUGUST", "SEPTEMBER", "OCTOBER", "NOVEMBER", "DECEMBER" };
@@ -124,9 +131,11 @@ int second = 0;
 float universeScale = 10;
 float coordinateScale = 500;
 
+// heliocentric coordinates
 double planets[9][3];
 double moonPosition[3];
 
+// geocentric observation data
 double planetProjections[9][3];
 double moonProjection[3];
 double sunProjection[3];
@@ -137,16 +146,18 @@ double moonLongitude;
 double moonLatitude;
 double moonDistance;
 double sunLongitude;
+double sunDistance;
 double moonPhase; // angle, 0 and 2PI are 0 sunlight. PI is full sunlight
 double daylightHours;
 
 int zodiac = 0;
 
-int clockSpeed = 8;
+int clockSpeed = 10;
 
 unsigned char showText = 1;
 unsigned char showCoordinates = 1;
 unsigned char autoRotate = 1;
+unsigned char showPlanetLabels = 1;
 
 static float lastAngle;
 
@@ -169,31 +180,6 @@ char planetTexturePath[][100] = {
 	"../examples/data/neptune_map.raw",
 	"../examples/data/pluto_map.raw",
 };
-
-typedef enum { user, follow } ModeState;
-ModeState MODE = user;
-
-unsigned char isFileOpen = 0;
-
-FILE *file;
-void openFile(){
-	char filename[128] = "calendar-data.csv\0";
-	char path[128] = "../examples/data/\0";
-	strcat(path, filename);
-	file = fopen(path, "w");
-	fprintf(file, "Year,Month,Day,Hour,Minute,Second,Sun,Zodiac,Daylight,");
-	for(int i = 0; i < 9; i++){
-		if(i != 2){
-			fprintf(file, "%sLon,", planetNames[i]);
-			fprintf(file, "%sLat,", planetNames[i]);
-		}
-	}
-	fprintf(file, "MoonLon,MoonLat,Phase\n");
-}
-void closeFile(){
-	fclose(file);
-}
-
 
 void correctDates(){
 	static unsigned int monthDays[] = { 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 };
@@ -279,10 +265,10 @@ void drawMoon(){
 		// translate to earth's center
 		glTranslatef(planets[2][0], planets[2][1], planets[2][2]);
 		// translate to moon position
-		glTranslatef(moonPosition[0]*100, moonPosition[1]*100, moonPosition[2]*100);
+		glTranslatef(moonPosition[0]*70, moonPosition[1]*70, moonPosition[2]*70);
 		glRotatef(moonLongitude*180/M_PI - 90, 0, 0, 1);
 		glBindTexture(GL_TEXTURE_2D, moonTexture);
-		drawSphere(0, 0, 0, .1);
+		drawSphere(0, 0, 0, .05);
 		glBindTexture(GL_TEXTURE_2D, 0);
 
 		// glDisable(GL_LIGHTING);
@@ -324,10 +310,10 @@ void setup(){
 	HORIZON[1] = 15;
 	HORIZON[2] = 16;
 	// zoom orthographic projection
-	WINDOW[0] = (-17000*0.5) * ASPECT;
-	WINDOW[1] = -17000*0.5;
-	WINDOW[2] = 17000 * ASPECT;
-	WINDOW[3] = 17000;
+	WINDOW[0] = (-1700*0.5) * ASPECT;
+	WINDOW[1] = -1700*0.5;
+	WINDOW[2] = 1700 * ASPECT;
+	WINDOW[3] = 1700;
 
 	setupLights();
 
@@ -336,7 +322,7 @@ void setup(){
 	HANDED = RIGHT;
 
 	// HORIZON[2] = coordinateScale * 1.2; 
-	HORIZON[2] = universeScale * 1.2; 
+	HORIZON[2] = universeScale * 1.5; 
 
 
 	FAR_CLIP = 10000000.0;
@@ -419,12 +405,15 @@ void update(){
 			planetLongitude[i] = atan2(dY, dX);
 			planetLatitude[i] = M_PI*0.5 - acos( dZ );
 			if(planetLongitude[i] < 0) planetLongitude[i] += M_PI*2;
+			planetDistance[i] = mag;
 		}
 		else{
+			// this is earth. the distance of earth from earth
 			planetProjections[i][0] = 0.0;
 			planetProjections[i][1] = 0.0;
 			planetProjections[i][2] = 0.0;
 			planetLongitude[i] = 0.0;
+			planetDistance[i] = 0.0;
 		}
 	}
 	// moon
@@ -442,6 +431,7 @@ void update(){
 		moonLongitude = atan2(dY, dX);
 		moonLatitude = M_PI*0.5 - acos(dZ );
 		if(moonLongitude < 0) moonLongitude += M_PI*2;
+		moonDistance = mag;
 	}
 	// sun
 	{
@@ -452,6 +442,7 @@ void update(){
 		sunLongitude = atan2(-planets[2][1], -planets[2][0]);
 		// sunLatitude = acos(sunProjection[2] / sqrt( powf(sunProjection[0],2) + powf(sunProjection[1],2) + powf(sunProjection[2],2) ) );
 		if(sunLongitude < 0) sunLongitude += M_PI*2;
+		sunDistance = sqrt( powf(planets[2][0],2) + powf(planets[2][1],2) + powf(planets[2][2],2) );
 	}
 
 
@@ -491,33 +482,69 @@ void update(){
 
 	correctDates();
 
+
+	// console log
+	// {
+	// 	printf("sun:%.3f %s ", sunLongitude * 180 / M_PI, zodiacs[zodiac]);
+	// 	printf("%fhrs ", daylightHours);
+	// 	for(int i = 0; i < 9; i++){
+	// 		if(i != 2){
+	// 			printf("%s ", planetNames[i]);
+	// 			printf("%.3f ", planetLongitude[i] * 180 / M_PI);
+	// 			printf("%.3f ", planetLatitude[i] * 180 / M_PI);
+	// 		}
+	// 	}
+	// 	printf("moon %.3f ", moonLongitude * 180 / M_PI);
+	// 	printf("%.3f ", moonLatitude * 180 / M_PI);
+	// 	printf("%.3f\n", moonPhase * 180 / M_PI);
+	// }
+
+
 	if(isFileOpen){
 		static float lastMoonAngle = -1;
 		fprintf(file, "%d,%d,%d,%d,%d,%d,", year, month, day, hour, minute, second);
 		fprintf(file, "%f,", sunLongitude * 180 / M_PI);
+		fprintf(file, "%f,", sunDistance);
 		fprintf(file, "%s,", zodiacs[zodiac]);
 		fprintf(file, "%f,", daylightHours);
 		for(int i = 0; i < 9; i++){
 			if(i != 2){
 				fprintf(file, "%f,", planetLongitude[i] * 180 / M_PI);
 				fprintf(file, "%f,", planetLatitude[i] * 180 / M_PI);
+				fprintf(file, "%f,", planetDistance[i]);
 			}
 		}
 		fprintf(file, "%f,", moonLongitude * 180 / M_PI);
 		fprintf(file, "%f,", moonLatitude * 180 / M_PI);
+		fprintf(file, "%f,", moonDistance);
 		fprintf(file, "%f", moonPhase * 180 / M_PI);
-		// if(lastMoonAngle == -1){ lastMoonAngle = moonLongitude; }
-		// else{
-
-		// }
 		fprintf(file, "\n");
 	}
-
 
 	if(autoRotate){
 		HORIZON[0] += 0.15;
 	}
 }
+
+void openFile(){
+	char filename[128] = "calendar-data.csv\0";
+	char path[128] = "../examples/data/\0";
+	strcat(path, filename);
+	file = fopen(path, "w");
+	fprintf(file, "Year,Month,Day,Hour,Minute,Second,SunLongitude,SunDistance,Zodiac,Daylight,");
+	for(int i = 0; i < 9; i++){
+		if(i != 2){
+			fprintf(file, "%sLongitude,", planetNames[i]);
+			fprintf(file, "%sLatitude,", planetNames[i]);
+			fprintf(file, "%sDistance,", planetNames[i]);
+		}
+	}
+	fprintf(file, "MoonLongitude,MoonLatitude,MoonDistance,MoonPhase\n");
+}
+void closeFile(){
+	fclose(file);
+}
+
 
 void draw3D(){
 	glEnable(GL_CULL_FACE);
@@ -567,7 +594,22 @@ void draw3D(){
 	// moon
 	drawMoon();
 
-	glPopMatrix();
+	if(showPlanetLabels){
+		glDisable(GL_LIGHTING);
+		glColor4f(1.0, 1.0, 1.0, 1.0);
+		for(int i = 0; i < 9; i++){
+			text(planetNames[i], planets[i][0], 
+			                     planets[i][1], 
+			                     planets[i][2] + sqrt(planetRadiuses[i])*0.002 );
+		}
+		text("Moon", planets[2][0] + moonPosition[0]*70, 
+		             planets[2][1] + moonPosition[1]*70, 
+		             planets[2][2] + moonPosition[2]*70 + 0.075 );
+		text("Sun", 0,0,0 + 0.175 );
+		glEnable(GL_LIGHTING);
+	}
+
+	glPopMatrix();  // universe scale
 
 
 	///////////////////////////////////////////////////////
@@ -838,6 +880,7 @@ void draw2D(){
 	text(dateString, WIDTH*0.5 - 120, HEIGHT - 30, 0);
 }
 void keyDown(unsigned int key){
+	if(key == 'l' || key == 'L'){ showPlanetLabels = !showPlanetLabels; }
 	if(key == 'r' || key == 'R'){ autoRotate = !autoRotate; }
 	if (key == 't' || key == 'T'){ showText = !showText; }
 	if (key == 'c' || key == 'C'){ showCoordinates = !showCoordinates; }
@@ -853,7 +896,7 @@ void keyDown(unsigned int key){
 	}
 	if(key == ']'){
 		clockSpeed++;
-		if(clockSpeed > 10){ clockSpeed = 10; }
+		if(clockSpeed > 12){ clockSpeed = 12; }
 	}
 	if(key == '['){
 		clockSpeed--;
