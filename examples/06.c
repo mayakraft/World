@@ -146,6 +146,8 @@ void drawUnitCubeLabels(){
 }
 
 void setup() {
+	HANDED = RIGHT;
+	noFill();
 	// glutReshapeWindow(400, 400);
 	// hideHelpfulOrientation();
 	polarPerspective();

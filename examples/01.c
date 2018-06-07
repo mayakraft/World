@@ -8,8 +8,13 @@
 #include "../world.h"
 
 void setup(){
+	glEnable(GL_CULL_FACE);
+	switch(HANDED){
+		case LEFT: glCullFace(GL_BACK); break;
+		case RIGHT:  glCullFace(GL_FRONT); break;
+	}	
 	OPTIONS ^= SET_SHOW_GROUND | SET_SHOW_GRID | SET_KEYBOARD_MOVE;
-	HORIZON[2] = 3.3;
+	HORIZON[2] = 2.5;
 	HORIZON[1] = 5;
 	polarPerspective();
 }
@@ -28,7 +33,7 @@ void draw3D(){
 	float size1 = cosf(ELAPSED*0.5)*0.12 + 0.88;
 	float size2 = -cosf(ELAPSED*0.5)*0.12 + 0.88;
 	glPushMatrix();
-		glTranslatef(0.0, 0.0, 0.5);
+		glTranslatef(0.0, 0.0, 0.2);
 		glRotatef(ELAPSED*20, 1, 0, 0);
 		glRotatef(ELAPSED*44, 0, 1, 0);
 		fill();

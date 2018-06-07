@@ -39,6 +39,7 @@ void drawDotsPlane(int dotRows){
 }
 
 void setup(){
+	HANDED = RIGHT;
 	// glShadeModel(GL_FLAT); //GL_SMOOTH);
 	glEnable(GL_CULL_FACE);
 	glCullFace(GL_FRONT);

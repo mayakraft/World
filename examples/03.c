@@ -12,6 +12,7 @@ char* texts[4] = {"", "1/2 ", "1/4 ", "1/8 "};
 
 void setup() {
 	polarPerspective();
+	noFill();
 	// GROUND = 0;
 	// GRID = 0;
 	HORIZON[0] = 180;
