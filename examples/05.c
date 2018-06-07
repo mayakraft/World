@@ -12,15 +12,14 @@
 
 #include "../world.h"
 
-#define NUM_SHADERS 7
+#define NUM_SHADERS 6
 char* fragmentList[NUM_SHADERS] = {
-	"../examples/shaders/fog.frag",
 	"../examples/shaders/smpte.frag",
-	"../examples/shaders/metaballs.frag",
+	"../examples/shaders/worley.frag",
 	"../examples/shaders/cave.frag",
-	"../examples/shaders/warp.frag",
-	"../examples/shaders/water.frag",
-	"../examples/shaders/fractal.frag"
+	"../examples/shaders/metaballs.frag",
+	"../examples/shaders/waveform.frag",
+	"../examples/shaders/checkerboard.frag"
 };
 int selection = 0;
 
@@ -29,7 +28,7 @@ GLuint shader = 0;
 unsigned char autoReload = 1; // reload shader 1/second (live code the shader)
 
 void setup() {
-	OPTIONS = SET_MOUSE_LOOK | SET_KEYBOARD_MOVE | SET_KEYBOARD_FUNCTIONS;
+	SETTINGS = SET_MOUSE_LOOK | SET_KEYBOARD_MOVE | SET_KEYBOARD_FUNCTIONS;
 	shader = loadShader( vertexPath, fragmentList[selection] );
 }
 void update() {

@@ -1,6 +1,5 @@
 # Linux (default)
-# objects = 01 02 03 04 05 06 07 08 09 10 11
-objects = 01
+objects = 01 02 03 04 05 06 07 08 09 10 11
 CFLAGS = -std=gnu99
 LDFLAGS = -lGL -lGLU -lglut -lm
 

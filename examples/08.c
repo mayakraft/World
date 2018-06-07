@@ -6,8 +6,8 @@
 
 void setup(){
 	// simpleLights();
-	// OPTIONS ^= SET_SHOW_GROUND;
-	// OPTIONS ^= SET_SHOW_GRID;
+	// SETTINGS ^= SET_SHOW_GROUND;
+	// SETTINGS ^= SET_SHOW_GRID;
 }
 void update(){ }
 void draw3D(){
@@ -24,7 +24,7 @@ void draw3D(){
 	// drawAxesLabels(5);
 	glViewport(0, 0, (GLsizei) WIDTH*0.5, (GLsizei) HEIGHT*0.5);
 	firstPersonPerspective();
-		if(OPTIONS & (1 << BIT_SHOW_GRID)){
+		if(SETTINGS & (1 << BIT_SHOW_GRID)){
 			float newX = modulusContext(-ORIGIN[0], 5);
 			float newY = modulusContext(-ORIGIN[1], 5);
 			float newZ = modulusContext(-ORIGIN[2], 5);
@@ -34,7 +34,7 @@ void draw3D(){
 			glPopMatrix();
 		}
 		// 2D REPEATED STRUCTURE
-		if(OPTIONS & (1 << BIT_SHOW_GROUND)){
+		if(SETTINGS & (1 << BIT_SHOW_GROUND)){
 			float newX = modulusContext(-ORIGIN[0], 2);
 			float newY = modulusContext(-ORIGIN[1], 2);
 			glPushMatrix();
@@ -45,7 +45,7 @@ void draw3D(){
 
 	glViewport((GLsizei) WIDTH*0.5, (GLsizei) HEIGHT*0.5, (GLsizei) WIDTH*0.5, (GLsizei) HEIGHT*0.5);
 	orthoPerspective(WINDOW[0], WINDOW[1], WINDOW[2], WINDOW[3]);
-		if(OPTIONS & (1 << BIT_SHOW_GRID)){
+		if(SETTINGS & (1 << BIT_SHOW_GRID)){
 			float newX = modulusContext(-ORIGIN[0], 5);
 			float newY = modulusContext(-ORIGIN[1], 5);
 			float newZ = modulusContext(-ORIGIN[2], 5);
@@ -55,7 +55,7 @@ void draw3D(){
 			glPopMatrix();
 		}
 		// 2D REPEATED STRUCTURE
-		if(OPTIONS & (1 << BIT_SHOW_GROUND)){
+		if(SETTINGS & (1 << BIT_SHOW_GROUND)){
 			float newX = modulusContext(-ORIGIN[0], 2);
 			float newY = modulusContext(-ORIGIN[1], 2);
 			glPushMatrix();

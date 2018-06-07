@@ -13,12 +13,10 @@ char* texts[4] = {"", "1/2 ", "1/4 ", "1/8 "};
 void setup() {
 	polarPerspective();
 	noFill();
-	// GROUND = 0;
-	// GRID = 0;
 	HORIZON[0] = 180;
 	HORIZON[1] = 0;
 	HORIZON[2] = sqrt(2);
-	OPTIONS = SET_MOUSE_LOOK | SET_SHOW_GRID | SET_KEYBOARD_FUNCTIONS;
+	SETTINGS = SET_MOUSE_LOOK | SET_SHOW_GRID;// | SET_KEYBOARD_FUNCTIONS;
 }
 void update() { }
 void draw3D() {
@@ -61,9 +59,13 @@ void draw2D() {
 	drawLine(0, HEIGHT, 0, WIDTH, 0, 0);
 }
 void keyDown(unsigned int key) {
-	if(key == ' '){
-		zoom = (zoom+1)%4;
-		HORIZON[2] = sqrt( 1 + powf(4,zoom));
+	switch(key){
+		case ESCAPE_KEY: exit(0); break;
+		case 'F': case 'f': toggleFullscreen(); break;
+		case ' ':
+			zoom = (zoom+1)%4;
+			HORIZON[2] = sqrt( 1 + powf(4,zoom));
+			break;
 	}
 }
 void keyUp(unsigned int key) { }

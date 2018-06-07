@@ -41,7 +41,7 @@ void setup(){
 	_indices = (uint32_t*)malloc(sizeof(uint32_t) * 2*(LAND_WIDTH-1)*(LAND_HEIGHT-1) * 3);
 	_colors = (float*)malloc(sizeof(float) * LAND_WIDTH*LAND_HEIGHT * 3);
 	buildWorld();
-	OPTIONS = SET_MOUSE_LOOK | SET_KEYBOARD_MOVE | SET_KEYBOARD_FUNCTIONS;
+	SETTINGS = SET_MOUSE_LOOK | SET_KEYBOARD_MOVE | SET_KEYBOARD_FUNCTIONS;
 
 	GLfloat white_color[] = { 1.0, 1.0, 1.0, 1.0 };
 	GLfloat spot_direction[] = { 0.0, 0.0, -1.0 };
@@ -97,8 +97,8 @@ void buildWorld(){
 	// set X Y to the grid
 	for(int h = 0; h < LAND_HEIGHT; h++){
 		for(int w = 0; w < LAND_WIDTH; w++){
-			_points[(h*LAND_WIDTH+w)*3+0] = (w - LAND_WIDTH*.5) * .1;         // x
-			_points[(h*LAND_WIDTH+w)*3+1] = (h - LAND_HEIGHT*.5) * .1;        // y
+			_points[(h*LAND_WIDTH+w)*3+0] = (w - LAND_WIDTH*.5) * .1;    // x
+			_points[(h*LAND_WIDTH+w)*3+1] = (h - LAND_HEIGHT*.5) * .1;   // y
 		}
 	}
 

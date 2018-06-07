@@ -1,6 +1,6 @@
 // example 4
 //
-// flying, repeating content
+// floating through an outdoor landscape of generative, repeating 3D geometry
 
 #include "../world.h"
 
@@ -12,6 +12,8 @@ typedef struct{
 	float zFighting;  // 0 and .1
 }worldObjects;
 
+GLuint texture;
+
 const int OBJ_DIST = 200;
 const int NUM_OBJ = 200;
 const int NUM_BLDG = 200;
@@ -20,7 +22,7 @@ worldObjects obj[NUM_OBJ];
 worldObjects building[NUM_BLDG];
 
 GLfloat green[] = {0.16, 0.41, 0.29, 1.0};
-GLfloat darkGreen[] = { 0.10, 0.26, 0.18, 1.00 };
+GLfloat darkGreen[] = { 0.10, 0.26, 0.18, 0.2 };
 GLfloat white[] = { 1.0, 1.0, 1.0, 1.0 };
 GLfloat bright_white[] = { 2.0, 2.0, 2.0, 1.0 };
 
@@ -39,11 +41,13 @@ void drawDotsPlane(int dotRows){
 }
 
 void setup(){
+	texture = loadTexture("../examples/data/noise32.raw", 32, 32);
+
 	HANDED = RIGHT;
 	// glShadeModel(GL_FLAT); //GL_SMOOTH);
 	glEnable(GL_CULL_FACE);
 	glCullFace(GL_FRONT);
-	OPTIONS = SET_MOUSE_LOOK | SET_KEYBOARD_FUNCTIONS;
+	SETTINGS = SET_MOUSE_LOOK | SET_KEYBOARD_FUNCTIONS;
 	ORIGIN[2] = 4;
 	// glClearColor(0.32, 0.63, 0.75, 1.0);
 	glClearColor(0.19, 0.45, 0.68, 1.00);
@@ -85,6 +89,10 @@ void setup(){
 	glLightfv(GL_LIGHT1, GL_POSITION, ambient_position);
 }
 void update(){
+	float lfo0p5 = 0.5 + 0.2 * cos(ELAPSED*0.05);
+	float lfo0p33 = 0.333 + 0.2 * cos(ELAPSED*0.07);
+	HORIZON[0] = 30*sin(ELAPSED * lfo0p5);
+	HORIZON[1] = 10*sin(ELAPSED * lfo0p33);
 	ORIGIN[0] += 0.2;
 	for(int i = 0; i < NUM_OBJ; i++){
 		if(obj[i].x < ORIGIN[0]-OBJ_DIST*0.5){
@@ -106,18 +114,27 @@ void update(){
 }
 void draw3D(){
 	// grassy ground
-	glMaterialfv(GL_FRONT, GL_DIFFUSE, green);
-	glMaterialfv(GL_FRONT, GL_AMBIENT, darkGreen);
+	glColor4f(green[0], green[1], green[2], green[3]);
+	drawRect(-1000, -1000, -ORIGIN[2]-1, 2000, 2000);
+
+	glMaterialfv(GL_FRONT, GL_DIFFUSE, darkGreen);
+	glMaterialfv(GL_FRONT, GL_AMBIENT, green);
 	glEnable(GL_LIGHTING);
 	glEnable(GL_LIGHT1);
 
+	glBindTexture(GL_TEXTURE_2D, texture);
+	glTexEnvi(GL_TEXTURE_ENV, GL_COMBINE_RGB, GL_ADD);
 	glPushMatrix();
+		float xmod = fmod(ORIGIN[0], 20);
+		float ymod = fmod(ORIGIN[1], 20);
+		glTranslatef(-xmod, -ymod, 0);
 		for(int i = 0; i < 100; i++){
 			for(int j = 0; j < 100; j++){
 				drawRect(-1000 + 20*i, -1000 + 20*j, -ORIGIN[2], 20, 20);
 			}
 		}
 	glPopMatrix();
+	glBindTexture(GL_TEXTURE_2D, 0);
 
 	glDisable(GL_LIGHT1);
 	glDisable(GL_LIGHTING);
@@ -144,7 +161,6 @@ void draw3D(){
 			glPopMatrix();
 		glPopMatrix();
 	}
-	
 
 	for(int i = 0; i < NUM_OBJ; i++){
 		glPushMatrix();

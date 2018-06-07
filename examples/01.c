@@ -13,7 +13,7 @@ void setup(){
 		case LEFT: glCullFace(GL_BACK); break;
 		case RIGHT:  glCullFace(GL_FRONT); break;
 	}	
-	OPTIONS ^= SET_SHOW_GROUND | SET_SHOW_GRID | SET_KEYBOARD_MOVE;
+	SETTINGS ^= SET_SHOW_GROUND | SET_SHOW_GRID | SET_KEYBOARD_MOVE;
 	HORIZON[2] = 2.5;
 	HORIZON[1] = 5;
 	polarPerspective();

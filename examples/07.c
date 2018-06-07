@@ -282,7 +282,7 @@ void drawMoon(){
 
 
 void setup(){
-	dot = loadTexture("../examples/data/dot-black.raw", 64, 64);
+	dot = loadTexture("../examples/data/dot-black-on-white.raw", 64, 64);
 	// constellationTexture = loadTexture("../examples/data/constellations.raw", 1024, 512);
 	for(int i = 0; i < 8; i++){
 		switch(i){
@@ -301,9 +301,9 @@ void setup(){
 	moonTexture = loadTextureBGR("../examples/data/moon_map.raw", 128, 64);
 
 
-	OPTIONS ^= SET_SHOW_GROUND;
-	OPTIONS ^= SET_SHOW_GRID;
-	OPTIONS ^= SET_KEYBOARD_MOVE;
+	SETTINGS ^= SET_SHOW_GROUND;
+	SETTINGS ^= SET_SHOW_GRID;
+	SETTINGS ^= SET_KEYBOARD_MOVE;
 
 	polarPerspective();
 	HORIZON[0] = -95;

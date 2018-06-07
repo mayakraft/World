@@ -22,7 +22,7 @@ GLuint spectrum;
 char *vertexPath1 = "../examples/shaders/simple.vert";
 char *fragmentPath1 = "../examples/shaders/fog.frag";
 char *vertexPath2 = "../examples/shaders/wobble.vert";
-char *fragmentPath2 = "../examples/shaders/water.frag";
+char *fragmentPath2 = "../examples/shaders/worley.frag";
 
 void setupLighting(){
 	GLfloat light_position1[] = { 0.0, 0.0, 10.0, 1.0 };
@@ -52,7 +52,7 @@ void setup() {
 	// setupLighting();
 	shader = loadShader(  vertexPath1, fragmentPath1 );
 	shader2 = loadShader( vertexPath2, fragmentPath2 );
-	OPTIONS = SET_MOUSE_LOOK | SET_KEYBOARD_MOVE | SET_KEYBOARD_FUNCTIONS;
+	SETTINGS = SET_MOUSE_LOOK | SET_KEYBOARD_MOVE | SET_KEYBOARD_FUNCTIONS;
 	polarPerspective();
 	HORIZON[1] = 12;
 	HORIZON[2] = 10;

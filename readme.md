@@ -135,20 +135,20 @@ It's easy to get your bearings. Camera orientation is measured using horizontal 
 
 ![example](https://66.media.tumblr.com/a54164176d27d4c5d888c5ee58f52318/tumblr_odgrd3iDGu1vfq168o1_500.gif)
 
-## Beginner / Advanced Mode
+## Simple / Advanced Mode
 
 *TO MAKE 3D EASY* the framework comes with keyboard and mouse handling and coordinate space visualizations. You must **opt-out** if you don't want these features. 
 
-default is `BEGINNER`
+default is `SIMPLE_SETTINGS`
 
 ```c
-OPTIONS = EMPTY;
+SETTINGS = ADVANCED_SETTINGS;
 ```
 
-* `BEGINNER`
-* `EMPTY`
+* `SIMPLE_SETTINGS`
+* `ADVANCED_SETTINGS`
 
-Beginner and Advanced turn **all the flags** on or off
+Simple and Advanced turn **all the flags** on or off
 
 ### Options Flags
 
@@ -163,13 +163,13 @@ Flip individual flags for a unique combination of built-in features
 *Example, set new features:*
 
 ```c
-OPTIONS = SET_MOUSE_LOOK | SET_KEYBOARD_FUNCTIONS | SET_SHOW_GRID;
+SETTINGS = SET_MOUSE_LOOK | SET_KEYBOARD_FUNCTIONS | SET_SHOW_GRID;
 ```
 
 *toggle features:*
 
 ```c
-OPTIONS ^= SET_SHOW_GROUND;
+SETTINGS ^= SET_SHOW_GROUND;
 ```
 
 
