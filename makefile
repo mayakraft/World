@@ -20,7 +20,7 @@ endif
 
 $(EXE): $(EXE).c
 	@mkdir -p bin
-	gcc -o bin/$@ $< $(CFLAGS) $(LDFLAGS)
+	gcc -o bin/$@ $< $(CFLAGS) $(LDFLAGS) -Os -ffunction-sections -fdata-sections
 
 run:
 	./bin/$(EXE) $(ARGS)

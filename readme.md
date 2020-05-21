@@ -17,6 +17,38 @@ a hyper-minimalist (1 file) framework to bring the Processing design paradigm to
 > 1. navigate to the /examples folder `cd examples`
 > 2. type `make` then `make run1` or `make run2` ...
 
+# Installation
+
+### MacOS
+
+Install a package manager, like [homebrew](https://brew.sh/)
+
+```
+brew update
+brew install glew
+```
+
+
+
+### Raspberry Pi (Raspbian)
+
+> best with Raspbian version Stretch (2017) or later
+
+```
+sudo raspi-config
+```
+
+under "Advanced options", set "GL Driver" to be "GL (Full KMS)"
+
+> if you don't have "GL Driver", you have an old version of Raspbian and you can ignore it.
+
+install 2 dependencies
+
+```bash
+sudo apt-get update
+sudo apt-get install libglew-dev libglfw3-dev
+```
+
 # Introduction
 
 ```c
@@ -246,4 +278,5 @@ These are just a few useful functions. A classic resource for more information i
 * state machine
 
 # license
+
 MIT

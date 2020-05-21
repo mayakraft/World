@@ -89,8 +89,8 @@ void setup(){
 	glLightfv(GL_LIGHT1, GL_POSITION, ambient_position);
 }
 void update(){
-	float lfo0p5 = 0.5 + 0.2 * cos(ELAPSED*0.05);
-	float lfo0p33 = 0.333 + 0.2 * cos(ELAPSED*0.07);
+	float lfo0p5 = 0.5 + 0.2 * cos(ELAPSED*0.2);
+	float lfo0p33 = 0.333 + 0.2 * cos(ELAPSED*0.2);
 	HORIZON[0] = 30*sin(ELAPSED * lfo0p5);
 	HORIZON[1] = 10*sin(ELAPSED * lfo0p33);
 	ORIGIN[0] += 0.2;
