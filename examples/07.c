@@ -310,10 +310,10 @@ void setup(){
 	HORIZON[1] = 15;
 	HORIZON[2] = 16;
 	// zoom orthographic projection
-	WINDOW[0] = (-1700*0.5) * ASPECT;
-	WINDOW[1] = -1700*0.5;
-	WINDOW[2] = 1700 * ASPECT;
-	WINDOW[3] = 1700;
+	FRAME[0] = (-1700*0.5) * ASPECT;
+	FRAME[1] = -1700*0.5;
+	FRAME[2] = 1700 * ASPECT;
+	FRAME[3] = 1700;
 
 	setupLights();
 

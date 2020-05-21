@@ -44,7 +44,7 @@ void draw3D(){
 		}
 
 	glViewport((GLsizei) WIDTH*0.5, (GLsizei) HEIGHT*0.5, (GLsizei) WIDTH*0.5, (GLsizei) HEIGHT*0.5);
-	orthoPerspective(WINDOW[0], WINDOW[1], WINDOW[2], WINDOW[3]);
+	orthoPerspective(FRAME[0], FRAME[1], FRAME[2], FRAME[3]);
 		if(SETTINGS & (1 << BIT_SHOW_GRID)){
 			float newX = modulusContext(-ORIGIN[0], 5);
 			float newY = modulusContext(-ORIGIN[1], 5);
@@ -68,10 +68,10 @@ void draw3D(){
 	polarPerspective();
 
 	// update orthographic frame with new aspect ratio
-	// float newW = WINDOW[3] * ((float)WIDTH / (float)HEIGHT);
-	// float dW = WINDOW[2] - newW;
-	// WINDOW[2] = newW;
-	// WINDOW[0] += dW * 0.5;
+	// float newW = FRAME[3] * ((float)WIDTH / (float)HEIGHT);
+	// float dW = FRAME[2] - newW;
+	// FRAME[2] = newW;
+	// FRAME[0] += dW * 0.5;
 }
 void draw2D(){ 
 	headsUpDisplay(5, 15, 10);

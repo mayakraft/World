@@ -1,7 +1,7 @@
 # Linux (default)
 EXE = world
 CFLAGS = -std=gnu99
-LDFLAGS = -lGL -lGLU -lglut -lm
+LDFLAGS = -I/opt/vc/include -L/opt/vc/lib -lGL -lm -lglfw -lGLEW
 
 # Windows (cygwin)
 ifeq "$(OS)" "Windows_NT"
@@ -15,10 +15,22 @@ ifndef OSTYPE
   #export OSTYPE
 endif
 ifeq ($(OSTYPE),darwin)
-	LDFLAGS = -framework Carbon -framework OpenGL -framework GLUT  -Wno-deprecated
+	LDFLAGS = -I./lib/include/ -L./lib/glfw-macos/ -lGLEW -lglfw3 -framework Carbon -framework Cocoa -framework OpenGL -framework IOKit -Wno-deprecated
 endif
-
+# ifeq use local src of lGLEW
 $(EXE): $(EXE).c
+	true > world.h
+	cat ./src/header.c >> world.h
+	cat ./src/globals.c >> world.h
+	cat ./src/math.c >> world.h
+	cat ./src/events.c >> world.h
+	cat ./src/projection.c >> world.h
+	cat ./src/shapes.c >> world.h
+	cat ./src/texture.c >> world.h
+	cat ./src/helpful.c >> world.h
+	cat ./src/loop.c >> world.h
+	cat ./src/main.c >> world.h
+	cat ./src/footer.c >> world.h
 	@mkdir -p bin
 	gcc -o bin/$@ $< $(CFLAGS) $(LDFLAGS) -Os -ffunction-sections -fdata-sections
 
